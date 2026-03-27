@@ -75,7 +75,7 @@ export default async function AdminDashboard() {
   const totalRequests = Object.values(countsMap).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="px-6 lg:px-8 py-6 max-w-[1200px] mx-auto">
+    <div className="px-6 md:px-10 lg:px-12 xl:px-16 py-6 max-w-[1600px] mx-auto">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-xl font-semibold text-[var(--foreground)]">Admin Dashboard</h1>

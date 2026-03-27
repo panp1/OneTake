@@ -204,7 +204,7 @@ export default function NewIntakePage() {
 
   return (
     <AppShell>
-      <div className="px-6 lg:px-8 py-6 max-w-3xl mx-auto">
+      <div className="px-6 md:px-10 lg:px-12 xl:px-16 py-6 max-w-[1600px] mx-auto">
         {/* Back link */}
         <Link
           href="/"

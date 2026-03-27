@@ -78,7 +78,7 @@ export default function Dashboard() {
 
   return (
     <AppShell>
-      <div className="px-6 lg:px-8 py-6 max-w-[1400px] mx-auto">
+      <div className="px-6 md:px-10 lg:px-12 xl:px-16 py-6 max-w-[1600px] mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>

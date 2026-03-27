@@ -121,7 +121,7 @@ function DesignerContent({ id }: { id: string }) {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="border-b border-[var(--border)] px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           <div className="text-center flex-1">
             <span className="text-lg font-bold tracking-tight text-[var(--foreground)]">
               OneForma
@@ -133,7 +133,7 @@ function DesignerContent({ id }: { id: string }) {
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-[1600px] mx-auto px-6 md:px-10 lg:px-12 xl:px-16 py-8">
         {/* Title */}
         <div className="text-center mb-8">
           <h1 className="text-xl font-semibold text-[var(--foreground)]">{request.title}</h1>

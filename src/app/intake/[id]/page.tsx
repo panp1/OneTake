@@ -234,7 +234,7 @@ export default function IntakeDetailPage({
   if (loading && !data) {
     return (
       <AppShell>
-        <div className="px-6 lg:px-8 py-6 max-w-[1200px] mx-auto space-y-6">
+        <div className="px-6 md:px-10 lg:px-12 xl:px-16 py-6 max-w-[1600px] mx-auto space-y-6">
           <div className="skeleton h-8 w-64 mb-4" />
           <SkeletonSection />
           <SkeletonSection />
@@ -297,8 +297,8 @@ export default function IntakeDetailPage({
         <div className="flex-1 overflow-y-auto">
           {/* Status banner */}
           <div className="gradient-accent h-1" />
-          <div className="bg-white border-b border-[var(--border)] px-6 lg:px-8 py-4">
-            <div className="max-w-[1200px] mx-auto flex items-center justify-between">
+          <div className="bg-white border-b border-[var(--border)] px-6 md:px-10 lg:px-12 xl:px-16 py-4">
+            <div className="max-w-[1600px] mx-auto flex items-center justify-between">
               <div className="flex items-center gap-4 min-w-0">
                 <Link
                   href="/"
@@ -336,7 +336,7 @@ export default function IntakeDetailPage({
             </div>
           </div>
 
-          <div className="px-6 lg:px-8 py-6 max-w-[1200px] mx-auto space-y-6">
+          <div className="px-6 md:px-10 lg:px-12 xl:px-16 py-6 max-w-[1600px] mx-auto space-y-6">
             {/* Pipeline Progress / Compute Job Status */}
             {(request.status === "generating" || pipelineRuns.length > 0) && (
               <section className="card p-6">
