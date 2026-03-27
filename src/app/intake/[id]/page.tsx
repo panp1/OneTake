@@ -32,6 +32,7 @@ import type {
   CreativeBrief,
   ActorProfile,
   GeneratedAsset,
+  ComputeJob,
 } from "@/lib/types";
 
 interface DetailData {
@@ -66,6 +67,7 @@ export default function IntakeDetailPage({
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [changesNote, setChangesNote] = useState("");
   const [showChangesModal, setShowChangesModal] = useState(false);
+  const [computeJob, setComputeJob] = useState<ComputeJob | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -142,12 +144,30 @@ export default function IntakeDetailPage({
     loadData();
   }, [loadData]);
 
-  // Auto-refresh when generating
+  // Poll compute job status when generating
   useEffect(() => {
-    if (data?.request.status !== "generating") return;
-    const interval = setInterval(loadData, 5000);
+    if (data?.request?.status !== "generating") return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/compute/status/${id}`);
+        if (res.ok) {
+          const { latest } = await res.json();
+          setComputeJob(latest ?? null);
+          if (latest?.status === "complete") {
+            clearInterval(interval);
+            loadData();
+          } else if (latest?.status === "failed") {
+            clearInterval(interval);
+          }
+        }
+      } catch {
+        // Silently ignore polling errors
+      }
+    }, 5000);
+
     return () => clearInterval(interval);
-  }, [data?.request.status, loadData]);
+  }, [data?.request?.status, id, loadData]);
 
   async function handleStartPipeline() {
     setActionLoading("pipeline");
@@ -316,12 +336,57 @@ export default function IntakeDetailPage({
           </div>
 
           <div className="px-6 lg:px-8 py-6 max-w-[1200px] mx-auto space-y-6">
-            {/* Pipeline Progress */}
+            {/* Pipeline Progress / Compute Job Status */}
             {(request.status === "generating" || pipelineRuns.length > 0) && (
               <section className="card p-6">
                 <h2 className="text-sm font-semibold text-[var(--foreground)] mb-4">
                   Pipeline Progress
                 </h2>
+
+                {/* Compute job status banner */}
+                {request.status === "generating" && (
+                  <div className="mb-4">
+                    {(!computeJob || computeJob.status === "pending") && (
+                      <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 rounded-[var(--radius-sm)] px-4 py-3">
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Queued &mdash; waiting for local worker to pick up...</span>
+                      </div>
+                    )}
+                    {computeJob?.status === "processing" && (
+                      <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 rounded-[var(--radius-sm)] px-4 py-3">
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Generating creatives on local machine...</span>
+                      </div>
+                    )}
+                    {computeJob?.status === "complete" && (
+                      <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-[var(--radius-sm)] px-4 py-3">
+                        <CheckCircle2 size={16} />
+                        <span>Generation complete!</span>
+                      </div>
+                    )}
+                    {computeJob?.status === "failed" && (
+                      <div className="flex items-center justify-between text-sm text-red-700 bg-red-50 rounded-[var(--radius-sm)] px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <XCircle size={16} />
+                          <span>Generation failed: {computeJob.error_message || "Unknown error"}</span>
+                        </div>
+                        <button
+                          onClick={handleStartPipeline}
+                          disabled={actionLoading === "pipeline"}
+                          className="btn-secondary text-xs px-3 py-1.5 cursor-pointer ml-3 shrink-0"
+                        >
+                          {actionLoading === "pipeline" ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <RefreshCw size={12} />
+                          )}
+                          Retry
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <PipelineProgress runs={pipelineRuns} />
               </section>
             )}

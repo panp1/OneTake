@@ -100,7 +100,11 @@ body {
 }
 
 .badge-draft { background: #f5f5f5; color: #737373; }
-.badge-generating { background: #eff6ff; color: #2563eb; }
+.badge-generating { background: #eff6ff; color: #2563eb; animation: pulse-badge 2s ease-in-out infinite; }
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
 .badge-review { background: #fefce8; color: #ca8a04; }
 .badge-approved { background: #f0fdf4; color: #16a34a; }
 .badge-sent { background: #f0f9ff; color: rgb(6, 147, 227); }
