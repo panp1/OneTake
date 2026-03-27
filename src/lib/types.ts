@@ -334,3 +334,43 @@ export interface ValidationResult {
   valid: boolean;
   errors: FieldError[];
 }
+
+// ============================================================
+// COMPUTE JOB TYPES
+// ============================================================
+
+export type ComputeJobType = 'generate' | 'regenerate' | 'regenerate_stage' | 'regenerate_asset';
+export type ComputeJobStatus = 'pending' | 'processing' | 'complete' | 'failed';
+
+export interface ComputeJob {
+  id: string;
+  request_id: string;
+  job_type: ComputeJobType;
+  status: ComputeJobStatus;
+  stage_target: number | null;
+  asset_id: string | null;
+  feedback: string | null;
+  feedback_data: Record<string, unknown> | null;
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+// ============================================================
+// USER ROLE TYPES
+// ============================================================
+
+export type UserRole = 'admin' | 'recruiter' | 'designer' | 'viewer';
+
+export interface UserRoleRecord {
+  id: string;
+  clerk_id: string;
+  email: string;
+  name: string | null;
+  role: UserRole;
+  is_active: boolean;
+  invited_by: string | null;
+  created_at: string;
+  updated_at: string;
+}

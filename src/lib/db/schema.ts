@@ -211,6 +211,39 @@ export async function createTables(): Promise<void> {
     )
   `;
 
+  // 14. compute_jobs — FK to intake_requests
+  await sql`
+    CREATE TABLE IF NOT EXISTS compute_jobs (
+      id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      request_id      UUID REFERENCES intake_requests(id) ON DELETE CASCADE,
+      job_type        TEXT NOT NULL CHECK (job_type IN ('generate', 'regenerate', 'regenerate_stage', 'regenerate_asset')),
+      status          TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'complete', 'failed')),
+      stage_target    INT,
+      asset_id        UUID,
+      feedback        TEXT,
+      feedback_data   JSONB,
+      error_message   TEXT,
+      started_at      TIMESTAMPTZ,
+      completed_at    TIMESTAMPTZ,
+      created_at      TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  // 15. user_roles — no FK dependencies
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_roles (
+      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      clerk_id    TEXT UNIQUE NOT NULL,
+      email       TEXT NOT NULL,
+      name        TEXT,
+      role        TEXT NOT NULL CHECK (role IN ('admin', 'recruiter', 'designer', 'viewer')),
+      is_active   BOOLEAN DEFAULT TRUE,
+      invited_by  TEXT,
+      created_at  TIMESTAMPTZ DEFAULT NOW(),
+      updated_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
   // ============================================================
   // INDEXES
   // ============================================================
@@ -243,5 +276,10 @@ export async function createTables(): Promise<void> {
   await sql`
     CREATE INDEX IF NOT EXISTS idx_intake_form_data
     ON intake_requests USING GIN (form_data jsonb_path_ops)
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_compute_jobs_pending
+    ON compute_jobs (status) WHERE status = 'pending'
   `;
 }
