@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useCallback } from "react";
+import { use, useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -68,6 +68,7 @@ export default function IntakeDetailPage({
   const [changesNote, setChangesNote] = useState("");
   const [showChangesModal, setShowChangesModal] = useState(false);
   const [computeJob, setComputeJob] = useState<ComputeJob | null>(null);
+  const briefSectionRef = useRef<HTMLElement>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -423,7 +424,7 @@ export default function IntakeDetailPage({
 
             {/* Creative Brief */}
             {(summary || messagingStrategy) && (
-              <section id="brief-section" className="card p-6">
+              <section ref={briefSectionRef} className="card p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <MessageSquare size={16} className="text-[var(--muted-foreground)]" />
                   <h2 className="text-sm font-semibold text-[var(--foreground)]">
@@ -650,6 +651,9 @@ export default function IntakeDetailPage({
           requestId={id}
           evaluationData={evaluationData}
           hasBrief={!!brief}
+          onViewBrief={() => {
+            briefSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+          }}
         />
 
         {/* Changes Modal */}

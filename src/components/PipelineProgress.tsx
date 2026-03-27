@@ -40,29 +40,29 @@ function getIcon(status: string) {
   }
 }
 
-function getCircleClass(status: string) {
+function getCircleStyle(status: string): React.CSSProperties {
   switch (status) {
     case "passed":
-      return "bg-green-500";
+      return { background: "#16a34a" };
     case "running":
     case "retrying":
-      return "bg-blue-500";
+      return { background: "rgb(6, 147, 227)" };
     case "failed":
-      return "bg-red-500";
+      return { background: "var(--oneforma-error)" };
     default:
-      return "bg-[var(--muted)] border border-[var(--border)]";
+      return { background: "var(--muted)", border: "1px solid var(--border)" };
   }
 }
 
-function getLineClass(status: string) {
+function getLineStyle(status: string): React.CSSProperties {
   switch (status) {
     case "passed":
-      return "bg-green-500";
+      return { background: "#16a34a" };
     case "running":
     case "retrying":
-      return "bg-blue-300";
+      return { background: "rgba(6, 147, 227, 0.4)" };
     default:
-      return "bg-[var(--border)]";
+      return { background: "var(--border)" };
   }
 }
 
@@ -82,7 +82,8 @@ export default function PipelineProgress({ runs }: PipelineProgressProps) {
         <div key={stage.stage} className="flex items-center flex-1 last:flex-none">
           <div className="flex flex-col items-center">
             <div
-              className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${getCircleClass(stage.status)}`}
+              className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+              style={getCircleStyle(stage.status)}
             >
               {getIcon(stage.status)}
             </div>
@@ -91,7 +92,7 @@ export default function PipelineProgress({ runs }: PipelineProgressProps) {
             </span>
           </div>
           {idx < stages.length - 1 && (
-            <div className={`h-0.5 flex-1 mx-1.5 mt-[-18px] ${getLineClass(stage.status)}`} />
+            <div className="h-0.5 flex-1 mx-1.5 mt-[-18px]" style={getLineStyle(stage.status)} />
           )}
         </div>
       ))}

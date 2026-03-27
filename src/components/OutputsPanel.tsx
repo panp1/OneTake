@@ -12,6 +12,7 @@ interface OutputsPanelProps {
   requestId: string;
   evaluationData?: Record<string, number> | null;
   hasBrief?: boolean;
+  onViewBrief?: () => void;
 }
 
 export default function OutputsPanel({
@@ -21,6 +22,7 @@ export default function OutputsPanel({
   requestId,
   evaluationData,
   hasBrief,
+  onViewBrief,
 }: OutputsPanelProps) {
   if (!open) return null;
 
@@ -68,8 +70,9 @@ export default function OutputsPanel({
             <button
               className="w-full flex items-center gap-3 p-3 rounded-[var(--radius-sm)] border border-[var(--border)] hover:bg-[var(--muted)] cursor-pointer transition-colors text-left"
               onClick={() => {
-                const el = document.getElementById("brief-section");
-                if (el) el.scrollIntoView({ behavior: "smooth" });
+                if (onViewBrief) {
+                  onViewBrief();
+                }
               }}
             >
               <FileText size={16} className="text-[var(--muted-foreground)]" />

@@ -70,6 +70,17 @@ function DesignerContent({ id }: { id: string }) {
 
       if (!res.ok) throw new Error("Upload failed");
       toast.success(`Uploaded ${files.length} file(s) successfully`);
+
+      // Reload data so the designer sees the newly uploaded files
+      try {
+        const refreshRes = await fetch(`/api/designer/${id}?token=${token}`);
+        if (refreshRes.ok) {
+          const refreshed = await refreshRes.json();
+          setData(refreshed);
+        }
+      } catch {
+        // Non-critical — upload succeeded, but refresh failed
+      }
     } catch {
       toast.error("Failed to upload files");
     } finally {

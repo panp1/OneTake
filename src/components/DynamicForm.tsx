@@ -322,6 +322,7 @@ function MultiSelectField({
               onClick={() => {
                 onChange([...value, opt.value]);
                 setSearch("");
+                setDropdownOpen(false);
               }}
               className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--muted)] cursor-pointer transition-colors"
             >

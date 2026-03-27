@@ -13,7 +13,10 @@ export default function SchemasPage() {
     try {
       setLoading(true);
       const res = await fetch('/api/schemas');
-      if (!res.ok) throw new Error('Failed to load schemas');
+      if (!res.ok) {
+        if (res.status === 403) throw new Error('You do not have admin access.');
+        throw new Error('Failed to load schemas');
+      }
       setSchemas(await res.json());
       setError(null);
     } catch (err) {
