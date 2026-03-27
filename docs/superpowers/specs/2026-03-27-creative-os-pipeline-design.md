@@ -95,6 +95,221 @@ NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 
 ## The 5-Stage Pipeline
 
+## Dynamic Form Schema System (Approach A — Schema-Driven)
+
+### Why Schema-Driven
+
+OneForma's task types keep evolving as AI companies invent new data needs. A hardcoded form would require code changes + deploys for every new task type. Instead, form fields are defined as JSON schemas in the database. New task type = new DB row, zero code changes.
+
+### Schema Structure
+
+Each task type schema has 4 field groups:
+
+```
+┌──────────────────────────────────────────────────────┐
+│  base_fields (always shown — title, urgency, etc.)   │
+├──────────────────────────────────────────────────────┤
+│  task_fields (specific to this task type)             │
+├──────────────────────────────────────────────────────┤
+│  conditional_fields (shown when conditions are met)   │
+├──────────────────────────────────────────────────────┤
+│  common_fields (always shown — commitment, NDA, etc.) │
+└──────────────────────────────────────────────────────┘
+```
+
+### Field Definition Schema
+
+Every field follows this structure:
+
+```typescript
+interface FieldDefinition {
+  key: string;                    // Unique field key (stored in form_data JSONB)
+  label: string;                  // Display label
+  type: FieldType;                // Renderer type (see below)
+  required?: boolean;             // Validation
+  placeholder?: string;
+  description?: string;           // Help text below field
+  default_value?: any;
+
+  // For select/multi_select/button_group/checkbox_group:
+  options?: Array<{
+    value: string;
+    label: string;
+    description?: string;         // Shown below option
+    icon?: string;                // Lucide icon name
+  }>;
+  options_source?: string;        // Pull from option_registries table (e.g., "languages_registry")
+
+  // Conditional visibility:
+  show_when?: {
+    field: string;                // Which field to watch
+    equals?: any;                 // Show when field equals value
+    contains?: string;            // Show when array field contains value
+    not_equals?: any;             // Show when field does NOT equal value
+    greater_than?: number;        // Show when number field > value
+    is_truthy?: boolean;          // Show when field is truthy
+  };
+
+  // Validation rules:
+  validation?: {
+    min_length?: number;
+    max_length?: number;
+    min?: number;                 // For number fields
+    max?: number;
+    pattern?: string;             // Regex pattern
+    custom_message?: string;      // Error message override
+  };
+
+  // Layout hints:
+  width?: 'full' | 'half';       // Half = two fields per row
+  group?: string;                 // Visual grouping label
+}
+
+type FieldType =
+  | 'text'              // Single-line input
+  | 'textarea'          // Multi-line input
+  | 'number'            // Number input with +/- buttons
+  | 'select'            // Dropdown
+  | 'multi_select'      // Tag picker with search
+  | 'button_group'      // Horizontal pill buttons
+  | 'checkbox_group'    // Checkboxes
+  | 'toggle'            // On/off switch
+  | 'toggle_with_text'  // Toggle + textarea that appears when on
+  | 'tags'              // Free-form tag input (user types + enters)
+  | 'file'              // File upload dropzone
+  | 'range'             // Slider with min/max
+  | 'date'              // Date picker
+  | 'divider'           // Visual separator (non-input)
+  | 'heading'           // Section heading (non-input)
+```
+
+### Pre-Built Schemas (Ship With 7 Task Types)
+
+| Task Type | Display Name | Key Task-Specific Fields |
+|-----------|-------------|-------------------------|
+| `audio_annotation` | Audio Annotation | audio_type, annotation_tasks (segment/label/transcribe), avg_audio_length, equipment_required, transcription_accuracy |
+| `image_annotation` | Image Annotation | annotation_method (bbox/polygon/segmentation/classification), image_domain (medical/satellite/retail/general), images_per_day, annotation_tool |
+| `text_labeling` | Text Labeling | label_taxonomy (sentiment/intent/entity/topic/safety), domain_knowledge (general/medical/legal/tech), text_length, annotation_guidelines_url |
+| `data_collection` | Data Collection | data_type (photos/voice_recordings/handwriting/video/screen_recordings), device_requirements, samples_per_contributor, geographic_constraints, content_restrictions |
+| `guided_feedback` | Guided Feedback / RLHF | feedback_type (preference_ranking/safety_eval/quality_rating/instruction_following), comparison_format (side_by_side/rating_scale/ranking), domain_expertise_level, responses_per_session |
+| `transcription` | Transcription | source_language, target_language, audio_domain (medical/legal/conversational/technical), verbatim_or_clean, timestamps_required, speaker_identification |
+| `other` | Custom Task | Only base_fields + free-text task_description + free-text requirements |
+
+### Shared Option Registries
+
+Reusable option sets stored in `option_registries` table, referenced by `options_source` in field definitions:
+
+| Registry Name | Count | Examples |
+|--------------|-------|---------|
+| `languages_registry` | 35+ | French, Arabic, English (US), Mandarin, Hindi, Portuguese (BR), etc. |
+| `regions_registry` | 50+ | Morocco, Egypt, Brazil, India, Philippines, Germany, Japan, etc. |
+| `skills_registry` | 30+ | Active listening, Attention to detail, Language fluency, Typing speed, Domain expertise, etc. |
+| `equipment_registry` | 15+ | Headphones, Microphone, Quiet environment, Webcam, Specific OS, Smartphone, etc. |
+
+Adding a new language or region = one INSERT, instantly available in all schemas.
+
+### Schema Versioning & Backwards Compatibility
+
+When a schema is updated:
+1. New version is created in `schema_versions` table (audit trail)
+2. `task_type_schemas.version` is incremented
+3. Existing intake requests retain their `schema_version` reference
+4. The detail view renders the request using the schema version it was created with
+5. New requests use the latest schema version
+
+This means Steven can evolve schemas without breaking the display of historical requests.
+
+### Validation Layer
+
+Server-side validation runs on form submission:
+
+```typescript
+function validateFormData(schema: TaskTypeSchema, formData: Record<string, any>): ValidationResult {
+  const errors: FieldError[] = [];
+
+  for (const field of [...schema.base_fields, ...schema.task_fields, ...schema.common_fields]) {
+    const value = formData[field.key];
+
+    // Required check
+    if (field.required && (value === undefined || value === null || value === '')) {
+      errors.push({ field: field.key, message: `${field.label} is required` });
+    }
+
+    // Type-specific validation
+    if (field.validation) {
+      if (field.validation.min_length && value?.length < field.validation.min_length) { ... }
+      if (field.validation.max_length && value?.length > field.validation.max_length) { ... }
+      if (field.validation.pattern && !new RegExp(field.validation.pattern).test(value)) { ... }
+    }
+  }
+
+  // Conditional fields: only validate if their condition is met
+  for (const field of schema.conditional_fields) {
+    if (evaluateCondition(field.show_when, formData) && field.required) {
+      // validate...
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+```
+
+### API Routes for Schema System
+
+```
+/api/schemas
+  GET    /api/schemas                → List all active task type schemas (for task type picker)
+  GET    /api/schemas/[taskType]     → Get full schema for a task type (for form rendering)
+
+/api/schemas/admin (protected — Steven only)
+  POST   /api/schemas                → Create new task type schema
+  PUT    /api/schemas/[taskType]     → Update schema (creates new version)
+  GET    /api/schemas/[taskType]/versions → List schema versions
+  DELETE /api/schemas/[taskType]     → Soft-delete (set is_active=false)
+
+/api/registries
+  GET    /api/registries/[name]      → Get options for a registry (languages, regions, etc.)
+
+/api/registries/admin (protected — Steven only)
+  POST   /api/registries/[name]      → Add option to registry
+  PUT    /api/registries/[name]/[value] → Update option
+  DELETE /api/registries/[name]/[value] → Soft-delete option
+```
+
+### DynamicForm Component
+
+```tsx
+// Client component that renders any schema dynamically
+'use client';
+
+interface DynamicFormProps {
+  schema: TaskTypeSchema;
+  initialData?: Record<string, any>;      // Pre-filled from RFP extraction
+  confidenceFlags?: Record<string, string>; // "extracted" | "inferred" | "missing"
+  onSubmit: (data: Record<string, any>) => void;
+  registries: Record<string, OptionItem[]>; // Pre-loaded registry options
+}
+
+function DynamicForm({ schema, initialData, confidenceFlags, onSubmit, registries }: DynamicFormProps) {
+  const [formData, setFormData] = useState(initialData ?? {});
+
+  // Render fields in order: base → task → conditional (if visible) → common
+  // Each field type maps to a renderer component
+  // Conditional fields re-evaluate visibility on every formData change
+}
+```
+
+### How RFP Extraction Maps to Dynamic Schemas
+
+When Kimi K2.5 extracts from an RFP, the extraction prompt includes ALL active schemas so it can:
+1. **Auto-detect task type** from the RFP content
+2. **Map extracted values to the correct schema's fields** (field keys match)
+3. **Flag confidence** per field (extracted / inferred / missing)
+
+The extraction API returns the detected task_type + pre-filled form_data matching that schema's field keys.
+
+---
+
 ### Stage 0: Intake (Dual-Mode Entry)
 
 **Purpose:** Two ways to start the pipeline — manual form entry or AI-powered RFP extraction. Both converge on the same editable form before triggering Stage 1.
@@ -751,25 +966,91 @@ On final approval after designer refinement:
 ## Database Schema
 
 ```sql
--- Intake requests from recruiting team (contributor recruitment)
-CREATE TABLE intake_requests (
+-- ============================================================
+-- SCHEMA-DRIVEN DYNAMIC FORM SYSTEM
+-- ============================================================
+
+-- Task type schemas (defines form fields per task type)
+-- New task type = new row, no code deploy needed
+CREATE TABLE task_type_schemas (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title           TEXT NOT NULL,
-  task_type       TEXT CHECK (task_type IN ('audio_annotation', 'image_annotation', 'text_labeling', 'data_collection', 'guided_feedback', 'transcription', 'other')),
-  task_description TEXT,
-  target_languages TEXT[],
-  target_regions  TEXT[],
-  skills_needed   TEXT[],
-  commitment_level TEXT CHECK (commitment_level IN ('part_time', 'full_time', 'flexible')),
-  compensation_model TEXT CHECK (compensation_model IN ('fixed_hourly', 'per_task', 'per_unit')),
-  urgency         TEXT CHECK (urgency IN ('urgent', 'standard', 'pipeline')),
-  volume_needed   INT,
-  special_notes   TEXT,
-  status          TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'generating', 'review', 'approved', 'sent', 'rejected')),
-  created_by      TEXT NOT NULL,
+  task_type       TEXT UNIQUE NOT NULL,
+  display_name    TEXT NOT NULL,
+  icon            TEXT DEFAULT 'file-text',
+  description     TEXT,
+  schema          JSONB NOT NULL,
+  version         INT DEFAULT 1,
+  is_active       BOOLEAN DEFAULT TRUE,
+  sort_order      INT DEFAULT 0,
+  created_by      TEXT,
   created_at      TIMESTAMPTZ DEFAULT NOW(),
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Schema version history (audit trail + rollback)
+CREATE TABLE schema_versions (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  schema_id       UUID REFERENCES task_type_schemas(id) ON DELETE CASCADE,
+  version         INT NOT NULL,
+  schema          JSONB NOT NULL,
+  change_summary  TEXT,
+  created_by      TEXT,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(schema_id, version)
+);
+
+-- Shared option registries (languages, regions, skills — reusable across all schemas)
+CREATE TABLE option_registries (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  registry_name   TEXT NOT NULL,
+  option_value    TEXT NOT NULL,
+  option_label    TEXT NOT NULL,
+  metadata        JSONB DEFAULT '{}',
+  sort_order      INT DEFAULT 0,
+  is_active       BOOLEAN DEFAULT TRUE,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(registry_name, option_value)
+);
+
+-- Indexes for option registry lookups
+CREATE INDEX idx_option_registries_name ON option_registries(registry_name) WHERE is_active = TRUE;
+
+-- ============================================================
+-- CORE TABLES
+-- ============================================================
+
+-- Intake requests (contributor recruitment)
+-- Typed columns for indexed queries + JSONB form_data for task-specific fields
+CREATE TABLE intake_requests (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  -- Base fields (always present, indexed for queries)
+  title           TEXT NOT NULL,
+  task_type       TEXT NOT NULL REFERENCES task_type_schemas(task_type),
+  urgency         TEXT CHECK (urgency IN ('urgent', 'standard', 'pipeline')),
+  target_languages TEXT[],
+  target_regions  TEXT[],
+  volume_needed   INT,
+  status          TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'generating', 'review', 'approved', 'sent', 'rejected')),
+  created_by      TEXT NOT NULL,
+  -- Dynamic form answers (task-specific fields from schema)
+  form_data       JSONB DEFAULT '{}',
+  -- Schema version used (for backwards compat when schemas evolve)
+  schema_version  INT DEFAULT 1,
+  -- Timestamps
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for common queries
+CREATE INDEX idx_intake_requests_status ON intake_requests(status);
+CREATE INDEX idx_intake_requests_task_type ON intake_requests(task_type);
+CREATE INDEX idx_intake_requests_urgency ON intake_requests(urgency);
+CREATE INDEX idx_intake_requests_created_by ON intake_requests(created_by);
+CREATE INDEX idx_intake_requests_created_at ON intake_requests(created_at DESC);
+CREATE INDEX idx_intake_requests_languages ON intake_requests USING GIN(target_languages);
+CREATE INDEX idx_intake_requests_regions ON intake_requests USING GIN(target_regions);
+-- GIN index on form_data for querying task-specific fields
+CREATE INDEX idx_intake_requests_form_data ON intake_requests USING GIN(form_data jsonb_path_ops);
 
 -- Attachments (RFP uploads, supporting docs)
 CREATE TABLE attachments (
@@ -962,11 +1243,15 @@ CREATE TABLE pipeline_runs (
 
 ## Phased Implementation
 
-### Phase 1: Foundation (March 27-28)
-- Neon database setup with full schema (8 tables)
-- CRUD API routes for intake requests
+### Phase 1: Foundation + Dynamic Forms (March 27-28)
+- Neon database setup with full schema (12 tables including schema system)
+- Seed 7 task type schemas + option registries (languages, regions, skills, equipment)
+- Schema API routes (GET schemas, GET registries)
+- DynamicForm renderer component (reads schema, renders fields, conditional visibility)
+- Dual-mode intake: manual form + RFP upload extraction (Kimi K2.5 via OpenRouter)
+- CRUD API routes for intake requests (form_data stored as JSONB)
 - Replace mock data with real Postgres queries
-- Wire existing UI to real data
+- Wire dashboard + detail views to real data
 - VYRA API health check endpoint
 
 ### Phase 2: Pipeline Core (March 29-30)
