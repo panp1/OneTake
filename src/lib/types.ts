@@ -217,7 +217,7 @@ export interface MagicLink {
 // NOTIFICATION TYPES
 // ============================================================
 
-export type NotificationChannel = 'slack' | 'outlook';
+export type NotificationChannel = 'slack' | 'outlook' | 'teams';
 export type NotificationStatus = 'sent' | 'delivered' | 'failed';
 
 export interface Notification {

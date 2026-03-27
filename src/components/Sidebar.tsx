@@ -9,6 +9,9 @@ import {
   Settings,
   Menu,
   X,
+  Users,
+  Activity,
+  FileCode,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { useState } from "react";
@@ -26,7 +29,13 @@ const pipelineLinks: NavItem[] = [
 
 const toolsLinks: NavItem[] = [
   { href: "/assets", label: "Asset Library", Icon: ImageIcon },
-  { href: "/admin", label: "Schema Admin", Icon: Settings },
+];
+
+const adminLinks: NavItem[] = [
+  { href: "/admin", label: "Dashboard", Icon: Settings },
+  { href: "/admin/users", label: "Users", Icon: Users },
+  { href: "/admin/schemas", label: "Schemas", Icon: FileCode },
+  { href: "/admin/pipeline", label: "Worker Monitor", Icon: Activity },
 ];
 
 function NavSection({
@@ -123,6 +132,7 @@ export default function Sidebar() {
         <nav className="flex-1 overflow-y-auto px-3 pt-5" onClick={() => setMobileOpen(false)}>
           <NavSection title="Pipeline" links={pipelineLinks} pathname={pathname} />
           <NavSection title="Tools" links={toolsLinks} pathname={pathname} />
+          <NavSection title="Admin" links={adminLinks} pathname={pathname} />
         </nav>
 
         {/* Account */}
