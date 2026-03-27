@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getIntakeRequest, updateIntakeRequest } from '@/lib/db/intake';
 import { createApproval } from '@/lib/db/approvals';
 import { createMagicLink } from '@/lib/db/magic-links';
+import { notifyDesignerAssigned } from '@/lib/notifications/teams';
 
 export async function POST(
   _request: Request,
@@ -45,9 +46,18 @@ export async function POST(
     // Update intake request status to approved
     await updateIntakeRequest(id, { status: 'approved' });
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const magicLinkUrl = `/designer/${id}?token=${token}`;
+
+    // Notify Teams that a designer has been assigned
+    await notifyDesignerAssigned(
+      { id, title: intakeRequest.title, task_type: intakeRequest.task_type },
+      `${appUrl}${magicLinkUrl}`
+    ).catch((err) => console.error('[api/approve] Teams notification failed:', err));
+
     return Response.json({
       approval,
-      magic_link_url: `/designer/${id}?token=${token}`,
+      magic_link_url: magicLinkUrl,
     });
   } catch (error) {
     console.error('[api/approve/[id]] Failed to approve request:', error);

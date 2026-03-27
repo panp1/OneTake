@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   PlusCircle,
-  ImageIcon,
   Settings,
   Menu,
   X,
@@ -28,7 +27,7 @@ const pipelineLinks: NavItem[] = [
 ];
 
 const toolsLinks: NavItem[] = [
-  { href: "/assets", label: "Asset Library", Icon: ImageIcon },
+  // Asset Library removed — page doesn't exist yet
 ];
 
 const adminLinks: NavItem[] = [
@@ -131,7 +130,9 @@ export default function Sidebar() {
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 pt-5" onClick={() => setMobileOpen(false)}>
           <NavSection title="Pipeline" links={pipelineLinks} pathname={pathname} />
-          <NavSection title="Tools" links={toolsLinks} pathname={pathname} />
+          {toolsLinks.length > 0 && (
+            <NavSection title="Tools" links={toolsLinks} pathname={pathname} />
+          )}
           <NavSection title="Admin" links={adminLinks} pathname={pathname} />
         </nav>
 
