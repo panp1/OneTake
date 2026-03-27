@@ -1,0 +1,53 @@
+"""Configuration for the Centric Intake local worker.
+
+All settings come from environment variables with sensible defaults.
+Create a .env file in the worker/ directory for local development.
+"""
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# ---------------------------------------------------------------------------
+# Neon Postgres
+# ---------------------------------------------------------------------------
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+
+# ---------------------------------------------------------------------------
+# Vercel Blob
+# ---------------------------------------------------------------------------
+VERCEL_BLOB_TOKEN = os.environ.get("BLOB_READ_WRITE_TOKEN", "")
+VERCEL_BLOB_STORE_ID = os.environ.get("BLOB_STORE_ID", "")
+
+# ---------------------------------------------------------------------------
+# Seedream 4.5 (Volcengine API)
+# ---------------------------------------------------------------------------
+SEEDREAM_API_KEY = os.environ.get("SEEDREAM_API_KEY", "")
+SEEDREAM_API_ENDPOINT = os.environ.get(
+    "SEEDREAM_API_ENDPOINT",
+    "https://operator.las.cn-beijing.volces.com/api/v1",
+)
+SEEDREAM_MODEL = os.environ.get("SEEDREAM_MODEL", "doubao-seedream-4-5")
+
+# ---------------------------------------------------------------------------
+# Teams Webhook
+# ---------------------------------------------------------------------------
+TEAMS_WEBHOOK_URL = os.environ.get("TEAMS_WEBHOOK_URL", "")
+
+# ---------------------------------------------------------------------------
+# App URL (for notification links)
+# ---------------------------------------------------------------------------
+APP_URL = os.environ.get("APP_URL", "http://localhost:3000")
+
+# ---------------------------------------------------------------------------
+# Polling
+# ---------------------------------------------------------------------------
+POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "30"))
+
+# ---------------------------------------------------------------------------
+# MLX Models (Apple Silicon local inference)
+# ---------------------------------------------------------------------------
+LLM_MODEL = os.environ.get("LLM_MODEL", "mlx-community/Qwen3.5-9B-MLX-4bit")
+COPY_MODEL = os.environ.get("COPY_MODEL", "mlx-community/Gemma-3-12B-it-4bit")
+VLM_MODEL = os.environ.get("VLM_MODEL", "mlx-community/Qwen3-VL-8B-Instruct-4bit")
