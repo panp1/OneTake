@@ -26,6 +26,12 @@ import ChannelCard from "@/components/ChannelCard";
 import ActorCard from "@/components/ActorCard";
 import EvaluationScores from "@/components/EvaluationScores";
 import OutputsPanel from "@/components/OutputsPanel";
+import AssetCategoryTabs from "@/components/AssetCategoryTabs";
+import AssetCard from "@/components/AssetCard";
+import BulkActions from "@/components/BulkActions";
+import RefineModal from "@/components/RefineModal";
+import DesignElementPreview from "@/components/DesignElementPreview";
+import MockupPreview from "@/components/MockupPreview";
 import type {
   IntakeRequest,
   PipelineRun,
@@ -68,6 +74,9 @@ export default function IntakeDetailPage({
   const [changesNote, setChangesNote] = useState("");
   const [showChangesModal, setShowChangesModal] = useState(false);
   const [computeJob, setComputeJob] = useState<ComputeJob | null>(null);
+  const [activeAssetTab, setActiveAssetTab] = useState<'characters' | 'elements' | 'composed' | 'mockups'>('characters');
+  const [selectedAssets, setSelectedAssets] = useState<Set<string>>(new Set());
+  const [refineAsset, setRefineAsset] = useState<GeneratedAsset | null>(null);
   const briefSectionRef = useRef<HTMLElement>(null);
 
   const loadData = useCallback(async () => {
@@ -269,6 +278,52 @@ export default function IntakeDetailPage({
 
   const { request, brief, actors, assets, pipelineRuns } = data;
   const hasOutputs = assets.length > 0;
+
+  // Split assets into categories
+  const characters = assets.filter(a => a.asset_type === 'base_image');
+  const composed = assets.filter(a => a.asset_type === 'composed_creative' || a.asset_type === 'carousel_panel');
+
+  const assetCounts = {
+    characters: characters.length,
+    elements: composed.length,
+    composed: composed.length,
+    mockups: composed.length,
+  };
+
+  function toggleSelect(assetId: string) {
+    setSelectedAssets(prev => {
+      const next = new Set(prev);
+      if (next.has(assetId)) {
+        next.delete(assetId);
+      } else {
+        next.add(assetId);
+      }
+      return next;
+    });
+  }
+
+  function selectAllInCategory() {
+    const categoryAssets =
+      activeAssetTab === 'characters' ? characters : composed;
+    setSelectedAssets(new Set(categoryAssets.map(a => a.id)));
+  }
+
+  function handleRetry(asset: GeneratedAsset) {
+    toast.info(`Retry queued for ${asset.platform} ${asset.format}`);
+  }
+
+  function handleBulkDownload() {
+    const allAssets = [...characters, ...composed];
+    const selected = allAssets.filter(a => selectedAssets.has(a.id));
+    for (const a of selected) {
+      if (a.blob_url) window.open(a.blob_url, '_blank');
+    }
+    toast.success(`Downloading ${selected.length} assets`);
+  }
+
+  function handleBulkRetry() {
+    toast.info(`Retry queued for ${selectedAssets.size} assets`);
+  }
 
   // Parse brief data if present
   const briefData = brief?.brief_data as Record<string, unknown> | undefined;
@@ -543,6 +598,150 @@ export default function IntakeDetailPage({
               </section>
             )}
 
+            {/* Creative Assets — 4 Category View */}
+            {hasOutputs && (
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-[var(--foreground)]">Creative Assets</h2>
+                  <span className="text-sm text-[var(--muted-foreground)]">{assets.length} total</span>
+                </div>
+
+                <AssetCategoryTabs
+                  activeTab={activeAssetTab}
+                  onTabChange={setActiveAssetTab}
+                  counts={assetCounts}
+                />
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {activeAssetTab === 'characters' && characters.map(asset => (
+                    <AssetCard
+                      key={asset.id}
+                      imageUrl={asset.blob_url || ''}
+                      title={(asset.content as Record<string, unknown>)?.actor_name as string || 'Character'}
+                      subtitle={(asset.content as Record<string, unknown>)?.outfit_key as string || asset.format}
+                      badges={[
+                        { label: (asset.content as Record<string, unknown>)?.composition as string || '', color: 'gray' },
+                        {
+                          label: `${((asset.evaluation_score || 0) * 100).toFixed(0)}%`,
+                          color: (asset.evaluation_score || 0) >= 0.85 ? 'green' : (asset.evaluation_score || 0) >= 0.70 ? 'yellow' : 'red',
+                        },
+                      ]}
+                      selected={selectedAssets.has(asset.id)}
+                      onSelect={() => toggleSelect(asset.id)}
+                      onDownload={() => { if (asset.blob_url) window.open(asset.blob_url, '_blank'); }}
+                      onRetry={() => handleRetry(asset)}
+                      onRefine={() => setRefineAsset(asset)}
+                    />
+                  ))}
+
+                  {activeAssetTab === 'elements' && composed.map(asset => (
+                    <AssetCard
+                      key={`elem-${asset.id}`}
+                      imageUrl=""
+                      title={(asset.content as Record<string, unknown>)?.template as string || 'Template'}
+                      subtitle={(asset.copy_data as Record<string, unknown>)?.headline as string || (asset.content as Record<string, unknown>)?.headline as string || ''}
+                      badges={[
+                        { label: asset.platform, color: 'blue' },
+                        {
+                          label: `${((asset.evaluation_score || 0) * 100).toFixed(0)}%`,
+                          color: (asset.evaluation_score || 0) >= 0.85 ? 'green' : (asset.evaluation_score || 0) >= 0.70 ? 'yellow' : 'red',
+                        },
+                      ]}
+                      selected={selectedAssets.has(asset.id)}
+                      onSelect={() => toggleSelect(asset.id)}
+                      onDownload={() => { if (asset.blob_url) window.open(asset.blob_url, '_blank'); }}
+                      onRetry={() => handleRetry(asset)}
+                      onRefine={() => setRefineAsset(asset)}
+                      customPreview={
+                        <DesignElementPreview
+                          template={(asset.content as Record<string, unknown>)?.template as string}
+                          headline={(asset.copy_data as Record<string, unknown>)?.headline as string || (asset.content as Record<string, unknown>)?.headline as string}
+                          subheadline={(asset.copy_data as Record<string, unknown>)?.subheadline as string || (asset.content as Record<string, unknown>)?.subheadline as string}
+                          ctaText={(asset.copy_data as Record<string, unknown>)?.cta_text as string || (asset.content as Record<string, unknown>)?.cta_text as string}
+                          platform={asset.platform}
+                        />
+                      }
+                    />
+                  ))}
+
+                  {activeAssetTab === 'composed' && composed.map(asset => (
+                    <AssetCard
+                      key={asset.id}
+                      imageUrl={asset.blob_url || ''}
+                      title={(asset.content as Record<string, unknown>)?.template as string || asset.platform}
+                      subtitle={asset.format}
+                      badges={[
+                        { label: asset.platform, color: 'blue' },
+                        {
+                          label: `${((asset.evaluation_score || 0) * 100).toFixed(0)}%`,
+                          color: (asset.evaluation_score || 0) >= 0.85 ? 'green' : (asset.evaluation_score || 0) >= 0.70 ? 'yellow' : 'red',
+                        },
+                      ]}
+                      selected={selectedAssets.has(asset.id)}
+                      onSelect={() => toggleSelect(asset.id)}
+                      onDownload={() => { if (asset.blob_url) window.open(asset.blob_url, '_blank'); }}
+                      onRetry={() => handleRetry(asset)}
+                      onRefine={() => setRefineAsset(asset)}
+                    />
+                  ))}
+
+                  {activeAssetTab === 'mockups' && composed.map(asset => (
+                    <AssetCard
+                      key={`mock-${asset.id}`}
+                      imageUrl=""
+                      title={asset.platform}
+                      subtitle={asset.format}
+                      badges={[
+                        { label: asset.platform, color: 'blue' },
+                        {
+                          label: `${((asset.evaluation_score || 0) * 100).toFixed(0)}%`,
+                          color: (asset.evaluation_score || 0) >= 0.85 ? 'green' : (asset.evaluation_score || 0) >= 0.70 ? 'yellow' : 'red',
+                        },
+                      ]}
+                      selected={selectedAssets.has(asset.id)}
+                      onSelect={() => toggleSelect(asset.id)}
+                      onDownload={() => { if (asset.blob_url) window.open(asset.blob_url, '_blank'); }}
+                      onRetry={() => handleRetry(asset)}
+                      onRefine={() => setRefineAsset(asset)}
+                      customPreview={<MockupPreview asset={asset} />}
+                    />
+                  ))}
+                </div>
+
+                {/* Empty states */}
+                {activeAssetTab === 'characters' && characters.length === 0 && (
+                  <div className="text-center py-12 text-sm text-[var(--muted-foreground)]">
+                    No characters generated yet
+                  </div>
+                )}
+                {activeAssetTab === 'elements' && composed.length === 0 && (
+                  <div className="text-center py-12 text-sm text-[var(--muted-foreground)]">
+                    No design elements generated yet
+                  </div>
+                )}
+                {activeAssetTab === 'composed' && composed.length === 0 && (
+                  <div className="text-center py-12 text-sm text-[var(--muted-foreground)]">
+                    No composed creatives generated yet
+                  </div>
+                )}
+                {activeAssetTab === 'mockups' && composed.length === 0 && (
+                  <div className="text-center py-12 text-sm text-[var(--muted-foreground)]">
+                    No mockups generated yet
+                  </div>
+                )}
+
+                {selectedAssets.size > 0 && (
+                  <BulkActions
+                    selectedCount={selectedAssets.size}
+                    onDownloadSelected={handleBulkDownload}
+                    onRetrySelected={handleBulkRetry}
+                    onSelectAll={selectAllInCategory}
+                    onDeselectAll={() => setSelectedAssets(new Set())}
+                  />
+                )}
+              </section>
+            )}
+
             {/* Form Data Summary */}
             {request.form_data && Object.keys(request.form_data).length > 0 && (
               <section className="card p-6">
@@ -696,6 +895,17 @@ export default function IntakeDetailPage({
               </div>
             </div>
           </div>
+        )}
+
+        {/* Refine Modal */}
+        {refineAsset && (
+          <RefineModal
+            asset={refineAsset}
+            requestId={request.id}
+            isOpen={!!refineAsset}
+            onClose={() => setRefineAsset(null)}
+            onSubmitted={() => { setRefineAsset(null); loadData(); }}
+          />
         )}
       </div>
     </AppShell>
