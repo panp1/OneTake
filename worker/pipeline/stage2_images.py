@@ -74,11 +74,14 @@ async def run_stage2(context: dict) -> dict:
         actor_data["id"] = actor_id
         logger.info("Actor '%s' created (id=%s, region=%s)", actor_data.get("name"), actor_id, region)
 
+        # Track compositions used for this actor (ensures variety)
+        used_compositions: list[str] = []
+
         # ==================================================================
         # STEP 2: Generate HERO SEED IMAGE (full VQA validation)
         # This is the golden reference — must pass strict threshold.
         # ==================================================================
-        seed_url, seed_score = await _generate_validated_image(
+        seed_url, seed_score, seed_comp = await _generate_validated_image(
             actor_data=actor_data,
             outfit_key="at_home_working",
             backdrop_index=0,
@@ -91,7 +94,10 @@ async def run_stage2(context: dict) -> dict:
             asset_type="base_image",
             language=language,
             is_seed=True,
+            image_index=0,
+            used_compositions=used_compositions,
         )
+        used_compositions.append(seed_comp)
 
         # Save validated seed URL on the actor profile for future reference
         await update_actor_seed(actor_id, seed_url)
@@ -112,7 +118,7 @@ async def run_stage2(context: dict) -> dict:
         remaining_outfits = [k for k in outfit_keys if k != "at_home_working"]
 
         for var_idx, outfit_key in enumerate(remaining_outfits):
-            variation_url, variation_score = await _generate_validated_image(
+            variation_url, variation_score, var_comp = await _generate_validated_image(
                 actor_data=actor_data,
                 outfit_key=outfit_key,
                 backdrop_index=(var_idx + 1),
@@ -125,11 +131,14 @@ async def run_stage2(context: dict) -> dict:
                 asset_type="base_image",
                 language=language,
                 is_seed=False,
+                image_index=(var_idx + 1),
+                used_compositions=used_compositions,
             )
+            used_compositions.append(var_comp)
             total_images += 1
             logger.info(
-                "Variation '%s' for '%s': score=%.2f",
-                outfit_key, actor_data.get("name"), variation_score,
+                "Variation '%s' for '%s': composition=%s, score=%.2f",
+                outfit_key, actor_data.get("name"), var_comp, variation_score,
             )
 
         all_actors.append(actor_data)
@@ -154,17 +163,21 @@ async def _generate_validated_image(
     asset_type: str,
     language: str,
     is_seed: bool,
-) -> tuple[str, float]:
+    image_index: int = 0,
+    used_compositions: list[str] | None = None,
+) -> tuple[str, float, str]:
     """Generate an image, validate via VQA, retry if needed, upload, and save.
 
-    Returns (blob_url, vqa_score).
+    Returns (blob_url, vqa_score, composition_key_used).
     """
-    image_prompt_text = build_image_prompt(
+    image_prompt_text, composition_key = build_image_prompt(
         actor_data,
         outfit_key=outfit_key,
         backdrop_index=backdrop_index,
         design=design,
         region=region,
+        image_index=image_index,
+        used_compositions=used_compositions,
     )
 
     # If this is a variation (not seed), reference the validated seed
@@ -226,6 +239,7 @@ async def _generate_validated_image(
             "actor_id": actor_id,
             "actor_name": actor_data.get("name"),
             "outfit_key": outfit_key,
+            "composition": composition_key,
             "is_seed": is_seed,
             "region": region,
             "vqa_score": qa_score,
@@ -233,7 +247,7 @@ async def _generate_validated_image(
         },
     })
 
-    return blob_url, qa_score
+    return blob_url, qa_score, composition_key
 
 
 def _parse_json(text: str) -> dict:

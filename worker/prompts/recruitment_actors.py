@@ -167,26 +167,40 @@ def build_image_prompt(
     backdrop_index: int = 0,
     design: dict | None = None,
     region: str = "Global",
-) -> str:
+    image_index: int = 0,
+    used_compositions: list[str] | None = None,
+) -> tuple[str, str]:
     """Build the Seedream image generation prompt for an actor.
 
     Uses the actor's prompt_seed (identity lock) + selected outfit
-    variation + backdrop + all 10 realism anchors.
+    variation + backdrop + all 10 realism anchors + COMPOSITION TECHNIQUE
+    selected by the composition engine based on content intent.
 
     Parameters
     ----------
     actor:
         The actor identity card (face_lock, prompt_seed, outfits, etc.)
     outfit_key:
-        Which outfit variation to use (at_home_working, at_home_relaxed,
-        cafe_working, celebrating_earnings).
+        Which outfit variation to use — also determines composition intent.
     backdrop_index:
         Index into the actor's backdrops array.
     design:
         Design direction from Stage 1 (optional, for style hints).
     region:
         Target region name for context.
+    image_index:
+        Which image number this is (0-based) — used for composition variety.
+    used_compositions:
+        Compositions already used for this actor — avoids repetition.
+
+    Returns
+    -------
+    tuple of (prompt_string, composition_key_used)
+        The composition_key should be tracked and passed as used_compositions
+        for subsequent images to ensure variety.
     """
+    from prompts.composition_engine import build_composition_block
+
     face_lock = actor.get("face_lock", {})
     prompt_seed = actor.get("prompt_seed", "")
     outfits = actor.get("outfit_variations", {})
@@ -196,6 +210,13 @@ def build_image_prompt(
     accessory = actor.get("signature_accessory", "headphones")
 
     photography_dir = (design or {}).get("photography_direction", "candid, natural, UGC-style")
+
+    # Select composition based on content intent (outfit_key maps to intent)
+    composition_block, composition_key = build_composition_block(
+        intent=outfit_key,
+        image_index=image_index,
+        used=used_compositions,
+    )
 
     prompt = f"""{prompt_seed}
 
@@ -211,6 +232,7 @@ FACE LOCK (these features MUST match the identity above):
 - Hair: {face_lock.get("hair", "natural")}
 - Nose: {face_lock.get("nose_shape", "natural")}
 - Distinguishing marks: {face_lock.get("distinguishing_marks", "none specified")}
+{composition_block}
 
 REALISM ANCHORS (MANDATORY — the image MUST exhibit ALL of these):
 {REALISM_ANCHORS_TEXT}
@@ -219,7 +241,7 @@ The final image should look like it was taken by a friend with an iPhone,
 not by a professional photographer in a studio. This is for a recruitment
 ad targeting real people in {region}."""
 
-    return prompt
+    return prompt, composition_key
 
 
 def build_visual_qa_prompt(actor: dict, region: str, outfit_key: str = "at_home_working") -> str:
