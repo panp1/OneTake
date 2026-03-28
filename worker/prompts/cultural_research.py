@@ -84,6 +84,56 @@ RESEARCH_DIMENSIONS: dict[str, dict[str, Any]] = {
         ),
         "output_keys": ["top_platforms_ranked", "job_platforms", "messaging_apps"],
     },
+    "demographic_channel_map": {
+        "query_template": (
+            "For {region} in 2026, provide a DETAILED breakdown of which social media "
+            "platforms are used by WHICH AGE GROUPS. This is critical because platforms "
+            "skew VERY differently by age in different countries.\n\n"
+            "For example: In the US, Facebook is 40+ but in Brazil Facebook is 18-35. "
+            "TikTok is 16-28 globally but restricted in some countries.\n\n"
+            "For EACH age bracket in {region}, rank the top 5 platforms by daily usage:\n"
+            "- 16-20 (teens/young adults)\n"
+            "- 21-25 (university age / early career)\n"
+            "- 26-35 (young professionals / young parents)\n"
+            "- 36-50 (established professionals / parents)\n"
+            "- 50+ (older adults / retirees)\n\n"
+            "IMPORTANT: Include ALL of these platforms in your analysis — mark each as "
+            "'dominant', 'popular', 'niche', 'unused', or 'blocked' per age group:\n"
+            "  Social: Facebook, Instagram, TikTok, Twitter/X, LinkedIn, Reddit, "
+            "Snapchat, Pinterest, YouTube\n"
+            "  Messaging: WhatsApp, Telegram, WeChat, Line, KakaoTalk, Viber, "
+            "Signal, Facebook Messenger\n"
+            "  Regional: VK (Russia), Odnoklassniki (CIS), Weibo (China), "
+            "Naver/Daum (Korea), Mixi (Japan)\n"
+            "  Job/Gig: Indeed, LinkedIn Jobs, Upwork, Fiverr, Freelancer, "
+            "Appen, Toloka, Microworkers, local platforms\n"
+            "  Communities: Reddit (which subreddits?), Discord, Facebook Groups, "
+            "WhatsApp Groups, Telegram Groups\n\n"
+            "Also specify:\n"
+            "- Which platforms have PAID AD capabilities in {region}?\n"
+            "- Which platforms are BLOCKED or RESTRICTED in {region}?\n"
+            "- Is REDDIT used in {region}? If so, which subreddits for work/money/freelance?\n"
+            "- Is WECHAT used in {region}? If so, for which demographics and purposes?\n"
+            "- What community groups (Facebook Groups, WhatsApp Groups, Reddit) "
+            "do people in {region} use to find remote/freelance work?\n\n"
+            "Return as JSON with age brackets as keys."
+        ),
+        "why_it_matters": (
+            "A 22-year-old student in Morocco uses completely different platforms than "
+            "a 22-year-old in Japan or a 45-year-old in the same country. Channel "
+            "selection MUST be age + region specific, not one-size-fits-all."
+        ),
+        "output_keys": [
+            "age_16_20",
+            "age_21_25",
+            "age_26_35",
+            "age_36_50",
+            "age_50_plus",
+            "blocked_platforms",
+            "ad_capable_platforms",
+            "gig_platforms_by_age",
+        ],
+    },
     "economic_context": {
         "query_template": (
             "What is the average hourly wage for skilled remote work in {region} "
@@ -161,6 +211,186 @@ RESEARCH_DIMENSIONS: dict[str, dict[str, Any]] = {
         ],
     },
 }
+
+
+# ---------------------------------------------------------------------------
+# REGIONAL PLATFORM PRIORS — hardcoded baseline demographics per region.
+# Used as fallback when Kimi K2.5 is unavailable, and to validate
+# Kimi's responses (catch obvious errors).
+# ---------------------------------------------------------------------------
+
+REGIONAL_PLATFORM_PRIORS: dict[str, dict[str, Any]] = {
+    # North America
+    "US": {
+        "facebook": {"dominant_age": "35+", "youth_usage": "low", "ad_capable": True},
+        "instagram": {"dominant_age": "18-34", "youth_usage": "high", "ad_capable": True},
+        "tiktok": {"dominant_age": "16-28", "youth_usage": "very_high", "ad_capable": True},
+        "linkedin": {"dominant_age": "25-55", "youth_usage": "medium", "ad_capable": True},
+        "reddit": {"dominant_age": "18-35", "youth_usage": "high", "ad_capable": True, "subreddits": ["r/beermoney", "r/WorkOnline", "r/remotework", "r/sidehustle"]},
+        "twitter": {"dominant_age": "25-45", "youth_usage": "medium", "ad_capable": True},
+        "pinterest": {"dominant_age": "25-45", "youth_usage": "medium", "ad_capable": True, "note": "Skews female, crafts/lifestyle"},
+        "wechat": {"dominant_age": "all", "youth_usage": "niche", "note": "Chinese diaspora only"},
+        "whatsapp": {"dominant_age": "25+", "youth_usage": "medium"},
+        "telegram": {"dominant_age": "25-40", "youth_usage": "low", "note": "Tech-savvy niche"},
+    },
+    "CA": {
+        "facebook": {"dominant_age": "30+", "youth_usage": "low", "ad_capable": True},
+        "instagram": {"dominant_age": "18-34", "youth_usage": "high", "ad_capable": True},
+        "tiktok": {"dominant_age": "16-28", "youth_usage": "very_high", "ad_capable": True},
+        "linkedin": {"dominant_age": "25-55", "youth_usage": "medium", "ad_capable": True},
+        "reddit": {"dominant_age": "18-35", "youth_usage": "high", "ad_capable": True},
+    },
+    # North Africa / Middle East
+    "MA": {
+        "facebook": {"dominant_age": "18-45", "youth_usage": "high", "ad_capable": True, "note": "Still dominant in Morocco unlike US"},
+        "instagram": {"dominant_age": "18-30", "youth_usage": "high", "ad_capable": True},
+        "tiktok": {"dominant_age": "16-25", "youth_usage": "very_high", "ad_capable": True},
+        "whatsapp": {"dominant_age": "all", "youth_usage": "very_high", "note": "#1 messaging app"},
+        "telegram": {"dominant_age": "20-35", "youth_usage": "medium", "note": "Growing in tech circles"},
+        "linkedin": {"dominant_age": "25-40", "youth_usage": "low", "note": "Professional niche only"},
+        "reddit": {"dominant_age": "20-30", "youth_usage": "low", "note": "Tech-savvy niche, francophone reddit"},
+    },
+    "EG": {
+        "facebook": {"dominant_age": "18-50", "youth_usage": "very_high", "ad_capable": True, "note": "Facebook is DOMINANT in Egypt"},
+        "instagram": {"dominant_age": "18-30", "youth_usage": "high", "ad_capable": True},
+        "tiktok": {"dominant_age": "16-25", "youth_usage": "very_high", "ad_capable": True},
+        "whatsapp": {"dominant_age": "all", "youth_usage": "very_high"},
+        "telegram": {"dominant_age": "18-35", "youth_usage": "medium"},
+    },
+    # Latin America
+    "BR": {
+        "facebook": {"dominant_age": "18-45", "youth_usage": "high", "ad_capable": True, "note": "Still very popular in Brazil, younger than US"},
+        "instagram": {"dominant_age": "18-35", "youth_usage": "very_high", "ad_capable": True},
+        "tiktok": {"dominant_age": "16-28", "youth_usage": "very_high", "ad_capable": True},
+        "whatsapp": {"dominant_age": "all", "youth_usage": "very_high", "note": "Universal in Brazil — even businesses"},
+        "linkedin": {"dominant_age": "25-45", "youth_usage": "medium", "ad_capable": True},
+        "reddit": {"dominant_age": "18-30", "youth_usage": "medium", "subreddits": ["r/brasil"]},
+        "pinterest": {"dominant_age": "25-40", "youth_usage": "medium", "ad_capable": True},
+    },
+    # South Asia
+    "IN": {
+        "whatsapp": {"dominant_age": "all", "youth_usage": "very_high", "note": "#1 app in India, period"},
+        "instagram": {"dominant_age": "18-30", "youth_usage": "very_high", "ad_capable": True},
+        "facebook": {"dominant_age": "25-50", "youth_usage": "medium", "ad_capable": True},
+        "tiktok": {"dominant_age": "N/A", "youth_usage": "blocked", "note": "BANNED in India since 2020"},
+        "linkedin": {"dominant_age": "22-40", "youth_usage": "medium", "ad_capable": True},
+        "telegram": {"dominant_age": "18-35", "youth_usage": "high"},
+        "reddit": {"dominant_age": "18-30", "youth_usage": "medium", "subreddits": ["r/india", "r/IndiaInvestments"]},
+    },
+    # East Asia
+    "CN": {
+        "wechat": {"dominant_age": "all", "youth_usage": "very_high", "ad_capable": True, "note": "DOMINANT — everything runs on WeChat in China"},
+        "weibo": {"dominant_age": "18-35", "youth_usage": "high", "ad_capable": True},
+        "douyin": {"dominant_age": "16-30", "youth_usage": "very_high", "ad_capable": True, "note": "Chinese TikTok"},
+        "facebook": {"dominant_age": "N/A", "youth_usage": "blocked", "note": "BLOCKED in China"},
+        "instagram": {"dominant_age": "N/A", "youth_usage": "blocked", "note": "BLOCKED in China"},
+        "linkedin": {"dominant_age": "N/A", "youth_usage": "blocked", "note": "BLOCKED in China"},
+        "reddit": {"dominant_age": "N/A", "youth_usage": "blocked", "note": "BLOCKED in China"},
+        "telegram": {"dominant_age": "N/A", "youth_usage": "blocked", "note": "BLOCKED in China"},
+    },
+    "JP": {
+        "line": {"dominant_age": "all", "youth_usage": "very_high", "note": "#1 messaging in Japan"},
+        "twitter": {"dominant_age": "18-40", "youth_usage": "very_high", "ad_capable": True, "note": "Japan loves Twitter/X"},
+        "instagram": {"dominant_age": "18-35", "youth_usage": "high", "ad_capable": True},
+        "tiktok": {"dominant_age": "16-25", "youth_usage": "high", "ad_capable": True},
+        "facebook": {"dominant_age": "30+", "youth_usage": "low", "ad_capable": True},
+        "linkedin": {"dominant_age": "25-45", "youth_usage": "low"},
+        "reddit": {"dominant_age": "20-35", "youth_usage": "low", "note": "5ch/2ch is the Japanese Reddit"},
+    },
+    "KR": {
+        "kakao": {"dominant_age": "all", "youth_usage": "very_high", "note": "KakaoTalk = universal messaging in Korea"},
+        "naver": {"dominant_age": "all", "youth_usage": "very_high", "ad_capable": True, "note": "Naver > Google in Korea"},
+        "instagram": {"dominant_age": "18-35", "youth_usage": "very_high", "ad_capable": True},
+        "tiktok": {"dominant_age": "16-25", "youth_usage": "high", "ad_capable": True},
+        "facebook": {"dominant_age": "30+", "youth_usage": "low", "ad_capable": True},
+    },
+    # CIS / Eastern Europe
+    "RU": {
+        "vk": {"dominant_age": "18-45", "youth_usage": "very_high", "ad_capable": True, "note": "VK is THE social network in Russia"},
+        "telegram": {"dominant_age": "18-45", "youth_usage": "very_high", "ad_capable": True, "note": "Dominant messaging + channels"},
+        "ok": {"dominant_age": "30+", "youth_usage": "low", "note": "Odnoklassniki — older demographic"},
+        "instagram": {"dominant_age": "18-30", "youth_usage": "high", "note": "Still used despite Meta restrictions"},
+        "facebook": {"dominant_age": "N/A", "youth_usage": "very_low", "note": "Essentially dead in Russia"},
+        "linkedin": {"dominant_age": "N/A", "youth_usage": "blocked", "note": "BLOCKED in Russia"},
+        "reddit": {"dominant_age": "18-30", "youth_usage": "low"},
+    },
+    # Southeast Asia
+    "PH": {
+        "facebook": {"dominant_age": "all", "youth_usage": "very_high", "ad_capable": True, "note": "Philippines is THE Facebook country"},
+        "tiktok": {"dominant_age": "16-28", "youth_usage": "very_high", "ad_capable": True},
+        "instagram": {"dominant_age": "18-30", "youth_usage": "high", "ad_capable": True},
+        "whatsapp": {"dominant_age": "25+", "youth_usage": "medium"},
+        "linkedin": {"dominant_age": "25-40", "youth_usage": "medium", "ad_capable": True},
+        "reddit": {"dominant_age": "18-30", "youth_usage": "medium", "subreddits": ["r/phcareers", "r/buhaydigital"]},
+    },
+    # Fallback
+    "Global": {
+        "facebook": {"dominant_age": "25-50", "youth_usage": "varies", "ad_capable": True},
+        "instagram": {"dominant_age": "18-35", "youth_usage": "high", "ad_capable": True},
+        "tiktok": {"dominant_age": "16-28", "youth_usage": "high", "ad_capable": True},
+        "linkedin": {"dominant_age": "25-55", "youth_usage": "medium", "ad_capable": True},
+        "whatsapp": {"dominant_age": "all", "youth_usage": "high"},
+        "telegram": {"dominant_age": "18-40", "youth_usage": "medium"},
+        "reddit": {"dominant_age": "18-35", "youth_usage": "medium"},
+        "pinterest": {"dominant_age": "25-45", "youth_usage": "medium"},
+    },
+}
+
+
+def get_platform_priors(region: str) -> dict[str, Any]:
+    """Get the hardcoded platform demographic priors for a region.
+
+    Falls back to 'Global' if the region is not in the map.
+    """
+    return REGIONAL_PLATFORM_PRIORS.get(region, REGIONAL_PLATFORM_PRIORS["Global"])
+
+
+def get_channels_for_age(region: str, age: int) -> list[str]:
+    """Return ranked channels for a specific age in a specific region.
+
+    Uses priors to quickly determine which platforms are relevant
+    without waiting for Kimi K2.5 research.
+    """
+    priors = get_platform_priors(region)
+    scored: list[tuple[str, int]] = []
+
+    for platform, data in priors.items():
+        if data.get("youth_usage") == "blocked":
+            continue
+
+        dominant = data.get("dominant_age", "all")
+        youth = data.get("youth_usage", "medium")
+
+        score = 0
+
+        # Check if age falls in dominant range
+        if dominant == "all":
+            score += 3
+        elif "-" in dominant:
+            parts = dominant.replace("+", "-99").split("-")
+            try:
+                low, high = int(parts[0]), int(parts[1])
+                if low <= age <= high:
+                    score += 5
+                elif abs(age - low) <= 5 or abs(age - high) <= 5:
+                    score += 2
+            except ValueError:
+                score += 1
+
+        # Youth usage bonus for young people
+        if age < 30:
+            youth_scores = {"very_high": 4, "high": 3, "medium": 1, "low": 0, "niche": 0}
+            score += youth_scores.get(youth, 1)
+
+        # Ad capability bonus
+        if data.get("ad_capable"):
+            score += 2
+
+        if score > 0:
+            scored.append((platform, score))
+
+    scored.sort(key=lambda x: -x[1])
+    return [p for p, _ in scored[:7]]
 
 
 # ---------------------------------------------------------------------------
