@@ -53,20 +53,28 @@ async def run_stage2(context: dict) -> dict:
         actor_text = await generate_text(ACTOR_SYSTEM_PROMPT, actor_prompt)
         actor_data = _parse_json(actor_text)
 
+        # Save actor with UGC identity card fields matching DB schema
         actor_id = await save_actor(request_id, {
-            "actor_name": actor_data.get("name", f"Contributor-{region}"),
-            "actor_data": actor_data,
-            "image_prompt": "",  # filled after image prompt generation
-            "region": region,
-            "language": language,
+            "name": actor_data.get("name", f"Contributor-{region}"),
+            "face_lock": actor_data.get("face_lock", {}),
+            "prompt_seed": actor_data.get("prompt_seed", ""),
+            "outfit_variations": actor_data.get("outfit_variations", {}),
+            "signature_accessory": actor_data.get("signature_accessory", "headphones"),
+            "backdrops": actor_data.get("backdrops", []),
         })
         actor_data["id"] = actor_id
         all_actors.append(actor_data)
 
         # ------------------------------------------------------------------
-        # Generate hero image for actor
+        # Generate hero image for actor (using prompt_seed + face_lock)
         # ------------------------------------------------------------------
-        image_prompt_text = build_image_prompt(actor_data, brief, design, region)
+        image_prompt_text = build_image_prompt(
+            actor_data,
+            outfit_key="at_home_working",
+            backdrop_index=0,
+            design=design,
+            region=region,
+        )
 
         for attempt in range(MAX_IMAGE_RETRIES):
             logger.info(

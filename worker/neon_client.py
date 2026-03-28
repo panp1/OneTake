@@ -201,23 +201,28 @@ async def save_brief(request_id: str, data: dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 
 async def save_actor(request_id: str, data: dict[str, Any]) -> str:
-    """Insert an actor profile and return its ID."""
+    """Insert an actor profile and return its ID.
+
+    Data keys match the DB schema: name, face_lock, prompt_seed,
+    outfit_variations, signature_accessory, backdrops.
+    """
     pool = await _get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
             INSERT INTO actor_profiles
-                (request_id, actor_name, actor_data, image_prompt,
-                 region, language)
-            VALUES ($1, $2, $3, $4, $5, $6)
+                (request_id, name, face_lock, prompt_seed,
+                 outfit_variations, signature_accessory, backdrops)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING id
             """,
             request_id,
-            data.get("actor_name", "Contributor"),
-            json.dumps(data.get("actor_data", {})),
-            data.get("image_prompt", ""),
-            data.get("region", ""),
-            data.get("language", ""),
+            data.get("name", "Contributor"),
+            json.dumps(data.get("face_lock", {})),
+            data.get("prompt_seed", ""),
+            json.dumps(data.get("outfit_variations", {})),
+            data.get("signature_accessory", ""),
+            data.get("backdrops", []),
         )
     return row["id"]
 

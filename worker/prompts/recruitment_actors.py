@@ -99,76 +99,118 @@ REGION_SETTINGS: dict[str, list[str]] = {
 
 
 def build_actor_prompt(brief: dict, region: str, language: str) -> str:
-    """Build the prompt for generating an actor identity card."""
+    """Build the prompt for generating an actor identity card.
+
+    The JSON output matches the DB schema: face_lock, prompt_seed,
+    outfit_variations, signature_accessory, backdrops — following
+    the UGC actor system for consistent character generation across
+    all ad variants.
+    """
     audience = brief.get("target_audience", {})
     persona = audience.get("persona", "A multilingual freelancer looking for flexible remote work")
     profile_types = audience.get("profile_types", ["students", "freelancers"])
+    settings = REGION_SETTINGS.get(region, REGION_SETTINGS["Global"])
 
-    return f"""Create a fictional but culturally authentic contributor persona for a OneForma recruitment ad.
+    return f"""Create an AI UGC actor identity card for a OneForma recruitment ad campaign.
 
 TARGET REGION: {region}
 TARGET LANGUAGE: {language}
 CAMPAIGN PERSONA: {persona}
 PROFILE TYPES: {", ".join(profile_types)}
 
-This person will appear in a recruitment ad photograph. They must feel REAL and RELATABLE
-to people in {region} who speak {language}.
+This actor will appear across MULTIPLE ad creatives (feed, stories, carousel panels).
+Their identity must be LOCKED — same person in every image. They must feel REAL and
+RELATABLE to people in {region} who speak {language}.
 
-Return ONLY valid JSON:
+Return ONLY valid JSON matching this EXACT schema:
 {{
   "name": "A culturally appropriate first name for {region}",
-  "age": 24,
-  "gender": "male/female/non-binary",
-  "occupation": "Their current/previous occupation (student, freelancer, etc.)",
-  "appearance": {{
-    "ethnicity": "Specific to {region} — be precise, not generic",
-    "build": "average/slim/athletic — realistic, not model-like",
-    "hair": "Specific natural hairstyle common in {region}",
-    "clothing": "What they would actually wear at home/cafe while working (casual, real)",
-    "distinguishing_features": "One small realistic detail (glasses, dimple, freckles, etc.)"
+  "face_lock": {{
+    "skin_tone_hex": "#HEXCOLOR (realistic skin tone for someone from {region})",
+    "eye_color": "specific eye color (brown, dark brown, hazel, etc.)",
+    "jawline": "face shape description (round, defined, soft oval, angular, etc.)",
+    "hair": "specific hairstyle common in {region} (include color, length, texture)",
+    "nose_shape": "specific description (broad bridge, delicate, straight, etc.)",
+    "age_range": "e.g. 22-26",
+    "distinguishing_marks": "1-2 unique features (light stubble, dimple, beauty mark, laugh lines, glasses)"
   }},
-  "setting": "Where they are — a real-feeling location in {region}",
-  "device": "What device they are using (laptop, phone, tablet)",
-  "mood": "Relaxed, focused, or casually happy — NOT corporate-smiling",
-  "backstory": "2 sentences: who they are and why they would do annotation work",
-  "motivation": "What would make THIS person click on a recruitment ad?"
+  "prompt_seed": "One dense paragraph (80-120 words) describing this EXACT person that gets pasted into EVERY Seedream generation for consistency. Include: ethnicity, age, skin tone hex, face shape, hair, eye color, distinguishing marks, default expression. This is the IDENTITY LOCK — if you generate 20 images with this seed, they should all clearly be the same person.",
+  "outfit_variations": {{
+    "at_home_working": "What they wear while annotating data at home (e.g., casual t-shirt, headphones on, comfortable pants)",
+    "at_home_relaxed": "Relaxed version — hoodie/sweater, sitting on couch or bed with laptop",
+    "cafe_working": "What they wear to a cafe to work (slightly more put-together but still casual)",
+    "celebrating_earnings": "Casual outfit, looking at phone with satisfied expression — just got paid"
+  }},
+  "signature_accessory": "ONE item they ALWAYS have visible (over-ear headphones, wireless earbuds, specific watch, bracelet, hair clip, glasses — pick something relevant to data annotation work)",
+  "backdrops": [
+    "A realistic {region} home setting (kitchen table, bedroom desk, etc.)",
+    "A realistic {region} cafe or public workspace",
+    "A realistic {region} outdoor or balcony setting",
+    "A close-up framing for story/portrait format"
+  ]
 }}
 
-IMPORTANT:
-- The person must look like someone you would actually see in {region}.
-- NO stock-photo vibes. NO corporate attire. NO perfect styling.
-- They should look like they are working from home or a casual space.
-- Age should be 18-45 (the OneForma contributor demographic)."""
+RULES:
+- Face lock = the person's PERMANENT features. Same in every image.
+- Prompt seed = the dense text that Seedream uses for EVERY generation. It's the identity.
+- Outfit variations = 4 different looks for different ad contexts.
+- Signature accessory = appears in EVERY image (creates recognition across ad set).
+- Backdrops = 4 realistic settings from {region} (NOT generic Western settings).
+- Age 18-35 (the OneForma contributor demographic).
+- NO stock-photo vibes. NO corporate attire. NO model-like appearance.
+- They should look like a real {language}-speaking person in {region} who does gig work from home."""
 
 
 def build_image_prompt(
     actor: dict,
-    brief: dict,
-    design: dict,
-    region: str,
+    outfit_key: str = "at_home_working",
+    backdrop_index: int = 0,
+    design: dict | None = None,
+    region: str = "Global",
 ) -> str:
     """Build the Seedream image generation prompt for an actor.
 
-    Includes all 10 realism anchors and region-specific setting details.
+    Uses the actor's prompt_seed (identity lock) + selected outfit
+    variation + backdrop + all 10 realism anchors.
+
+    Parameters
+    ----------
+    actor:
+        The actor identity card (face_lock, prompt_seed, outfits, etc.)
+    outfit_key:
+        Which outfit variation to use (at_home_working, at_home_relaxed,
+        cafe_working, celebrating_earnings).
+    backdrop_index:
+        Index into the actor's backdrops array.
+    design:
+        Design direction from Stage 1 (optional, for style hints).
+    region:
+        Target region name for context.
     """
-    appearance = actor.get("appearance", {})
-    settings = REGION_SETTINGS.get(region, REGION_SETTINGS["Global"])
-    setting = actor.get("setting", settings[0])
+    face_lock = actor.get("face_lock", {})
+    prompt_seed = actor.get("prompt_seed", "")
+    outfits = actor.get("outfit_variations", {})
+    outfit = outfits.get(outfit_key, outfits.get("at_home_working", "casual clothes, headphones"))
+    backdrops = actor.get("backdrops", ["home office with laptop"])
+    backdrop = backdrops[backdrop_index % len(backdrops)] if backdrops else "home office"
+    accessory = actor.get("signature_accessory", "headphones")
 
-    photography_dir = design.get("photography_direction", "candid, natural, UGC-style")
+    photography_dir = (design or {}).get("photography_direction", "candid, natural, UGC-style")
 
-    prompt = f"""Portrait photograph of {actor.get("name", "a person")}, a {actor.get("age", 25)}-year-old {appearance.get("ethnicity", "")} {actor.get("gender", "person")}.
+    prompt = f"""{prompt_seed}
 
-APPEARANCE:
-- Build: {appearance.get("build", "average")}
-- Hair: {appearance.get("hair", "natural")}
-- Clothing: {appearance.get("clothing", "casual everyday clothes")}
-- Distinguishing feature: {appearance.get("distinguishing_features", "natural look")}
-
-SETTING: {setting}
-DEVICE: {actor.get("device", "laptop")} visible in frame
-MOOD: {actor.get("mood", "relaxed and focused")}
+OUTFIT FOR THIS SHOT: {outfit}
+SIGNATURE ACCESSORY (MUST be visible): {accessory}
+BACKDROP: {backdrop}
 STYLE: {photography_dir}
+
+FACE LOCK (these features MUST match the identity above):
+- Skin tone: {face_lock.get("skin_tone_hex", "natural")}
+- Eye color: {face_lock.get("eye_color", "brown")}
+- Jawline: {face_lock.get("jawline", "natural")}
+- Hair: {face_lock.get("hair", "natural")}
+- Nose: {face_lock.get("nose_shape", "natural")}
+- Distinguishing marks: {face_lock.get("distinguishing_marks", "none specified")}
 
 REALISM ANCHORS (MANDATORY — the image MUST exhibit ALL of these):
 {REALISM_ANCHORS_TEXT}
@@ -180,36 +222,56 @@ ad targeting real people in {region}."""
     return prompt
 
 
-def build_visual_qa_prompt(actor: dict, region: str) -> str:
+def build_visual_qa_prompt(actor: dict, region: str, outfit_key: str = "at_home_working") -> str:
     """Build the VLM visual QA prompt for evaluating a generated actor image."""
-    appearance = actor.get("appearance", {})
+    face_lock = actor.get("face_lock", {})
+    outfits = actor.get("outfit_variations", {})
+    outfit = outfits.get(outfit_key, "casual clothes")
+    accessory = actor.get("signature_accessory", "headphones")
 
-    return f"""Evaluate this recruitment ad image for cultural authenticity and realism.
+    return f"""Evaluate this recruitment ad image for identity consistency, cultural authenticity, and realism.
 
-EXPECTED SUBJECT:
+EXPECTED ACTOR IDENTITY (face_lock — these MUST match):
 - Name: {actor.get("name", "unknown")}
-- Age: ~{actor.get("age", 25)}
-- Gender: {actor.get("gender", "unknown")}
-- Ethnicity: {appearance.get("ethnicity", "unknown")}
-- Clothing: {appearance.get("clothing", "casual")}
-- Setting: {actor.get("setting", "home office")}
-- Region: {region}
+- Skin tone: {face_lock.get("skin_tone_hex", "unknown")}
+- Eye color: {face_lock.get("eye_color", "unknown")}
+- Jawline: {face_lock.get("jawline", "unknown")}
+- Hair: {face_lock.get("hair", "unknown")}
+- Nose: {face_lock.get("nose_shape", "unknown")}
+- Distinguishing marks: {face_lock.get("distinguishing_marks", "none")}
+- Age range: {face_lock.get("age_range", "20-35")}
+
+EXPECTED OUTFIT: {outfit}
+SIGNATURE ACCESSORY (must be visible): {accessory}
+REGION: {region}
 
 Check EACH of these and score 0.0-1.0:
 
-1. REALISM: Does this look like a real iPhone photo, not AI-generated or stock?
-   - Check for: natural skin texture, realistic lighting, candid pose
-   - Red flags: plastic skin, perfect symmetry, uncanny valley, studio lighting
+1. IDENTITY CONSISTENCY: Does the person match the face_lock description above?
+   - Check: skin tone matches hex, eye color matches, hair matches, jawline matches
+   - Check: distinguishing marks present (stubble, beauty mark, glasses, etc.)
+   - Check: age looks correct for the specified range
+   - Red flags: wrong skin tone, different hair, missing distinguishing features
+   - THIS IS THE MOST IMPORTANT DIMENSION — the actor must be recognizable across all images
 
-2. CULTURAL AUTHENTICITY: Does this person look like they belong in {region}?
+2. REALISM: Does this look like a real iPhone photo, not AI-generated or stock?
+   - Check for: natural skin pores, realistic lighting imperfections, candid pose
+   - Check for: fabric texture/wrinkles, environmental noise (real objects)
+   - Red flags: plastic skin, perfect symmetry, uncanny valley, studio lighting, extra fingers
+
+3. CULTURAL AUTHENTICITY: Does this person look like they belong in {region}?
    - Check for: appropriate ethnicity, realistic clothing for the region, authentic setting
    - Red flags: generic/ambiguous ethnicity, Western-default clothing, mismatched setting
 
-3. BRAND FIT: Would this work for a OneForma recruitment ad?
-   - Check for: approachable, relatable, not intimidating, working-from-home vibe
+4. ACCESSORY CHECK: Is the signature accessory ({accessory}) visible in the image?
+   - Must be clearly present — this creates recognition across the ad campaign
+   - Red flag: accessory missing or wrong item shown
+
+5. BRAND FIT: Would this work for a OneForma contributor recruitment ad?
+   - Check for: approachable, relatable, working-from-home/cafe vibe
    - Red flags: corporate attire, model-like appearance, luxury setting
 
-4. TECHNICAL QUALITY: Is the image usable for an ad?
+6. TECHNICAL QUALITY: Is the image usable for an ad?
    - Check for: proper framing, no artifacts, face clearly visible, good resolution
    - Red flags: distorted features, extra fingers, blurry face, watermarks
 
@@ -218,8 +280,10 @@ Return ONLY valid JSON:
   "overall_score": 0.0,
   "score": 0.0,
   "dimensions": {{
+    "identity_consistency": {{"score": 0.0, "feedback": "Does the face match the face_lock?"}},
     "realism": {{"score": 0.0, "feedback": "..."}},
     "cultural_authenticity": {{"score": 0.0, "feedback": "..."}},
+    "accessory_check": {{"score": 0.0, "feedback": "Is {accessory} visible?"}},
     "brand_fit": {{"score": 0.0, "feedback": "..."}},
     "technical_quality": {{"score": 0.0, "feedback": "..."}}
   }},
