@@ -290,3 +290,224 @@ Return ONLY valid JSON:
   "issues": ["List any problems that need fixing"],
   "passed": true
 }}"""
+
+
+# =========================================================================
+# MULTI-ACTOR SCENES & RELATIONSHIPS
+# =========================================================================
+
+RELATIONSHIP_TYPES = {
+    "independent": "Two separate individuals who happen to be in the same scene",
+    "twins_identical": "Identical twins — same face, different outfits/accessories",
+    "twins_fraternal": "Fraternal twins — same family features, different faces",
+    "colleagues": "Coworkers/friends — different people, same setting/vibe",
+    "community": "Group of diverse contributors — variety of ages, ethnicities",
+}
+
+
+def build_twin_actor_prompt(
+    source_actor: dict,
+    region: str,
+    language: str,
+    twin_type: str = "twins_identical",
+) -> str:
+    """Build a twin actor identity card derived from a source actor.
+
+    For identical twins: copies face_lock exactly, changes outfit +
+    distinguishing marks + accessory.
+    For fraternal twins: shares skin_tone + hair color, changes everything else.
+    """
+    source_face = source_actor.get("face_lock", {})
+    source_name = source_actor.get("name", "unknown")
+
+    if twin_type == "twins_identical":
+        face_instruction = f"""The twin has the EXACT SAME face_lock as {source_name}:
+- skin_tone_hex: {source_face.get("skin_tone_hex", "same")}
+- eye_color: {source_face.get("eye_color", "same")}
+- jawline: {source_face.get("jawline", "same")}
+- hair: {source_face.get("hair", "same")} (can be slightly different length/style)
+- nose_shape: {source_face.get("nose_shape", "same")}
+- age_range: {source_face.get("age_range", "same")}
+Only change: distinguishing_marks (different scar/mole/glasses to tell them apart)"""
+    else:
+        face_instruction = f"""Fraternal twin of {source_name} — same family, different person:
+- skin_tone_hex: SAME as {source_face.get("skin_tone_hex", "source")}
+- eye_color: can differ slightly
+- jawline: different shape
+- hair: same COLOR but different style/length
+- nose_shape: different
+- age_range: {source_face.get("age_range", "same")}
+They should look like siblings, not like the same person."""
+
+    return f"""Create an AI UGC actor who is the {"identical" if twin_type == "twins_identical" else "fraternal"} twin of {source_name}.
+
+SOURCE ACTOR: {source_name}
+{face_instruction}
+
+TARGET REGION: {region}
+TARGET LANGUAGE: {language}
+
+Return ONLY valid JSON with the same schema as a regular actor:
+{{
+  "name": "A different culturally appropriate name (they are siblings)",
+  "face_lock": {{...same schema as regular actor...}},
+  "prompt_seed": "Include 'identical twin of {source_name}' in the prompt seed. Reference the source actor's validated_seed_url if available.",
+  "outfit_variations": {{...4 variations, DIFFERENT from {source_name}'s outfits...}},
+  "signature_accessory": "DIFFERENT from {source_name}'s accessory (this is how viewers tell them apart)",
+  "backdrops": ["Same region-appropriate settings as {source_name}"]
+}}
+
+The twin must be DISTINGUISHABLE from {source_name} by:
+1. Different signature accessory
+2. Different outfit preferences
+3. Different distinguishing marks
+But RECOGNIZABLE as their twin by: same skin, same build, same age."""
+
+
+def build_scene_prompt(
+    actors: list[dict],
+    scene_type: str,
+    design: dict | None = None,
+    region: str = "Global",
+) -> str:
+    """Build a multi-actor scene prompt for Seedream.
+
+    Combines multiple actors' prompt seeds into one image with interaction
+    cues and composition direction.
+
+    Parameters
+    ----------
+    actors:
+        List of actor identity cards (each with face_lock, prompt_seed).
+    scene_type:
+        Type of scene: "collaboration", "celebration", "community",
+        "video_call", "side_by_side".
+    design:
+        Design direction from Stage 1.
+    region:
+        Target region for setting context.
+    """
+    actor_count = len(actors)
+    photography_dir = (design or {}).get("photography_direction", "candid, natural, UGC-style")
+
+    # Build per-actor identity descriptions
+    actor_descriptions = []
+    for i, actor in enumerate(actors):
+        face = actor.get("face_lock", {})
+        seed = actor.get("prompt_seed", f"Person {i + 1}")
+        accessory = actor.get("signature_accessory", "")
+        actor_descriptions.append(
+            f"PERSON {i + 1} ({actor.get('name', f'Actor {i + 1}')}):\n"
+            f"  Identity: {seed}\n"
+            f"  Signature accessory (MUST be visible): {accessory}\n"
+            f"  Skin tone: {face.get('skin_tone_hex', 'natural')}"
+        )
+
+    actors_block = "\n\n".join(actor_descriptions)
+
+    # Scene-specific composition direction
+    scene_directions = {
+        "collaboration": (
+            f"{actor_count} people working together at a shared table or "
+            f"co-working space. Laptops open, casual conversation, natural "
+            f"body language. One person pointing at a screen, others engaged."
+        ),
+        "celebration": (
+            f"{actor_count} people celebrating — high-five, fist bump, or "
+            f"laughing together. Casual setting. Genuine joy, not posed. "
+            f"One person holding phone showing a notification/achievement."
+        ),
+        "community": (
+            f"Group shot of {actor_count} diverse contributors. Arranged "
+            f"naturally (not in a line). Mixed seating — some standing, "
+            f"some sitting. Each with their own device. Community vibe."
+        ),
+        "video_call": (
+            f"Split-screen or over-shoulder view of a video call between "
+            f"{actor_count} people. Each in their own home/cafe setting. "
+            f"Laptop screens visible showing video tiles of the others."
+        ),
+        "side_by_side": (
+            f"{actor_count} people side by side — portrait composition. "
+            f"Each looking at camera or at their screen. Individual "
+            f"identity clear. Good for carousel or comparison layout."
+        ),
+    }
+
+    scene_dir = scene_directions.get(scene_type, scene_directions["collaboration"])
+
+    settings = REGION_SETTINGS.get(region, REGION_SETTINGS["Global"])
+
+    return f"""Group photograph of {actor_count} people for a OneForma recruitment ad.
+
+SCENE TYPE: {scene_type}
+COMPOSITION: {scene_dir}
+
+{actors_block}
+
+SETTING: {settings[0]} (or similar realistic {region} location)
+STYLE: {photography_dir}
+
+CRITICAL RULES:
+- Each person's face must match their identity description above
+- Each person's signature accessory must be visible
+- Natural interaction — NOT posed, NOT corporate team photo
+- Different body types, heights, postures (realistic group)
+- Correct number of people: exactly {actor_count} (no more, no less)
+- Each person must be distinguishable from the others
+
+REALISM ANCHORS (MANDATORY):
+{REALISM_ANCHORS_TEXT}
+
+This should look like a friend took a group photo at a real {region} location."""
+
+
+def build_scene_qa_prompt(actors: list[dict], scene_type: str, region: str) -> str:
+    """Build VQA prompt for evaluating a multi-actor scene image."""
+    actor_count = len(actors)
+    actor_checks = []
+    for i, actor in enumerate(actors):
+        face = actor.get("face_lock", {})
+        accessory = actor.get("signature_accessory", "")
+        actor_checks.append(
+            f"Person {i + 1} ({actor.get('name', '?')}): "
+            f"skin={face.get('skin_tone_hex', '?')}, "
+            f"hair={face.get('hair', '?')}, "
+            f"accessory={accessory}"
+        )
+
+    checks_block = "\n".join(f"  - {c}" for c in actor_checks)
+
+    return f"""Evaluate this multi-actor recruitment ad image.
+
+EXPECTED: {actor_count} people in a {scene_type} scene in {region}.
+
+IDENTITY CHECK (each person must match):
+{checks_block}
+
+Score 0.0-1.0 on each:
+
+1. HEADCOUNT: Are there exactly {actor_count} people? (1.0 = correct, 0.0 = wrong count)
+2. IDENTITY: Does each person match their description? (average across all actors)
+3. ACCESSORIES: Is each person's signature accessory visible?
+4. INTERACTION: Does the scene feel natural? (not posed, real body language)
+5. REALISM: iPhone-quality photo? (skin texture, lighting imperfections, etc.)
+6. CULTURAL: Setting appropriate for {region}?
+
+Return ONLY valid JSON:
+{{
+  "overall_score": 0.0,
+  "dimensions": {{
+    "headcount": {{"score": 0.0, "feedback": "..."}},
+    "identity": {{"score": 0.0, "feedback": "..."}},
+    "accessories": {{"score": 0.0, "feedback": "..."}},
+    "interaction": {{"score": 0.0, "feedback": "..."}},
+    "realism": {{"score": 0.0, "feedback": "..."}},
+    "cultural": {{"score": 0.0, "feedback": "..."}}
+  }},
+  "per_actor": [
+    {{"name": "...", "matched": true, "feedback": "..."}}
+  ],
+  "issues": [],
+  "passed": true
+}}"""
