@@ -463,7 +463,13 @@ async def _call_kimi(query: str, output_keys: list[str]) -> dict[str, Any]:
                 },
             )
             resp.raise_for_status()
-            content = resp.json()["choices"][0]["message"]["content"]
+            data = resp.json()
+            msg = data.get("choices", [{}])[0].get("message", {})
+            content = msg.get("content") or msg.get("reasoning") or ""
+
+            if not content:
+                logger.warning("Kimi K2.5 returned empty content — using fallback.")
+                return {k: "unavailable — empty API response" for k in output_keys}
 
             # Parse JSON from response, handling possible markdown fences.
             cleaned = content.strip()

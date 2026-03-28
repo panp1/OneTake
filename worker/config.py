@@ -26,7 +26,7 @@ VERCEL_BLOB_STORE_ID = os.environ.get("BLOB_STORE_ID", "")
 # Image Generation via OpenRouter (Seedream 4.5 or alternatives)
 # ---------------------------------------------------------------------------
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-IMAGE_MODEL = os.environ.get("IMAGE_MODEL", "doubao/seedream-4-5")
+IMAGE_MODEL = os.environ.get("IMAGE_MODEL", "bytedance-seed/seedream-4.5")
 
 # ---------------------------------------------------------------------------
 # Teams Webhook
