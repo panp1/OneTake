@@ -1191,3 +1191,47 @@ def _build_objection_handlers(objections: list[str]) -> dict[str, str]:
         )
 
     return handlers
+
+
+# ---------------------------------------------------------------------------
+# apply_cultural_research — enrich personas with cultural research data
+# ---------------------------------------------------------------------------
+
+def apply_cultural_research(
+    personas: list[dict[str, Any]],
+    research: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Enrich personas with cultural research findings.
+
+    This is a convenience wrapper that delegates to
+    ``cultural_research.apply_research_to_personas``. It exists here so
+    callers working with the persona engine don't need to import a
+    separate module.
+
+    Adjustments:
+    - If AI fatigue is HIGH: remove "AI" from messaging, reframe as
+      "flexible remote work".
+    - If gig work is STIGMATIZED: frame as "professional freelance" not
+      "gig work".
+    - If trust is LOW: add trust signals (company size, known clients,
+      payment proof).
+    - If platform reality differs from defaults: override best_channels.
+    - If economic context shows low wages: adjust rate framing.
+    - Add cultural sensitivity notes to each persona.
+    - Add language nuance to copy guidance.
+
+    Parameters
+    ----------
+    personas:
+        List of persona dicts from ``generate_personas``.
+    research:
+        Dict keyed by region from cultural research.
+
+    Returns
+    -------
+    list[dict]
+        The same personas, enriched with cultural context.
+    """
+    from prompts.cultural_research import apply_research_to_personas
+
+    return apply_research_to_personas(personas, research)

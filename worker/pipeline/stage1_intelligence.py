@@ -3,8 +3,10 @@
 1. Load intake request from Neon.
 2. Generate creative brief using Qwen3.5-9B.
 3. Evaluate brief (gate -- threshold 0.85, max 3 retries).
-4. Generate design direction.
-5. Save to Neon creative_briefs table.
+4. Cultural research per region via Kimi K2.5.
+5. Generate 3 target personas (informed by cultural research).
+6. Generate design direction.
+7. Save to Neon creative_briefs table.
 """
 from __future__ import annotations
 
@@ -13,6 +15,11 @@ import logging
 
 from ai.local_llm import generate_text
 from neon_client import get_intake_request, save_brief
+from prompts.cultural_research import (
+    apply_research_to_personas,
+    build_research_summary,
+    research_all_regions,
+)
 from prompts.persona_engine import (
     build_persona_brief_prompt,
     generate_personas,
@@ -71,10 +78,47 @@ async def run_stage1(context: dict) -> dict:
         brief_data = _parse_json(brief_text)
 
     # ------------------------------------------------------------------
+    # Cultural research per region via Kimi K2.5
+    # ------------------------------------------------------------------
+    target_regions: list[str] = request.get("target_regions", [])
+    target_languages: list[str] = request.get("target_languages", [])
+    form_data: dict = request.get("form_data", {})
+    task_type: str = request.get("task_type", "data annotation")
+
+    cultural_research: dict = {}
+    if target_regions:
+        logger.info("Running cultural research for %d regions ...", len(target_regions))
+        cultural_research = await research_all_regions(
+            regions=target_regions,
+            languages=target_languages,
+            demographic=form_data.get("demographic", "young adults 18-35"),
+            task_type=task_type,
+        )
+        brief_data["cultural_research"] = cultural_research
+        logger.info("Cultural research complete for regions: %s", list(cultural_research.keys()))
+    else:
+        logger.info("No target regions — skipping cultural research.")
+
+    # ------------------------------------------------------------------
     # Generate 3 target personas from intake requirements
     # ------------------------------------------------------------------
     personas = generate_personas(request)
+
+    # Enrich personas with cultural research findings before further use.
+    if cultural_research:
+        personas = apply_research_to_personas(personas, cultural_research)
+        logger.info(
+            "Personas enriched with cultural research for %d regions.",
+            len(cultural_research),
+        )
+
     persona_context = build_persona_brief_prompt(personas, brief_data)
+
+    # Append cultural research summary to persona context so design
+    # direction accounts for real cultural data.
+    if cultural_research:
+        persona_context += "\n\n" + build_research_summary(cultural_research)
+
     logger.info(
         "Generated %d personas: %s",
         len(personas),
@@ -104,6 +148,7 @@ async def run_stage1(context: dict) -> dict:
             "evaluation_score": score,
             "evaluation_data": eval_data,
             "personas": personas,
+            "cultural_research": cultural_research,
             "content_languages": request.get("target_languages", []),
         },
     )
@@ -112,6 +157,7 @@ async def run_stage1(context: dict) -> dict:
         "brief": brief_data,
         "design_direction": design_data,
         "personas": personas,
+        "cultural_research": cultural_research,
         "target_languages": request.get("target_languages", []),
         "target_regions": request.get("target_regions", []),
         "form_data": request.get("form_data", {}),
