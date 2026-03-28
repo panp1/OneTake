@@ -88,6 +88,22 @@ export async function POST(request: Request) {
       schema_version: schema.version,
     });
 
+    // Auto-queue generation — no manual "Generate" button needed.
+    // The local worker will pick this up and run the full pipeline.
+    try {
+      const { createComputeJob } = await import('@/lib/db/compute-jobs');
+      const { updateIntakeRequest } = await import('@/lib/db/intake');
+
+      await updateIntakeRequest(intakeRequest.id, { status: 'generating' });
+      await createComputeJob({
+        request_id: intakeRequest.id,
+        job_type: 'generate',
+      });
+    } catch (jobError) {
+      // Don't fail the request creation if job queuing fails
+      console.error('[api/intake] Failed to auto-queue generation:', jobError);
+    }
+
     return Response.json(intakeRequest, { status: 201 });
   } catch (error) {
     console.error('[api/intake] Failed to create intake request:', error);

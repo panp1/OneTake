@@ -222,9 +222,9 @@ export default function NewIntakePage() {
         throw new Error(err.error || "Failed to create request");
       }
 
-      const created = await res.json();
-      toast.success("Intake request created successfully");
-      router.push(`/intake/${created.id}`);
+      await res.json();
+      toast.success("Request submitted — generation started automatically");
+      router.push("/intake/submitted");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create request");
     } finally {
