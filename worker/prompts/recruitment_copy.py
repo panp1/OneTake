@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from worker.prompts.ethical_positioning import (
+from prompts.ethical_positioning import (
     apply_ethical_framing,
     build_ethical_copy_prompt,
     detect_sensitivity,
