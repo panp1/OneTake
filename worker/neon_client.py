@@ -227,6 +227,26 @@ async def save_actor(request_id: str, data: dict[str, Any]) -> str:
     return row["id"]
 
 
+async def update_actor_seed(actor_id: str, seed_url: str) -> None:
+    """Store the validated hero seed image URL on the actor profile.
+
+    The actor_profiles table doesn't have a dedicated column for this,
+    so we store it inside the face_lock JSONB as ``validated_seed_url``.
+    This keeps the seed co-located with the identity data.
+    """
+    pool = await _get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            UPDATE actor_profiles
+            SET face_lock = face_lock || $1::jsonb
+            WHERE id = $2
+            """,
+            json.dumps({"validated_seed_url": seed_url}),
+            actor_id,
+        )
+
+
 async def get_actors(request_id: str) -> list[dict[str, Any]]:
     """Read all actor profiles for a request."""
     pool = await _get_pool()
