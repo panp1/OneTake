@@ -75,8 +75,9 @@ class MLXServerManager:
         """Start the mlx_lm.server subprocess and wait until healthy."""
         logger.info("Starting MLX server: model=%s port=%d", self._model, self._port)
 
+        import sys
         cmd = [
-            "python", "-m", "mlx_lm.server",
+            sys.executable, "-m", "mlx_lm.server",
             "--model", self._model,
             "--host", self._host,
             "--port", str(self._port),
@@ -176,10 +177,33 @@ class MLXServerManager:
         model: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.7,
+        thinking: bool = True,
     ) -> str:
-        """Generate text via the MLX HTTP server. Auto-starts if needed."""
+        """Generate text via the MLX HTTP server. Auto-starts if needed.
+
+        Parameters
+        ----------
+        thinking:
+            If True (default), allows Qwen3.5 extended thinking mode.
+            The reasoning trace is returned as the output — ideal for
+            orchestration tasks (brief generation, template selection,
+            creative direction) where the reasoning IS the useful output.
+
+            If False, prepends /no_think to the user message to force
+            direct output — ideal for structured JSON responses
+            (evaluations, scores, data extraction).
+        """
         await self.ensure_ready()
         self._last_activity = time.monotonic()
+
+        # For no-think mode, prepend /no_think to the last user message
+        if not thinking:
+            messages = [
+                {**m, "content": f"/no_think\n{m['content']}"}
+                if m.get("role") == "user" and i == len(messages) - 1
+                else m
+                for i, m in enumerate(messages)
+            ]
 
         async with httpx.AsyncClient(timeout=180) as client:
             resp = await client.post(
@@ -193,7 +217,18 @@ class MLXServerManager:
             )
             resp.raise_for_status()
             data = resp.json()
-            return data["choices"][0]["message"]["content"]
+
+            msg = data["choices"][0]["message"]
+            content = msg.get("content", "")
+            reasoning = msg.get("reasoning", "")
+
+            # Qwen3.5 thinking mode: content may be empty while reasoning
+            # has the actual useful output. Return whichever has content.
+            if content and content.strip():
+                return content
+            if reasoning and reasoning.strip():
+                return reasoning
+            return content
 
 
 # Singleton instance

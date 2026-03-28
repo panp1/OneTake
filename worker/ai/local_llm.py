@@ -42,6 +42,7 @@ async def generate_text(
     model_name: str | None = None,
     max_tokens: int = 4096,
     temperature: float = 0.7,
+    thinking: bool = True,
 ) -> str:
     """Generate text using MLX. HTTP server first, in-process fallback.
 
@@ -57,6 +58,11 @@ async def generate_text(
         Maximum number of tokens to generate.
     temperature:
         Sampling temperature (0 = deterministic, 1 = creative).
+    thinking:
+        If True (default), Qwen3.5 uses extended thinking mode —
+        ideal for orchestration (brief, template selection, direction).
+        If False, prepends /no_think for direct JSON output —
+        ideal for evaluations, scores, structured extraction.
 
     Returns
     -------
@@ -78,6 +84,7 @@ async def generate_text(
             model=model_name,
             max_tokens=max_tokens,
             temperature=temperature,
+            thinking=thinking,
         )
     except Exception as e:
         logger.warning("MLX server unavailable (%s), falling back to in-process", e)
