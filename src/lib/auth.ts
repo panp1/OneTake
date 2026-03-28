@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { getUserRole } from '@/lib/db/user-roles';
 import type { UserRole } from '@/lib/types';
 
@@ -14,10 +14,18 @@ export async function requireRole(
   const { userId } = await auth();
   if (!userId) throw new Error('Unauthorized');
 
-  const userRole = await getUserRole(userId);
+  // Get email from Clerk for email-based role lookup
+  let email: string | undefined;
+  try {
+    const user = await currentUser();
+    email = user?.emailAddresses?.[0]?.emailAddress;
+  } catch {
+    // currentUser may fail in some contexts — proceed without email
+  }
+
+  const userRole = await getUserRole(userId, email);
 
   // If no role record exists, default to 'viewer' for now
-  // Steven (first user) should be manually set to 'admin' in DB
   const role = (userRole?.role as UserRole) ?? 'viewer';
 
   if (!allowedRoles.includes(role)) {

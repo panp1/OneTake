@@ -12,12 +12,33 @@ export interface UserRoleRecord {
   updated_at: string;
 }
 
-export async function getUserRole(clerkId: string): Promise<UserRoleRecord | null> {
+export async function getUserRole(clerkId: string, email?: string): Promise<UserRoleRecord | null> {
   const sql = getDb();
+
+  // Try by clerk_id first (exact match)
   const rows = await sql`
-    SELECT * FROM user_roles WHERE clerk_id = ${clerkId}
+    SELECT * FROM user_roles WHERE clerk_id = ${clerkId} AND is_active = TRUE LIMIT 1
   `;
-  return (rows[0] as UserRoleRecord) ?? null;
+  if (rows[0]) {
+    return rows[0] as UserRoleRecord;
+  }
+
+  // Fallback: try by email (handles first login before clerk_id is linked)
+  if (email) {
+    const emailRows = await sql`
+      SELECT * FROM user_roles WHERE email = ${email} AND is_active = TRUE LIMIT 1
+    `;
+    if (emailRows[0]) {
+      // Auto-link this clerk_id to the email-matched role
+      await sql`
+        UPDATE user_roles SET clerk_id = ${clerkId}, updated_at = NOW()
+        WHERE id = ${(emailRows[0] as UserRoleRecord).id}
+      `;
+      return emailRows[0] as UserRoleRecord;
+    }
+  }
+
+  return null;
 }
 
 export async function listUsers(): Promise<UserRoleRecord[]> {
