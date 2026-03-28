@@ -1,5 +1,7 @@
+import { getDb } from '@/lib/db';
 import { getIntakeRequest } from '@/lib/db/intake';
 import { getAssetsByRequestId } from '@/lib/db/assets';
+import { getActorsByRequestId } from '@/lib/db/actors';
 import { getBriefByRequestId } from '@/lib/db/briefs';
 import { validateMagicLink } from '@/lib/db/magic-links';
 
@@ -37,7 +39,7 @@ export async function GET(
       );
     }
 
-    // Get request, assets, and brief
+    // Get request, assets, brief, actors
     const intakeRequest = await getIntakeRequest(id);
 
     if (!intakeRequest) {
@@ -47,15 +49,44 @@ export async function GET(
       );
     }
 
-    const [assets, brief] = await Promise.all([
+    const [assets, brief, actors] = await Promise.all([
       getAssetsByRequestId(id),
       getBriefByRequestId(id),
+      getActorsByRequestId(id),
     ]);
+
+    // Fetch uploads and notes (tables may not exist yet)
+    const sql = getDb();
+    let uploads: unknown[] = [];
+    let notes: unknown[] = [];
+
+    try {
+      uploads = await sql`
+        SELECT * FROM designer_uploads
+        WHERE request_id = ${id}
+        ORDER BY created_at DESC
+      `;
+    } catch {
+      // Table may not exist yet — that's fine
+    }
+
+    try {
+      notes = await sql`
+        SELECT * FROM designer_notes
+        WHERE request_id = ${id}
+        ORDER BY created_at ASC
+      `;
+    } catch {
+      // Table may not exist yet — that's fine
+    }
 
     return Response.json({
       request: intakeRequest,
       assets,
       brief,
+      actors,
+      uploads,
+      notes,
     });
   } catch (error) {
     console.error('[api/designer/[id]] Failed to get designer data:', error);
