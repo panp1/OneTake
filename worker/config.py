@@ -47,3 +47,12 @@ POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "30"))
 LLM_MODEL = os.environ.get("LLM_MODEL", "mlx-community/Qwen3.5-9B-MLX-4bit")
 COPY_MODEL = os.environ.get("COPY_MODEL", "mlx-community/Gemma-3-12B-it-4bit")
 VLM_MODEL = os.environ.get("VLM_MODEL", "mlx-community/Qwen3-VL-8B-Instruct-4bit")
+
+# ---------------------------------------------------------------------------
+# MLX Server Manager
+# ---------------------------------------------------------------------------
+MLX_SERVER_HOST = os.environ.get("MLX_SERVER_HOST", "127.0.0.1")
+MLX_SERVER_PORT = int(os.environ.get("MLX_SERVER_PORT", "8080"))
+MLX_SERVER_IDLE_TIMEOUT_S = int(os.environ.get("MLX_SERVER_IDLE_TIMEOUT_S", "600"))
+MLX_SERVER_STARTUP_TIMEOUT_S = int(os.environ.get("MLX_SERVER_STARTUP_TIMEOUT_S", "90"))
+MLX_SERVER_HEALTH_POLL_S = float(os.environ.get("MLX_SERVER_HEALTH_POLL_S", "2.0"))

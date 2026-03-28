@@ -29,32 +29,42 @@ async def main():
         "Centric local worker started. Polling every %ds.",
         POLL_INTERVAL_SECONDS,
     )
+    logger.info("MLX server will auto-start on first generation request.")
 
-    while True:
-        try:
-            jobs = await fetch_pending_jobs()
+    from mlx_server_manager import mlx_server
 
-            for job in jobs:
-                logger.info(
-                    "Processing job %s (type=%s, request=%s)",
-                    job["id"],
-                    job["job_type"],
-                    job["request_id"],
-                )
-                await mark_job_processing(job["id"])
+    try:
+        while True:
+            try:
+                jobs = await fetch_pending_jobs()
 
-                try:
-                    await run_pipeline(job)
-                    await mark_job_complete(job["id"])
-                    logger.info("Job %s complete.", job["id"])
-                except Exception as exc:
-                    logger.error("Job %s failed: %s", job["id"], exc, exc_info=True)
-                    await mark_job_failed(job["id"], str(exc))
+                for job in jobs:
+                    logger.info(
+                        "Processing job %s (type=%s, request=%s)",
+                        job["id"],
+                        job["job_type"],
+                        job["request_id"],
+                    )
+                    await mark_job_processing(job["id"])
 
-        except Exception as exc:
-            logger.error("Poll cycle error: %s", exc, exc_info=True)
+                    try:
+                        await run_pipeline(job)
+                        await mark_job_complete(job["id"])
+                        logger.info("Job %s complete.", job["id"])
+                    except Exception as exc:
+                        logger.error("Job %s failed: %s", job["id"], exc, exc_info=True)
+                        await mark_job_failed(job["id"], str(exc))
 
-        await asyncio.sleep(POLL_INTERVAL_SECONDS)
+            except Exception as exc:
+                logger.error("Poll cycle error: %s", exc, exc_info=True)
+
+            await asyncio.sleep(POLL_INTERVAL_SECONDS)
+
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        logger.info("Shutting down...")
+    finally:
+        await mlx_server.shutdown()
+        logger.info("Worker stopped.")
 
 
 if __name__ == "__main__":

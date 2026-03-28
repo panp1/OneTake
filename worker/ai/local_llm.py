@@ -1,35 +1,34 @@
 """Local LLM inference via MLX on Apple Silicon.
 
+Primary: HTTP server (managed by MLXServerManager) — persistent, warm, fast
+Fallback: Direct in-process mlx_lm (thread-safe GPU lock) — cold start, slower
+
 Models
 ------
 - **Qwen3.5-9B** (``LLM_MODEL``) -- orchestrator, brief generation, template
   selection.
 - **Gemma 3 12B** (``COPY_MODEL``) -- multilingual ad copy writer.
-
-Thread safety is guaranteed by an ``RLock`` so that only one model runs on
-the GPU at a time.  Models are loaded lazily and cached for the process
-lifetime.
 """
 import asyncio
 import logging
 import threading
 from typing import Any
 
-from mlx_lm import generate as mlx_generate
-from mlx_lm import load
-
 from config import COPY_MODEL, LLM_MODEL
 
 logger = logging.getLogger(__name__)
 
+# Direct in-process fallback
 _gpu_lock = threading.RLock()
 _models: dict[str, tuple[Any, Any]] = {}
 
 
 def _get_model(model_name: str) -> tuple[Any, Any]:
-    """Load and cache an MLX-LM model + tokenizer."""
+    """Lazy-load model for in-process fallback."""
     if model_name not in _models:
-        logger.info("Loading model %s (first use) ...", model_name)
+        from mlx_lm import load
+
+        logger.info("Loading model in-process: %s", model_name)
         _models[model_name] = load(model_name)
         logger.info("Model %s loaded.", model_name)
     return _models[model_name]
@@ -42,7 +41,7 @@ async def generate_text(
     max_tokens: int = 4096,
     temperature: float = 0.7,
 ) -> str:
-    """Generate text using a local MLX model.
+    """Generate text using MLX. HTTP server first, in-process fallback.
 
     Parameters
     ----------
@@ -63,14 +62,30 @@ async def generate_text(
         The model's generated text.
     """
     model_name = model_name or LLM_MODEL
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
 
+    # Try HTTP server first (warm, fast, managed lifecycle)
+    try:
+        from mlx_server_manager import mlx_server
+
+        return await mlx_server.generate(
+            messages=messages,
+            model=model_name,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+    except Exception as e:
+        logger.warning("MLX server unavailable (%s), falling back to in-process", e)
+
+    # Fallback: direct in-process (cold, but always works)
     def _generate() -> str:
         with _gpu_lock:
+            from mlx_lm import generate as mlx_generate
+
             model, tokenizer = _get_model(model_name)
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ]
             prompt = tokenizer.apply_chat_template(
                 messages, tokenize=False, add_generation_prompt=True,
             )
