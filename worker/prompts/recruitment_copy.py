@@ -6,6 +6,12 @@ friendly, opportunity-focused, concrete benefits, never corporate.
 """
 from __future__ import annotations
 
+from worker.prompts.ethical_positioning import (
+    apply_ethical_framing,
+    build_ethical_copy_prompt,
+    detect_sensitivity,
+)
+
 COPY_SYSTEM_PROMPT = (
     "You are a multilingual copywriter for OneForma recruitment ads.\n\n"
     "OneForma recruits data annotation contributors worldwide — students, "
@@ -87,7 +93,12 @@ def build_copy_prompt(
     form_data: dict | None = None,
     feedback: list | None = None,
 ) -> str:
-    """Build the prompt for generating ad copy for a specific channel + language."""
+    """Build the prompt for generating ad copy for a specific channel + language.
+
+    When the brief or form data touches sensitive categories (children's data,
+    medical records, content moderation, etc.), ethical positioning guardrails
+    are automatically injected into the prompt.
+    """
     import json
 
     guidance = PLATFORM_GUIDANCE.get(channel, PLATFORM_GUIDANCE["facebook_feed"])
@@ -103,6 +114,13 @@ def build_copy_prompt(
     task_info = ""
     if form_data:
         task_info = f"\nTASK DETAILS: {json.dumps(form_data, ensure_ascii=False)}"
+
+    # --- Ethical positioning: detect sensitive categories and inject framing ---
+    sensitivity_input: dict = {**brief}
+    if form_data:
+        sensitivity_input["form_data"] = form_data
+    detected_categories = detect_sensitivity(sensitivity_input)
+    ethical_section = build_ethical_copy_prompt(brief, detected_categories)
 
     return f"""Write recruitment ad copy for OneForma.
 
@@ -148,7 +166,7 @@ NEVER write:
 - "We are hiring" / "Job opening" / "Position available"
 - "Competitive salary" / "Great benefits" / corporate HR language
 - Generic motivational quotes
-- Anything that sounds like it came from a corporate careers page{feedback_section}"""
+- Anything that sounds like it came from a corporate careers page{ethical_section}{feedback_section}"""
 
 
 def build_copy_eval_prompt(
