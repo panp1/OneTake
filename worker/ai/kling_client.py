@@ -1,0 +1,266 @@
+"""Kling 3.0 video generation via API.
+
+Supports: text-to-video, image-to-video (start/end frame), multishot, references.
+Uses the Kling API directly (klingai.com) with optional OpenRouter fallback.
+
+Kling 3.0 capabilities:
+- Text-to-video: generate from text prompt alone
+- Image-to-video: use start frame (and optionally end frame) for control
+- Multishot: up to 6 shots in 15 seconds, camera and character consistency
+- References: up to 7 character/environment refs (2-3 recommended)
+- Resolutions: 720p, 1080p
+- Aspect ratios: 16:9, 9:16, 1:1
+"""
+from __future__ import annotations
+
+import asyncio
+import logging
+from typing import Any
+
+import httpx
+
+from config import KLING_API_KEY, KLING_MODEL
+
+logger = logging.getLogger(__name__)
+
+KLING_API_BASE = "https://api.klingai.com/v1"
+
+# Map human-readable aspect ratios to API values
+ASPECT_RATIOS: dict[str, str] = {
+    "16:9": "16:9",
+    "9:16": "9:16",
+    "1:1": "1:1",
+    "landscape": "16:9",
+    "portrait": "9:16",
+    "square": "1:1",
+}
+
+# Polling configuration for async generation
+POLL_INTERVAL_S = 5
+MAX_POLL_ATTEMPTS = 120  # 10 minutes max wait
+
+
+async def generate_video(
+    prompt: str,
+    start_frame: str | None = None,
+    end_frame: str | None = None,
+    references: list[str] | None = None,
+    duration_s: int = 8,
+    resolution: str = "1080p",
+    aspect_ratio: str = "9:16",
+) -> bytes:
+    """Generate a video clip via Kling 3.0.
+
+    Parameters
+    ----------
+    prompt:
+        The text prompt describing the video content. Should follow the
+        Kling formula: [CAMERA] + [SUBJECT] + [ACTION] + [ENVIRONMENT] +
+        [LIGHTING] + [TEXTURE].
+    start_frame:
+        Optional URL or base64 of the starting frame image.
+        Enables image-to-video mode for stronger control.
+    end_frame:
+        Optional URL or base64 of the ending frame image.
+        Cannot be used together with multishot mode.
+    references:
+        List of character/environment reference image URLs (max 7, 2-3 recommended).
+    duration_s:
+        Target video duration in seconds (default 8, max 15).
+    resolution:
+        Video resolution — ``"720p"`` or ``"1080p"`` (default).
+    aspect_ratio:
+        Video aspect ratio — ``"16:9"``, ``"9:16"``, ``"1:1"`` (default ``"9:16"``).
+
+    Returns
+    -------
+    bytes
+        Raw video bytes (MP4).
+    """
+    resolved_ratio = ASPECT_RATIOS.get(aspect_ratio, "9:16")
+
+    payload: dict[str, Any] = {
+        "model": KLING_MODEL,
+        "prompt": prompt,
+        "duration": min(duration_s, 15),
+        "resolution": resolution,
+        "aspect_ratio": resolved_ratio,
+    }
+
+    # Image-to-video mode
+    if start_frame:
+        payload["start_frame"] = start_frame
+    if end_frame:
+        payload["end_frame"] = end_frame
+
+    # Character/environment references
+    if references:
+        payload["references"] = [{"url": ref} for ref in references[:7]]
+
+    logger.info(
+        "Kling generate_video: duration=%ds, resolution=%s, ratio=%s, "
+        "start_frame=%s, refs=%d",
+        duration_s, resolution, resolved_ratio,
+        "yes" if start_frame else "no",
+        len(references or []),
+    )
+
+    # Submit generation task
+    task_id = await _submit_task("video/generate", payload)
+
+    # Poll for completion
+    result = await _poll_task(task_id)
+
+    # Download the video
+    video_url = result.get("video_url", "")
+    if not video_url:
+        raise ValueError(f"Kling task {task_id} completed but returned no video URL")
+
+    async with httpx.AsyncClient(timeout=120) as client:
+        resp = await client.get(video_url)
+        resp.raise_for_status()
+        logger.info("Video downloaded: %d bytes", len(resp.content))
+        return resp.content
+
+
+async def generate_multishot_video(
+    shots: list[dict[str, Any]],
+    references: list[str] | None = None,
+    resolution: str = "1080p",
+) -> bytes:
+    """Generate a multishot video (up to 6 shots, 15s total).
+
+    Each shot dict should contain:
+    - ``prompt`` (str): The shot-level prompt.
+    - ``duration_s`` (int): Duration for this shot.
+    - ``camera`` (str): Camera movement description.
+    - ``transition`` (str, optional): Transition from previous shot.
+
+    Parameters
+    ----------
+    shots:
+        List of shot dicts (max 6). Total duration must be <= 15s.
+    references:
+        Character/environment reference image URLs.
+    resolution:
+        Video resolution (default ``"1080p"``).
+
+    Returns
+    -------
+    bytes
+        Raw video bytes (MP4).
+    """
+    if len(shots) > 6:
+        raise ValueError(f"Kling multishot supports max 6 shots, got {len(shots)}")
+
+    total_duration = sum(s.get("duration_s", 2) for s in shots)
+    if total_duration > 15:
+        raise ValueError(f"Total duration {total_duration}s exceeds 15s limit")
+
+    # Build multishot payload
+    shot_payloads: list[dict[str, Any]] = []
+    for i, shot in enumerate(shots):
+        shot_payload: dict[str, Any] = {
+            "prompt": shot.get("prompt", ""),
+            "duration": shot.get("duration_s", 2),
+        }
+        if i > 0 and shot.get("transition"):
+            shot_payload["transition"] = shot["transition"]
+        shot_payloads.append(shot_payload)
+
+    payload: dict[str, Any] = {
+        "model": KLING_MODEL,
+        "mode": "multishot",
+        "shots": shot_payloads,
+        "resolution": resolution,
+        "aspect_ratio": "9:16",  # Multishot is typically vertical
+    }
+
+    if references:
+        payload["references"] = [{"url": ref} for ref in references[:7]]
+
+    logger.info(
+        "Kling multishot: %d shots, total %ds, refs=%d",
+        len(shots), total_duration, len(references or []),
+    )
+
+    task_id = await _submit_task("video/multishot", payload)
+    result = await _poll_task(task_id)
+
+    video_url = result.get("video_url", "")
+    if not video_url:
+        raise ValueError(f"Kling multishot task {task_id} completed but returned no video URL")
+
+    async with httpx.AsyncClient(timeout=120) as client:
+        resp = await client.get(video_url)
+        resp.raise_for_status()
+        logger.info("Multishot video downloaded: %d bytes", len(resp.content))
+        return resp.content
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+async def _submit_task(endpoint: str, payload: dict) -> str:
+    """Submit a generation task to the Kling API and return the task ID."""
+    url = f"{KLING_API_BASE}/{endpoint}"
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        resp = await client.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {KLING_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+    task_id = data.get("task_id", data.get("id", ""))
+    if not task_id:
+        raise ValueError(f"Kling API returned no task_id: {data}")
+
+    logger.info("Kling task submitted: %s", task_id)
+    return task_id
+
+
+async def _poll_task(task_id: str) -> dict:
+    """Poll a Kling task until completion, failure, or timeout."""
+    url = f"{KLING_API_BASE}/tasks/{task_id}"
+
+    for attempt in range(MAX_POLL_ATTEMPTS):
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.get(
+                url,
+                headers={"Authorization": f"Bearer {KLING_API_KEY}"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        status = data.get("status", "unknown")
+
+        if status in ("completed", "succeeded", "done"):
+            logger.info("Kling task %s completed after %d polls", task_id, attempt + 1)
+            return data
+
+        if status in ("failed", "error", "cancelled"):
+            error_msg = data.get("error", data.get("message", "Unknown error"))
+            raise RuntimeError(f"Kling task {task_id} failed: {error_msg}")
+
+        if status in ("pending", "processing", "running", "queued"):
+            logger.debug(
+                "Kling task %s: %s (poll %d/%d)",
+                task_id, status, attempt + 1, MAX_POLL_ATTEMPTS,
+            )
+            await asyncio.sleep(POLL_INTERVAL_S)
+            continue
+
+        logger.warning("Kling task %s: unexpected status '%s'", task_id, status)
+        await asyncio.sleep(POLL_INTERVAL_S)
+
+    raise TimeoutError(
+        f"Kling task {task_id} did not complete within "
+        f"{MAX_POLL_ATTEMPTS * POLL_INTERVAL_S}s"
+    )

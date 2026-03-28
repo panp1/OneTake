@@ -14,3 +14,14 @@ playwright>=1.48.0
 # Image processing
 Pillow>=10.0.0
 rembg>=2.0.0
+
+# TTS (Text-to-Speech)
+TTS>=0.22.0  # Coqui XTTS-v2 — 17 languages, free, local
+numpy>=1.24.0
+
+# Video processing (Wav2Lip lip sync)
+opencv-python>=4.9.0
+torch>=2.1.0
+
+# FFmpeg is required at system level for audio/video muxing
+# Install via: brew install ffmpeg (macOS) or apt install ffmpeg (Linux)

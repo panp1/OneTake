@@ -58,3 +58,15 @@ MLX_SERVER_PORT = int(os.environ.get("MLX_SERVER_PORT", "8080"))
 MLX_SERVER_IDLE_TIMEOUT_S = int(os.environ.get("MLX_SERVER_IDLE_TIMEOUT_S", "600"))
 MLX_SERVER_STARTUP_TIMEOUT_S = int(os.environ.get("MLX_SERVER_STARTUP_TIMEOUT_S", "90"))
 MLX_SERVER_HEALTH_POLL_S = float(os.environ.get("MLX_SERVER_HEALTH_POLL_S", "2.0"))
+
+# ---------------------------------------------------------------------------
+# Kling 3.0 (Video Generation)
+# ---------------------------------------------------------------------------
+KLING_API_KEY = os.environ.get("KLING_API_KEY", "")
+KLING_MODEL = os.environ.get("KLING_MODEL", "kling-3.0")
+
+# ---------------------------------------------------------------------------
+# ElevenLabs TTS (Premium Voice Synthesis)
+# ---------------------------------------------------------------------------
+ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
+ELEVENLABS_DEFAULT_VOICE = os.environ.get("ELEVENLABS_DEFAULT_VOICE", "21m00Tcm4TlvDq8ikWAM")  # Rachel
