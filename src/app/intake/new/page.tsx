@@ -157,8 +157,14 @@ export default function NewIntakePage() {
     }
   }
 
+  // Field-level validation errors from API
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   // Submit form
   async function handleSubmit() {
+    // Clear previous errors
+    setFieldErrors({});
+
     if (!selectedTaskType || !selectedSchema) {
       toast.error("Please select a task type first");
       return;
@@ -166,7 +172,8 @@ export default function NewIntakePage() {
 
     const title = formData.title as string;
     if (!title?.trim()) {
-      toast.error("Please provide a project title");
+      setFieldErrors({ title: "Project name is required" });
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -189,6 +196,29 @@ export default function NewIntakePage() {
 
       if (!res.ok) {
         const err = await res.json();
+
+        // Parse field-level validation errors from API
+        if (err.errors && Array.isArray(err.errors)) {
+          const errorMap: Record<string, string> = {};
+          for (const e of err.errors) {
+            if (e.field && e.message) {
+              errorMap[e.field] = e.message;
+            }
+          }
+          setFieldErrors(errorMap);
+
+          // Scroll to first error field
+          const firstErrorField = err.errors[0]?.field;
+          if (firstErrorField) {
+            const el = document.querySelector(`[data-field="${firstErrorField}"]`);
+            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+
+          const errorCount = err.errors.length;
+          toast.error(`${errorCount} required field${errorCount > 1 ? "s" : ""} missing — highlighted in red`);
+          return;
+        }
+
         throw new Error(err.error || "Failed to create request");
       }
 
@@ -357,9 +387,10 @@ export default function NewIntakePage() {
               <DynamicForm
                 schema={selectedSchema}
                 formData={formData}
-                onChange={setFormData}
+                onChange={(data) => { setFormData(data); setFieldErrors({}); }}
                 extraction={extraction}
                 disabled={isSubmitting}
+                fieldErrors={fieldErrors}
               />
             </div>
           )}

@@ -24,6 +24,7 @@ interface DynamicFormProps {
   onChange: (data: FormData) => void;
   extraction?: ExtractionResult | null;
   disabled?: boolean;
+  fieldErrors?: Record<string, string>;
 }
 
 // ============================================================
@@ -740,6 +741,7 @@ function FieldSection({
   onChange,
   confidenceMap,
   disabled,
+  fieldErrors,
 }: {
   title: string;
   fields: FieldDefinition[];
@@ -747,6 +749,7 @@ function FieldSection({
   onChange: (key: string, val: unknown) => void;
   confidenceMap: ConfidenceMap;
   disabled?: boolean;
+  fieldErrors?: Record<string, string>;
 }) {
   const visibleFields = fields.filter((f) => {
     if (!f.show_when) return true;
@@ -772,6 +775,7 @@ function FieldSection({
             ["textarea", "checkbox_group", "toggle_with_text", "tags", "file", "divider", "heading"].includes(
               field.type
             );
+          const error = fieldErrors?.[field.key];
 
           return (
             <div
@@ -779,7 +783,7 @@ function FieldSection({
               className={isFullWidth ? "sm:col-span-2" : ""}
             >
               {field.type !== "divider" && field.type !== "heading" && (
-                <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${error ? "text-[var(--oneforma-error)]" : "text-[var(--foreground)]"}`}>
                   {field.label}
                   {field.required && (
                     <span className="text-[var(--oneforma-error)] ml-0.5">*</span>
@@ -791,13 +795,20 @@ function FieldSection({
                   {field.description}
                 </p>
               )}
-              <FieldRenderer
-                field={field}
-                value={formData[field.key]}
-                onChange={(val) => onChange(field.key, val)}
-                confidence={confidenceMap[field.key] || "none"}
-                disabled={disabled}
-              />
+              <div className={error ? "ring-2 ring-[var(--oneforma-error)] rounded-[var(--radius-md)]" : ""}>
+                <FieldRenderer
+                  field={field}
+                  value={formData[field.key]}
+                  onChange={(val) => onChange(field.key, val)}
+                  confidence={confidenceMap[field.key] || "none"}
+                  disabled={disabled}
+                />
+              </div>
+              {error && (
+                <p className="text-xs text-[var(--oneforma-error)] mt-1 font-medium">
+                  {error}
+                </p>
+              )}
             </div>
           );
         })}
@@ -816,6 +827,7 @@ export default function DynamicForm({
   onChange,
   extraction,
   disabled,
+  fieldErrors,
 }: DynamicFormProps) {
   const confidenceMap = buildConfidenceMap(extraction);
 
@@ -837,6 +849,7 @@ export default function DynamicForm({
         onChange={handleFieldChange}
         confidenceMap={confidenceMap}
         disabled={disabled}
+        fieldErrors={fieldErrors}
       />
       <FieldSection
         title={`${schema.display_name} Details`}
@@ -845,6 +858,7 @@ export default function DynamicForm({
         onChange={handleFieldChange}
         confidenceMap={confidenceMap}
         disabled={disabled}
+        fieldErrors={fieldErrors}
       />
       {conditional_fields.length > 0 && (
         <FieldSection
@@ -854,6 +868,7 @@ export default function DynamicForm({
           onChange={handleFieldChange}
           confidenceMap={confidenceMap}
           disabled={disabled}
+          fieldErrors={fieldErrors}
         />
       )}
       <FieldSection
@@ -863,6 +878,7 @@ export default function DynamicForm({
         onChange={handleFieldChange}
         confidenceMap={confidenceMap}
         disabled={disabled}
+        fieldErrors={fieldErrors}
       />
     </div>
   );
