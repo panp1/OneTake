@@ -5,6 +5,8 @@ Model: Qwen3-VL-8B (visual QA, cultural authenticity, realism check).
 Like ``local_llm``, the model is loaded lazily and GPU access is
 serialised with a lock.
 """
+from __future__ import annotations
+
 import asyncio
 import logging
 import threading

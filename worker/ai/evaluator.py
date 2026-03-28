@@ -4,6 +4,8 @@ Each dimension has its own threshold. The overall score must also pass
 ``OVERALL_THRESHOLD`` for the creative to be approved. When the LLM
 evaluator cannot be parsed, a deterministic heuristic fallback kicks in.
 """
+from __future__ import annotations
+
 import json
 import logging
 from typing import Any

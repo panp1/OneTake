@@ -3,6 +3,8 @@
 Uses asyncpg with connection pooling. Every public function acquires a
 connection from the pool, executes one or more queries, and releases it.
 """
+from __future__ import annotations
+
 import json
 import logging
 from typing import Any

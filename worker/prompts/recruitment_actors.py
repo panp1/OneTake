@@ -7,6 +7,7 @@ bus or in a coffee shop — NOT corporate stock photos.
 Every image prompt includes the 10 REALISM ANCHORS to ensure Seedream
 generates UGC-style photography, not polished studio shots.
 """
+from __future__ import annotations
 
 ACTOR_SYSTEM_PROMPT = (
     "You are a casting director for OneForma recruitment ads. You create "

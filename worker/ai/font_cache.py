@@ -4,6 +4,8 @@ OneForma uses system fonts (``-apple-system``, ``system-ui``, ``Segoe UI``),
 so most of the time this module returns an empty string. For custom fonts
 it downloads and caches WOFF2 files from Google Fonts.
 """
+from __future__ import annotations
+
 import hashlib
 import logging
 import os

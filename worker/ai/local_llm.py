@@ -9,6 +9,8 @@ Models
   selection.
 - **Gemma 3 12B** (``COPY_MODEL``) -- multilingual ad copy writer.
 """
+from __future__ import annotations
+
 import asyncio
 import logging
 import threading

@@ -3,6 +3,8 @@
 All settings come from environment variables with sensible defaults.
 Create a .env file in the worker/ directory for local development.
 """
+from __future__ import annotations
+
 import os
 
 from dotenv import load_dotenv

@@ -4,6 +4,8 @@ Handles full generation and single-stage regeneration. Each stage
 receives a shared *context* dict that accumulates results. On failure
 the request is returned to 'draft' status and Teams is notified.
 """
+from __future__ import annotations
+
 import logging
 
 from neon_client import update_request_status

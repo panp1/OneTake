@@ -8,6 +8,8 @@ Usage:
     pip install -r requirements.txt
     python main.py
 """
+from __future__ import annotations
+
 import asyncio
 import logging
 

@@ -5,6 +5,7 @@ freelancers — to annotate, transcribe, segment, and verify data for
 AI companies. The tone is friendly, inviting, and opportunity-focused.
 Never corporate or intimidating.
 """
+from __future__ import annotations
 
 BRIEF_SYSTEM_PROMPT = (
     "You are a recruitment marketing strategist for OneForma, a data "

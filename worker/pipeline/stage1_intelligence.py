@@ -6,6 +6,8 @@
 4. Generate design direction.
 5. Save to Neon creative_briefs table.
 """
+from __future__ import annotations
+
 import json
 import logging
 

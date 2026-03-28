@@ -3,6 +3,8 @@
 Routes to Seedream 4.5 or other image models through OpenRouter's unified API.
 Generates photorealistic hero images for recruitment creatives.
 """
+from __future__ import annotations
+
 import base64
 import logging
 

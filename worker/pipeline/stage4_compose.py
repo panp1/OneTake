@@ -8,6 +8,8 @@
 6. Upload composed PNGs to Vercel Blob.
 7. Save as generated_assets to Neon.
 """
+from __future__ import annotations
+
 import json
 import logging
 import uuid

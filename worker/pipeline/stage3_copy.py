@@ -5,6 +5,8 @@
 3. Evaluate copy (threshold 0.70, max 3 retries).
 4. Save copy data as generated_assets to Neon.
 """
+from __future__ import annotations
+
 import json
 import logging
 

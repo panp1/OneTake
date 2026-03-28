@@ -12,6 +12,8 @@ Usage::
 
     # Server auto-shuts down after IDLE_TIMEOUT_S with no calls to ensure_ready()
 """
+from __future__ import annotations
+
 import asyncio
 import logging
 import signal

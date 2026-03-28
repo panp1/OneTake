@@ -11,6 +11,8 @@ MINIMAL_CTA         -- Small CTA pill, no headline
 CAROUSEL_STAT       -- Big number/stat centred
 CAROUSEL_TESTIMONIAL-- Quote with attribution
 """
+from __future__ import annotations
+
 import logging
 import os
 import tempfile

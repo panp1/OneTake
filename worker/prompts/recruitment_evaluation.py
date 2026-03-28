@@ -3,6 +3,7 @@
 These prompts are used by the evaluator to score composed creatives
 (image + text overlay) before they are approved for review.
 """
+from __future__ import annotations
 
 EVAL_SYSTEM_PROMPT = (
     "You are a creative director evaluating recruitment ads for OneForma, "

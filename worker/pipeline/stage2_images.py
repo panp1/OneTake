@@ -7,6 +7,8 @@
 5. Upload approved images to Vercel Blob.
 6. Save generated_assets to Neon.
 """
+from __future__ import annotations
+
 import json
 import logging
 import uuid
