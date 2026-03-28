@@ -28,6 +28,7 @@ from ai.local_vlm import analyze_image
 from ai.seedream import generate_image
 from blob_uploader import upload_to_blob
 from neon_client import save_actor, save_asset, update_actor_seed
+from prompts.persona_engine import build_persona_actor_prompt, PERSONA_SYSTEM_PROMPT
 from prompts.recruitment_actors import (
     ACTOR_SYSTEM_PROMPT,
     build_actor_prompt,
@@ -44,24 +45,62 @@ VARIATION_VQA_THRESHOLD = 0.75  # Lower bar — face is already validated
 
 
 async def run_stage2(context: dict) -> dict:
-    """Generate actors and images for every target region."""
+    """Generate actors and images — one per persona (or per region as fallback)."""
     request_id: str = context["request_id"]
     brief: dict = context.get("brief", {})
     design: dict = context.get("design_direction", {})
     regions: list[str] = context.get("target_regions", [])
     languages: list[str] = context.get("target_languages", [])
+    personas: list[dict] = context.get("personas", brief.get("personas", []))
 
     all_actors: list[dict] = []
     total_images = 0
 
-    for idx, region in enumerate(regions or ["Global"]):
-        language = languages[idx] if idx < len(languages) else (languages[0] if languages else "English")
+    # -----------------------------------------------------------------
+    # Build the actor work list: prefer persona-driven, fall back to
+    # region-driven if no personas are available.
+    # -----------------------------------------------------------------
+    actor_jobs: list[dict] = []
+    if personas:
+        for persona in personas:
+            actor_jobs.append({
+                "region": persona.get("region", regions[0] if regions else "Global"),
+                "language": persona.get("language", languages[0] if languages else "English"),
+                "persona": persona,
+            })
+        logger.info(
+            "Persona-driven actor generation: %d personas",
+            len(actor_jobs),
+        )
+    else:
+        for idx, region in enumerate(regions or ["Global"]):
+            language = languages[idx] if idx < len(languages) else (languages[0] if languages else "English")
+            actor_jobs.append({
+                "region": region,
+                "language": language,
+                "persona": None,
+            })
+        logger.info(
+            "Region-driven actor generation (no personas): %d regions",
+            len(actor_jobs),
+        )
+
+    for job in actor_jobs:
+        region = job["region"]
+        language = job["language"]
+        persona = job["persona"]
 
         # ==================================================================
         # STEP 1: Generate actor identity card
         # ==================================================================
-        actor_prompt = build_actor_prompt(brief, region, language)
-        actor_text = await generate_text(ACTOR_SYSTEM_PROMPT, actor_prompt)
+        if persona:
+            # Persona-driven: actor derived from persona archetype.
+            actor_prompt = build_persona_actor_prompt(persona, region, language)
+            actor_text = await generate_text(PERSONA_SYSTEM_PROMPT, actor_prompt)
+        else:
+            # Fallback: region-driven actor (original behaviour).
+            actor_prompt = build_actor_prompt(brief, region, language)
+            actor_text = await generate_text(ACTOR_SYSTEM_PROMPT, actor_prompt)
         actor_data = _parse_json(actor_text)
 
         actor_id = await save_actor(request_id, {
@@ -71,9 +110,18 @@ async def run_stage2(context: dict) -> dict:
             "outfit_variations": actor_data.get("outfit_variations", {}),
             "signature_accessory": actor_data.get("signature_accessory", "headphones"),
             "backdrops": actor_data.get("backdrops", []),
+            "persona_key": persona.get("archetype_key") if persona else None,
+            "persona_name": persona.get("persona_name") if persona else None,
         })
         actor_data["id"] = actor_id
-        logger.info("Actor '%s' created (id=%s, region=%s)", actor_data.get("name"), actor_id, region)
+        actor_data["persona"] = persona
+        logger.info(
+            "Actor '%s' created (id=%s, region=%s, persona=%s)",
+            actor_data.get("name"),
+            actor_id,
+            region,
+            persona.get("archetype_key") if persona else "none",
+        )
 
         # Track compositions used for this actor (ensures variety)
         used_compositions: list[str] = []

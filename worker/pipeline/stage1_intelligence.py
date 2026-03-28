@@ -13,6 +13,10 @@ import logging
 
 from ai.local_llm import generate_text
 from neon_client import get_intake_request, save_brief
+from prompts.persona_engine import (
+    build_persona_brief_prompt,
+    generate_personas,
+)
 from prompts.recruitment_brief import (
     BRIEF_SYSTEM_PROMPT,
     build_brief_prompt,
@@ -67,9 +71,25 @@ async def run_stage1(context: dict) -> dict:
         brief_data = _parse_json(brief_text)
 
     # ------------------------------------------------------------------
-    # Generate design direction
+    # Generate 3 target personas from intake requirements
+    # ------------------------------------------------------------------
+    personas = generate_personas(request)
+    persona_context = build_persona_brief_prompt(personas, brief_data)
+    logger.info(
+        "Generated %d personas: %s",
+        len(personas),
+        [p["archetype_key"] for p in personas],
+    )
+
+    # Inject personas into brief_data so downstream stages can access them.
+    brief_data["personas"] = personas
+
+    # ------------------------------------------------------------------
+    # Generate design direction (now informed by personas)
     # ------------------------------------------------------------------
     design_prompt = build_design_direction_prompt(brief_data, request)
+    # Append persona context so design direction accounts for persona lifestyles.
+    design_prompt += "\n\n" + persona_context
     design_text = await generate_text(BRIEF_SYSTEM_PROMPT, design_prompt)
     design_data = _parse_json(design_text)
 
@@ -83,6 +103,7 @@ async def run_stage1(context: dict) -> dict:
             "design_direction": design_data,
             "evaluation_score": score,
             "evaluation_data": eval_data,
+            "personas": personas,
             "content_languages": request.get("target_languages", []),
         },
     )
@@ -90,6 +111,7 @@ async def run_stage1(context: dict) -> dict:
     return {
         "brief": brief_data,
         "design_direction": design_data,
+        "personas": personas,
         "target_languages": request.get("target_languages", []),
         "target_regions": request.get("target_regions", []),
         "form_data": request.get("form_data", {}),

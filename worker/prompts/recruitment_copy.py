@@ -17,6 +17,7 @@ from prompts.ethical_positioning import (
     build_ethical_copy_prompt,
     detect_sensitivity,
 )
+from prompts.persona_engine import build_persona_copy_prompt
 
 # ---------------------------------------------------------------------------
 # Re-export ethical helpers so existing imports still work.
@@ -28,6 +29,7 @@ __all__ = [
     "MARKETING_PSYCHOLOGY",
     "build_copy_prompt",
     "build_copy_eval_prompt",
+    "build_persona_targeted_copy_prompt",
     "select_psychology_hooks",
     "apply_ethical_framing",
     "detect_sensitivity",
@@ -813,3 +815,65 @@ Return ONLY valid JSON:
   }},
   "improvement_suggestions": ["...", "..."]
 }}"""
+
+
+# ---------------------------------------------------------------------------
+# build_persona_targeted_copy_prompt — combines persona context with
+# the standard platform copy prompt for persona-specific ad copy.
+# ---------------------------------------------------------------------------
+
+def build_persona_targeted_copy_prompt(
+    persona: dict,
+    brief: dict,
+    channel: str,
+    language: str,
+    regions: list[str] | None = None,
+    form_data: dict | None = None,
+    feedback: list | None = None,
+) -> str:
+    """Build a copy prompt that targets a specific persona.
+
+    This wraps the standard ``build_copy_prompt`` with persona context
+    prepended, so the LLM generates copy tailored to the persona's
+    psychology, pain points, and motivations rather than a generic audience.
+
+    Parameters
+    ----------
+    persona:
+        A customised persona dict from the persona engine.
+    brief:
+        The creative brief dict.
+    channel:
+        The ad platform key (e.g. ``"facebook_feed"``).
+    language:
+        Target language for the copy.
+    regions:
+        Target regions.
+    form_data:
+        Task details from the intake form.
+    feedback:
+        Optional improvement suggestions from a failed evaluation.
+
+    Returns
+    -------
+    str
+        The full copy-generation prompt with persona context prepended.
+    """
+    # Generate the persona-specific context block.
+    persona_block = build_persona_copy_prompt(persona, channel, language, brief)
+
+    # Generate the standard platform copy prompt.
+    standard_prompt = build_copy_prompt(
+        brief=brief,
+        channel=channel,
+        language=language,
+        regions=regions,
+        form_data=form_data,
+        feedback=feedback,
+    )
+
+    # Combine: persona context first, then the standard prompt.
+    return f"""{persona_block}
+---
+
+{standard_prompt}"""
