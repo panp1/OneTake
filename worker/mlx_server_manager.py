@@ -312,11 +312,32 @@ class MLXServerManager:
             token_count, len(collected_content), len(collected_reasoning),
         )
 
-        # Return content if available, otherwise reasoning
-        if collected_content and collected_content.strip():
-            return collected_content
-        if collected_reasoning and collected_reasoning.strip():
-            return collected_reasoning
+        # Combine all output — MLX server may put everything in content
+        # (with <think> tags inline) or split into content + reasoning fields.
+        raw = collected_content + collected_reasoning
+
+        # Parse <think>...</think> tags from Qwen3.5 output.
+        # The actual answer (JSON) comes AFTER the </think> tag.
+        if "</think>" in raw:
+            parts = raw.split("</think>", 1)
+            think_text = parts[0].replace("<think>", "").strip()
+            answer_text = parts[1].strip() if len(parts) > 1 else ""
+
+            logger.info(
+                "Parsed thinking: %d chars reasoning, %d chars answer",
+                len(think_text), len(answer_text),
+            )
+
+            # If we have an answer after </think>, return that (it's the JSON)
+            if answer_text:
+                return answer_text
+
+            # If no answer after </think>, the JSON might be inside the thinking
+            return think_text
+
+        # No think tags — return whatever we have
+        if raw.strip():
+            return raw.strip()
         return collected_content
 
 

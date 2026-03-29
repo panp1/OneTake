@@ -115,8 +115,10 @@ async def run_stage1(context: dict) -> dict:
         persona_context += "\n\n" + build_research_summary(cultural_research)
 
     brief_prompt = build_brief_prompt(request, persona_context=persona_context)
-    # no_think mode — we need structured JSON, not reasoning traces
-    brief_text = await generate_text(BRIEF_SYSTEM_PROMPT, brief_prompt, thinking=False)
+    # THINKING MODE — let Qwen reason over the rich persona + cultural data.
+    # The <think>...</think> tags are parsed by the server manager — JSON
+    # comes AFTER </think> in the output.
+    brief_text = await generate_text(BRIEF_SYSTEM_PROMPT, brief_prompt, thinking=True)
     brief_data = _parse_json(brief_text)
 
     # ==================================================================
@@ -166,7 +168,7 @@ async def run_stage1(context: dict) -> dict:
         )
         feedback = eval_result.get("improvement_suggestions", [])
         brief_prompt = build_brief_prompt(request, feedback=feedback, persona_context=persona_context)
-        brief_text = await generate_text(BRIEF_SYSTEM_PROMPT, brief_prompt, thinking=False)
+        brief_text = await generate_text(BRIEF_SYSTEM_PROMPT, brief_prompt, thinking=True)
         brief_data = _parse_json(brief_text)
 
     # Inject personas + research into brief for downstream stages
@@ -182,7 +184,7 @@ async def run_stage1(context: dict) -> dict:
     logger.info("Step 5: Generating persona-driven design direction...")
     design_prompt = build_design_direction_prompt(brief_data, request)
     design_prompt += "\n\n" + persona_context
-    design_text = await generate_text(BRIEF_SYSTEM_PROMPT, design_prompt, thinking=False)
+    design_text = await generate_text(BRIEF_SYSTEM_PROMPT, design_prompt, thinking=True)
     design_data = _parse_json(design_text)
 
     # ==================================================================
