@@ -246,13 +246,14 @@ async def _design_and_render_batch(
                     content_type=content_type,
                 )
 
-                # Overlay stays PNG (needs transparency for designer editing)
-                overlay_filename = f"overlay_{safe_platform}_{safe_persona}_{uid}.png"
+                # Overlay → WebP (supports transparency, ~68% smaller than PNG)
+                overlay_webp = _convert_to_webp(overlay_png)
+                overlay_filename = f"overlay_{safe_platform}_{safe_persona}_{uid}.webp"
                 overlay_url = await upload_to_blob(
-                    overlay_png,
+                    overlay_webp,
                     overlay_filename,
                     folder=f"requests/{request_id}/composed",
-                    content_type="image/png",
+                    content_type="image/webp",
                 )
 
                 # Save to Neon
@@ -455,6 +456,21 @@ def convert_to_avif(png_bytes: bytes, quality: int = 65) -> bytes:
         return avif_bytes
     except Exception as e:
         logger.warning("AVIF conversion failed (%s) — keeping PNG", e)
+        return png_bytes
+
+
+def _convert_to_webp(png_bytes: bytes, quality: int = 80) -> bytes:
+    """Convert transparent PNG to WebP (supports alpha, ~68% smaller)."""
+    try:
+        from PIL import Image
+        import io
+
+        img = Image.open(io.BytesIO(png_bytes))
+        buf = io.BytesIO()
+        img.save(buf, format="WEBP", quality=quality, lossless=False)
+        return buf.getvalue()
+    except Exception as e:
+        logger.warning("WebP conversion failed (%s) — keeping PNG", e)
         return png_bytes
 
 
