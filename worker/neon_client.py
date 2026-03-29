@@ -189,7 +189,7 @@ async def save_brief(request_id: str, data: dict[str, Any]) -> str:
             json.dumps(data.get("design_direction", {})),
             data.get("evaluation_score", 0.0),
             json.dumps(data.get("evaluation_data", {})),
-            json.dumps(data.get("content_languages", [])),
+            data.get("content_languages", []),  # TEXT[] — pass list directly, not JSON string
         )
     brief_id: str = row["id"]
     logger.info("Saved creative brief %s for request %s", brief_id, request_id)
