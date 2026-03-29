@@ -118,6 +118,11 @@ class MLXServerManager:
             "--model", self._model,
             "--host", self._host,
             "--port", str(self._port),
+            # CRITICAL: limit concurrency to prevent spawning multiple 5GB processes
+            "--pipeline",  # Use pipeline mode (single process)
+            "--decode-concurrency", "1",
+            "--prompt-concurrency", "1",
+            "--prompt-cache-size", "2",  # Limit KV cache entries
         ]
 
         self._process = subprocess.Popen(
