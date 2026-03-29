@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import signal
 import subprocess
 import time
@@ -125,13 +126,16 @@ class MLXServerManager:
             "--prompt-cache-size", "2",  # Limit KV cache entries
         ]
 
+        # Start in its own process group so we can kill ALL child processes
+        # (MLX server spawns worker subprocesses even with --pipeline)
         self._process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            preexec_fn=os.setsid,  # New process group
         )
 
-        logger.info("MLX server process started (PID=%d)", self._process.pid)
+        logger.info("MLX server process started (PID=%d, PGID=%d)", self._process.pid, os.getpgid(self._process.pid))
 
         # Poll for health
         start_time = time.monotonic()
@@ -185,23 +189,28 @@ class MLXServerManager:
         self._idle_task = asyncio.create_task(_watch_idle())
 
     def _kill(self) -> None:
-        """Gracefully terminate the MLX server process."""
+        """Kill the ENTIRE MLX server process group (parent + all children)."""
         if not self._process:
             return
 
         pid = self._process.pid
-        logger.info("Stopping MLX server (PID=%d)", pid)
+        logger.info("Stopping MLX server process group (PID=%d)", pid)
 
         try:
-            self._process.send_signal(signal.SIGTERM)
+            # Kill the entire process group — catches all spawned child workers
+            pgid = os.getpgid(pid)
+            os.killpg(pgid, signal.SIGKILL)
+            self._process.wait(timeout=5)
+            logger.info("MLX server process group killed (PGID=%d)", pgid)
+        except (ProcessLookupError, ChildProcessError):
+            pass
+        except Exception as e:
+            logger.warning("Process group kill failed: %s — trying direct kill", e)
             try:
-                self._process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                logger.warning(
-                    "MLX server did not stop gracefully, sending SIGKILL"
-                )
                 self._process.kill()
                 self._process.wait(timeout=3)
+            except Exception:
+                pass
         except ProcessLookupError:
             pass
         finally:
