@@ -12,7 +12,7 @@ from neon_client import update_request_status
 from pipeline.stage1_intelligence import run_stage1
 from pipeline.stage2_images import run_stage2
 from pipeline.stage3_copy import run_stage3
-from pipeline.stage4_compose import run_stage4
+from pipeline.stage4_compose_v2 import run_stage4
 from teams_notify import notify_generation_complete, notify_generation_failed
 
 logger = logging.getLogger(__name__)
