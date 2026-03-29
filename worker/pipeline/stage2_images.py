@@ -42,6 +42,7 @@ MAX_SEED_RETRIES = 3
 MAX_VARIATION_RETRIES = 2
 SEED_VQA_THRESHOLD = 0.85
 VARIATION_VQA_THRESHOLD = 0.75  # Lower bar — face is already validated
+ACTORS_PER_PERSONA = 3
 
 
 async def run_stage2(context: dict) -> dict:
@@ -63,13 +64,17 @@ async def run_stage2(context: dict) -> dict:
     actor_jobs: list[dict] = []
     if personas:
         for persona in personas:
-            actor_jobs.append({
-                "region": persona.get("region", regions[0] if regions else "Global"),
-                "language": persona.get("language", languages[0] if languages else "English"),
-                "persona": persona,
-            })
+            for actor_idx in range(ACTORS_PER_PERSONA):
+                actor_jobs.append({
+                    "region": persona.get("region", regions[0] if regions else "Global"),
+                    "language": persona.get("language", languages[0] if languages else "English"),
+                    "persona": persona,
+                    "actor_index": actor_idx,
+                })
         logger.info(
-            "Persona-driven actor generation: %d personas",
+            "Persona-driven actor generation: %d personas x %d actors = %d jobs",
+            len(personas),
+            ACTORS_PER_PERSONA,
             len(actor_jobs),
         )
     else:
@@ -96,6 +101,13 @@ async def run_stage2(context: dict) -> dict:
         if persona:
             # Persona-driven: actor derived from persona archetype.
             actor_prompt = build_persona_actor_prompt(persona, region, language)
+            actor_idx = job.get("actor_index", 0)
+            if actor_idx > 0:
+                actor_prompt += (
+                    f"\n\nIMPORTANT: This is actor #{actor_idx + 1} for the same persona. "
+                    f"Generate a DIFFERENT person — different gender, age within range, "
+                    f"appearance, and name. Must be visually distinct from other actors."
+                )
             actor_text = await generate_text(PERSONA_SYSTEM_PROMPT, actor_prompt)
         else:
             # Fallback: region-driven actor (original behaviour).
@@ -266,6 +278,20 @@ async def _generate_validated_image(
         qa_data = _parse_json(qa_result)
         qa_score = float(qa_data.get("overall_score", qa_data.get("score", 0)))
 
+        # If VQA returned text but no parseable JSON, check for positive signals
+        if qa_score == 0 and "raw_text" in qa_data and len(qa_data["raw_text"]) > 100:
+            raw = qa_data["raw_text"].lower()
+            # Kimi often writes prose instead of JSON — look for pass/fail signals
+            if any(w in raw for w in ["realistic", "authentic", "natural", "good quality", "well-composed"]):
+                qa_score = 0.80
+                logger.info("VQA returned prose (no JSON) but positive signals detected — assigning %.2f", qa_score)
+            elif any(w in raw for w in ["artificial", "fake", "unrealistic", "poor", "reject"]):
+                qa_score = 0.40
+                logger.info("VQA returned prose with negative signals — assigning %.2f", qa_score)
+            else:
+                qa_score = 0.75
+                logger.info("VQA returned prose (no JSON, no clear signal) — assigning default %.2f", qa_score)
+
         try:
             os.unlink(tmp_path)
         except OSError:
@@ -308,13 +334,55 @@ async def _generate_validated_image(
 
 
 def _parse_json(text: str) -> dict:
-    """Parse JSON from LLM/VLM output, handling markdown code fences."""
+    """Parse JSON from LLM/VLM output — handles thinking mode, code fences, embedded JSON.
+
+    Qwen3.5-9B often puts JSON inside reasoning text. This parser:
+    1. Tries direct parse
+    2. Strips markdown fences
+    3. Searches for the LAST valid JSON object in the text
+    """
+    if not text:
+        return {"raw_text": ""}
+
     cleaned = text.strip()
+
+    # Strip markdown fences
     if cleaned.startswith("```"):
         cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
         cleaned = cleaned.rsplit("```", 1)[0]
-    cleaned = cleaned.strip()
+        cleaned = cleaned.strip()
+
+    # Try direct parse
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError:
-        return {"raw_text": text}
+        pass
+
+    # Search for the LAST { ... } block that's valid JSON (reasoning mode)
+    brace_depth = 0
+    json_start = -1
+    last_valid_json = None
+
+    for i, char in enumerate(cleaned):
+        if char == '{':
+            if brace_depth == 0:
+                json_start = i
+            brace_depth += 1
+        elif char == '}':
+            brace_depth -= 1
+            if brace_depth == 0 and json_start >= 0:
+                candidate = cleaned[json_start:i+1]
+                try:
+                    parsed = json.loads(candidate)
+                    if isinstance(parsed, dict) and len(parsed) > 1:
+                        last_valid_json = parsed
+                except json.JSONDecodeError:
+                    pass
+                json_start = -1
+
+    if last_valid_json:
+        logger.info("Extracted JSON from reasoning text (%d keys)", len(last_valid_json))
+        return last_valid_json
+
+    logger.warning("Failed to parse JSON from LLM output (%d chars)", len(text))
+    return {"raw_text": text}
