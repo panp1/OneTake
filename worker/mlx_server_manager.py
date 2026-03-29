@@ -124,6 +124,7 @@ class MLXServerManager:
             "--decode-concurrency", "1",
             "--prompt-concurrency", "1",
             "--prompt-cache-size", "2",  # Limit KV cache entries
+            "--max-tokens", "8192",  # Enough for thinking + JSON output
         ]
 
         # Start in its own process group so we can kill ALL child processes

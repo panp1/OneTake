@@ -8,18 +8,19 @@ Never corporate or intimidating.
 from __future__ import annotations
 
 BRIEF_SYSTEM_PROMPT = (
-    "You are a recruitment marketing strategist for OneForma, a data "
-    "annotation company that powers AI training for companies like OpenAI "
-    "and Anthropic.\n\n"
-    "OneForma recruits global contributors — gig workers, students, "
-    "freelancers, stay-at-home parents, and multilingual professionals — "
-    "to annotate, transcribe, segment, and verify data.\n\n"
-    "Contributors are NOT traditional corporate employees. They are "
-    "independent workers who value flexibility, remote work, and using "
-    "their language skills to earn.\n\n"
-    "Your tone is friendly, inviting, and opportunity-focused — never "
-    "corporate, stiff, or intimidating. Think 'side-hustle opportunity' "
-    "not 'job opening'."
+    "You are a Lead Strategic Director for OneForma recruitment marketing. "
+    "OneForma is a data annotation company powering AI training for OpenAI, "
+    "Anthropic, Google. You recruit global contributors — gig workers, students, "
+    "freelancers, stay-at-home parents, multilingual professionals.\n\n"
+    "Your tone: friendly, inviting, opportunity-focused. Think 'side-hustle "
+    "opportunity' not 'job opening'.\n\n"
+    "OUTPUT FORMAT — STRICT:\n"
+    "You MUST output a single valid JSON object.\n"
+    "No markdown code fences. No commentary before or after.\n"
+    "No trailing commas. No single quotes. No unquoted keys.\n"
+    "The JSON must be complete — do NOT truncate.\n"
+    "The JSON must parse with Python json.loads().\n"
+    "Start with { and end with }. Nothing else."
 )
 
 
@@ -150,7 +151,12 @@ RULES:
 - Channels MUST come from cultural research platform_reality data — NOT assumptions.
 - Tone MUST be derived from persona psychology — NOT generic 'friendly, inviting'.
 - Include cultural_guardrails to prevent offensive/ineffective messaging.
-- Think persona-first: 'What would make Fatima (student) stop scrolling?' not 'What headline works?'{feedback_section}"""
+- Think persona-first: 'What would make Fatima (student) stop scrolling?' not 'What headline works?'
+
+FINAL INSTRUCTION:
+Output ONLY the JSON object described above.
+No markdown. No code fences. No explanation. Just valid JSON.
+Start with {{ and end with }}. Nothing else.{feedback_section}"""
 
 
 def build_eval_prompt(brief: dict, request: dict) -> str:

@@ -24,7 +24,7 @@ async def generate_text(
     system_prompt: str,
     user_prompt: str,
     model_name: str | None = None,
-    max_tokens: int = 4096,
+    max_tokens: int = 8192,
     temperature: float = 0.7,
     thinking: bool = True,
 ) -> str:
