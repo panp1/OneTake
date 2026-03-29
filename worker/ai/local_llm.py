@@ -1,7 +1,8 @@
 """Local LLM inference via MLX on Apple Silicon.
 
-Primary: HTTP server (managed by MLXServerManager) — persistent, warm, fast
-Fallback: Direct in-process mlx_lm (thread-safe GPU lock) — cold start, slower
+All inference goes through the MLX HTTP server (managed by MLXServerManager).
+NO in-process model loading — this prevents double model loading which caused
+37GB RAM usage (two copies of Qwen3.5-9B) on a 48GB machine.
 
 Models
 ------
@@ -13,27 +14,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import threading
-from typing import Any
 
 from config import COPY_MODEL, LLM_MODEL
 
 logger = logging.getLogger(__name__)
-
-# Direct in-process fallback
-_gpu_lock = threading.RLock()
-_models: dict[str, tuple[Any, Any]] = {}
-
-
-def _get_model(model_name: str) -> tuple[Any, Any]:
-    """Lazy-load model for in-process fallback."""
-    if model_name not in _models:
-        from mlx_lm import load
-
-        logger.info("Loading model in-process: %s", model_name)
-        _models[model_name] = load(model_name)
-        logger.info("Model %s loaded.", model_name)
-    return _models[model_name]
 
 
 async def generate_text(
@@ -75,37 +59,29 @@ async def generate_text(
         {"role": "user", "content": user_prompt},
     ]
 
-    # Try HTTP server first (warm, fast, managed lifecycle)
-    try:
-        from mlx_server_manager import mlx_server
+    # HTTP server ONLY — no in-process fallback (prevents double model loading
+    # which caused 37GB RAM usage on a 48GB machine).
+    from mlx_server_manager import mlx_server
 
-        return await mlx_server.generate(
-            messages=messages,
-            model=model_name,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            thinking=thinking,
-        )
-    except Exception as e:
-        logger.warning("MLX server unavailable (%s), falling back to in-process", e)
-
-    # Fallback: direct in-process (cold, but always works)
-    def _generate() -> str:
-        with _gpu_lock:
-            from mlx_lm import generate as mlx_generate
-
-            model, tokenizer = _get_model(model_name)
-            prompt = tokenizer.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=True,
-            )
-            return mlx_generate(
-                model,
-                tokenizer,
-                prompt=prompt,
+    for attempt in range(3):
+        try:
+            return await mlx_server.generate(
+                messages=messages,
+                model=model_name,
                 max_tokens=max_tokens,
+                temperature=temperature,
+                thinking=thinking,
             )
-
-    return await asyncio.to_thread(_generate)
+        except Exception as e:
+            if attempt < 2:
+                logger.warning(
+                    "MLX server call failed (attempt %d/3): %s — retrying in 5s",
+                    attempt + 1, e,
+                )
+                await asyncio.sleep(5)
+            else:
+                logger.error("MLX server failed after 3 attempts: %s", e)
+                raise
 
 
 async def generate_copy(
