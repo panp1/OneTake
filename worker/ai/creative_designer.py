@@ -74,11 +74,13 @@ async def design_creatives(
         images = actor.get("images", {})
         scenes = []
         for scene_key, scene_data in images.items():
+            desc = scene_data.get('scene_description', '')
+            desc_line = f"\n    SCENE DESCRIPTION: {desc}" if desc else ""
             scenes.append(
-                f"  Scene '{scene_key}': "
-                f"full_image_url={scene_data.get('full_url', '')}, "
-                f"cutout_url={scene_data.get('cutout_url', '')}, "
-                f"cutout_shadow_url={scene_data.get('shadow_url', '')}"
+                f"  Scene '{scene_key}':{desc_line}\n"
+                f"    full_image_url={scene_data.get('full_url', '')}\n"
+                f"    cutout_url={scene_data.get('cutout_url', '')}\n"
+                f"    cutout_shadow_url={scene_data.get('shadow_url', '')}"
             )
         actor_blocks.append(
             f"Actor: {name} (region: {actor.get('region', 'global')})\n"

@@ -22,7 +22,7 @@ BRAND_KIT = """
 - Primary background: White (#FFFFFF) or light gray (#F8F9FA) — clean, professional
 - Accent gradient: Deep purple (#3D1059) → Medium purple (#6B21A8) → Bright purple (#9B51E0)
 - CTA gradient: Purple (#6B21A8) → Hot pink (#E91E8C) — pill-shaped buttons
-- Money highlight: Gold (#FFD700) for dollar amounts
+- Emphasis/highlight: Hot pink (#E91E8C) or white bold — NO gold, NO yellow. Stay on-brand.
 - Text on light bg: Dark (#1A1A1A)
 - Text on dark/gradient: White (#FFFFFF)
 - Badge backgrounds: Light pink (#FCE4EC), light purple (#F3E5F5), light gray (#F0F0F0)
@@ -62,7 +62,7 @@ DESIGN_AUDIT = """
 ### KEEP (from OneForma's identity)
 - Purple gradient as primary palette anchor
 - Pink/magenta CTAs (recognizable brand element)
-- Gold highlights on dollar amounts
+- Pink (#E91E8C) or white bold for emphasis — NO gold/yellow
 - Pill-shaped CTA buttons with arrow
 - Real people (UGC style, not stock photos)
 
@@ -96,6 +96,15 @@ You are designing a recruitment ad creative for OneForma as a single self-contai
 7. Use only system fonts: -apple-system, 'Segoe UI', Roboto, sans-serif.
 8. Decorative SVG elements (blobs, dots) must be inline SVG, not external files.
 9. The HTML must render correctly in a headless Chromium browser.
+10. NO gold or yellow colors. ONLY purple, pink, white, dark gray. Stay on-brand.
+
+### MINIMAL DESIGN (CRITICAL):
+- MAXIMUM 3-4 elements per creative: headline + photo + CTA + ONE decorative shape.
+- At least 30% of the canvas must be WHITESPACE or clean background.
+- Do NOT fill every corner with shapes, dots, and badges. Less is more.
+- ONE blob shape maximum. ONE dot pattern area maximum. Not both.
+- The photo should be the visual anchor — text supports it, doesn't compete.
+- Clean, breathable, premium feel. Think Apple, not Canva.
 
 ### OVERLAY COPY RULES:
 - Headline: 3-7 words MAXIMUM. Short. Punchy. Scroll-stopping.
@@ -103,7 +112,12 @@ You are designing a recruitment ad creative for OneForma as a single self-contai
 - CTA: 2-3 words. Action-oriented.
 - The overlay copy must be DIFFERENT from the platform ad copy provided.
 - The overlay copy must target THIS persona's specific pain points.
-- The overlay copy must match what's happening in THE SCENE (the image).
+- The overlay copy MUST match what's happening in THE SCENE (the image).
+- Each actor has a SCENE DESCRIPTION that tells you exactly what's in the photo.
+- If the person is at a desk with a laptop, do NOT write "Your couch" — write about working/earning.
+- If the person is at a cafe, write about working anywhere/freedom.
+- If the person is celebrating, write about success/earnings/achievement.
+- READ THE SCENE DESCRIPTION CAREFULLY before writing ANY headline.
 
 ### IMAGE USAGE:
 You receive 3 image options per actor:

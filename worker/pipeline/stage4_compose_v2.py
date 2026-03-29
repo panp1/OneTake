@@ -226,23 +226,30 @@ async def _design_and_render_batch(
 
             try:
                 # Dual render in parallel
-                final_bytes, overlay_bytes = await asyncio.gather(
+                final_png, overlay_png = await asyncio.gather(
                     render_to_png(html, w, h),
                     render_overlay_only(html, w, h),
                 )
 
-                # Upload final PNG
-                final_filename = f"creative_{safe_platform}_{safe_persona}_{uid}.png"
+                # Convert to AVIF for storage optimization
+                final_bytes = convert_to_avif(final_png)
+                is_avif = len(final_bytes) < len(final_png)
+                ext = "avif" if is_avif else "png"
+                content_type = "image/avif" if is_avif else "image/png"
+
+                # Upload final creative
+                final_filename = f"creative_{safe_platform}_{safe_persona}_{uid}.{ext}"
                 final_url = await upload_to_blob(
                     final_bytes,
                     final_filename,
                     folder=f"requests/{request_id}/composed",
+                    content_type=content_type,
                 )
 
-                # Upload overlay PNG
+                # Overlay stays PNG (needs transparency for designer editing)
                 overlay_filename = f"overlay_{safe_platform}_{safe_persona}_{uid}.png"
                 overlay_url = await upload_to_blob(
-                    overlay_bytes,
+                    overlay_png,
                     overlay_filename,
                     folder=f"requests/{request_id}/composed",
                     content_type="image/png",
@@ -331,6 +338,7 @@ async def _prepare_images(
             "shadow_url": full_url,
             "actor_id": actor_id,
             "scene": scene,
+            "scene_description": "",
         }
 
         if not full_url:
@@ -358,13 +366,17 @@ async def _prepare_images(
                 upload_to_blob(shadow_bytes, shadow_filename, folder=folder),
             )
 
-            logger.info("Cutout ready: actor=%s scene=%s", actor_id, scene)
+            # Caption the image via Kimi K2.5 Vision (scene description)
+            scene_description = await _caption_image(image_bytes)
+
+            logger.info("Cutout ready: actor=%s scene=%s caption='%s'", actor_id, scene, scene_description[:60])
             return asset_id, {
                 "full_url": full_url,
                 "cutout_url": cutout_url,
                 "shadow_url": shadow_url,
                 "actor_id": actor_id,
                 "scene": scene,
+                "scene_description": scene_description,
             }
 
         except Exception as e:
@@ -386,6 +398,64 @@ async def _prepare_images(
             result[asset_id] = data
 
     return result
+
+
+# ── Image captioning ─────────────────────────────────────────────
+
+async def _caption_image(image_bytes: bytes) -> str:
+    """Get a 1-2 sentence scene description via Kimi K2.5 Vision.
+
+    This tells the creative designer what's ACTUALLY in the photo
+    so overlay copy matches the scene (desk ≠ couch, cafe ≠ home).
+    """
+    try:
+        from ai.local_vlm import analyze_image
+        import tempfile, os
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        tmp.write(image_bytes)
+        tmp.close()
+
+        caption = await analyze_image(
+            tmp.name,
+            "Describe this photo in 1-2 SHORT sentences. Focus on: "
+            "what the person is doing, where they are, what objects are visible, "
+            "and the mood/lighting. Be specific and factual.",
+        )
+        os.unlink(tmp.name)
+        return caption.strip()[:300]
+
+    except Exception as e:
+        logger.warning("Image captioning failed: %s", e)
+        return ""
+
+
+# ── AVIF conversion ──────────────────────────────────────────────
+
+def convert_to_avif(png_bytes: bytes, quality: int = 65) -> bytes:
+    """Convert PNG bytes to AVIF for storage optimization.
+
+    AVIF typically achieves 50-70% smaller file sizes than PNG
+    with near-identical visual quality at quality=65.
+    Falls back to returning original PNG if pillow-avif not available.
+    """
+    try:
+        from PIL import Image
+        import io
+
+        img = Image.open(io.BytesIO(png_bytes))
+        buf = io.BytesIO()
+        img.save(buf, format="AVIF", quality=quality)
+        avif_bytes = buf.getvalue()
+        logger.debug(
+            "AVIF conversion: %d bytes → %d bytes (%.0f%% reduction)",
+            len(png_bytes), len(avif_bytes),
+            (1 - len(avif_bytes) / len(png_bytes)) * 100,
+        )
+        return avif_bytes
+    except Exception as e:
+        logger.warning("AVIF conversion failed (%s) — keeping PNG", e)
+        return png_bytes
 
 
 # ── Grouping helpers ──────────────────────────────────────────────

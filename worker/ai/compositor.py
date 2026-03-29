@@ -81,7 +81,7 @@ ONEFORMA_BRAND = {
     "primary_color": "#3D1059",       # Deep purple
     "secondary_color": "#6B21A8",     # Medium purple
     "accent_color": "#E91E8C",        # Hot pink CTA
-    "money_color": "#FFD700",         # Gold for dollar amounts
+    "money_color": "#E91E8C",         # Pink for emphasis — NO gold/yellow
     "text_color": "#FFFFFF",
     "font_family": "-apple-system, 'Segoe UI', Roboto, sans-serif",
     "font_weight_headline": "800",
