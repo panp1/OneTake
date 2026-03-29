@@ -1,7 +1,9 @@
-"""Image generation via OpenRouter API.
+"""Image generation via Seedream 4.5 on OpenRouter.
 
-Routes to Seedream 4.5 or other image models through OpenRouter's unified API.
-Generates photorealistic hero images for recruitment creatives.
+Uses the /api/v1/chat/completions endpoint (NOT /images/generations).
+Seedream returns images in message.images[] as base64 or URLs.
+
+Cost: $0.04 per image regardless of size.
 """
 from __future__ import annotations
 
@@ -33,7 +35,10 @@ async def generate_image(
     dimension_key: str = "square",
     negative_prompt: str = "",
 ) -> bytes:
-    """Generate an image via OpenRouter and return raw PNG bytes.
+    """Generate an image via Seedream 4.5 on OpenRouter.
+
+    Uses /api/v1/chat/completions — Seedream returns image in
+    message.images[] field (base64 or URL).
 
     Parameters
     ----------
@@ -42,12 +47,12 @@ async def generate_image(
     dimension_key:
         A key into ``DIMENSIONS`` (e.g. ``"square"``, ``"landscape"``).
     negative_prompt:
-        Optional negative prompt for things to avoid in the image.
+        Optional negative prompt for things to avoid.
 
     Returns
     -------
     bytes
-        Raw image bytes (PNG).
+        Raw image bytes (PNG/JPEG).
     """
     width, height = DIMENSIONS.get(dimension_key, (1080, 1080))
 
@@ -58,36 +63,83 @@ async def generate_image(
     )
     neg = negative_prompt or default_negative
 
-    # Build the prompt with dimension hints and negative prompt
-    full_prompt = f"{prompt}\n\nImage dimensions: {width}x{height}px.\nAvoid: {neg}"
+    full_prompt = (
+        f"{prompt}\n\n"
+        f"Image dimensions: {width}x{height}px.\n"
+        f"Avoid: {neg}"
+    )
 
-    async with httpx.AsyncClient(timeout=120) as client:
-        response = await client.post(
-            "https://openrouter.ai/api/v1/images/generations",
+    logger.info(
+        "Generating image via %s (%dx%d, prompt=%d chars)...",
+        IMAGE_MODEL, width, height, len(full_prompt),
+    )
+
+    # Seedream on OpenRouter uses chat/completions, NOT images/generations
+    # Response has message.images[] with base64 or URL entries
+    # Timeout needs to be long — image gen takes 30-90 seconds
+    async with httpx.AsyncClient(timeout=httpx.Timeout(
+        connect=30.0, read=180.0, write=30.0, pool=30.0
+    )) as client:
+        resp = await client.post(
+            "https://openrouter.ai/api/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                 "Content-Type": "application/json",
             },
             json={
                 "model": IMAGE_MODEL,
-                "prompt": full_prompt,
-                "n": 1,
-                "size": f"{width}x{height}",
+                "messages": [
+                    {"role": "user", "content": full_prompt},
+                ],
             },
         )
-        response.raise_for_status()
-        data = response.json()
+        resp.raise_for_status()
+        data = resp.json()
 
-        image_entry = data["data"][0]
+        msg = data.get("choices", [{}])[0].get("message", {})
+        images = msg.get("images", [])
 
-        # Handle URL-based response
-        if "url" in image_entry and image_entry["url"]:
-            img_resp = await client.get(image_entry["url"])
-            img_resp.raise_for_status()
-            return img_resp.content
+        if not images:
+            # Some models return image in content as base64 data URI
+            content = msg.get("content", "")
+            if content and "base64" in str(content):
+                logger.info("Image found in content field")
+                # Extract base64 from data URI if present
+                if "data:image" in content:
+                    b64_part = content.split(",", 1)[-1] if "," in content else content
+                    return base64.b64decode(b64_part)
 
-        # Handle base64 response
-        if "b64_json" in image_entry and image_entry["b64_json"]:
-            return base64.b64decode(image_entry["b64_json"])
+            raise ValueError(
+                f"No images in response. Keys: {list(msg.keys())}. "
+                f"Content type: {type(content).__name__}"
+            )
 
-        raise ValueError("Image response contained neither url nor b64_json.")
+        img = images[0]
+
+        # Handle dict with url or b64_json
+        if isinstance(img, dict):
+            if "url" in img and img["url"]:
+                logger.info("Downloading image from URL...")
+                img_resp = await client.get(img["url"])
+                img_resp.raise_for_status()
+                logger.info("Image downloaded: %d bytes", len(img_resp.content))
+                return img_resp.content
+
+            if "b64_json" in img and img["b64_json"]:
+                img_bytes = base64.b64decode(img["b64_json"])
+                logger.info("Image decoded from b64_json: %d bytes", len(img_bytes))
+                return img_bytes
+
+        # Handle raw base64 string
+        if isinstance(img, str):
+            if img.startswith("http"):
+                logger.info("Downloading image from URL string...")
+                img_resp = await client.get(img)
+                img_resp.raise_for_status()
+                return img_resp.content
+            else:
+                img_bytes = base64.b64decode(img)
+                logger.info("Image decoded from base64 string: %d bytes", len(img_bytes))
+                return img_bytes
+
+        raise ValueError(f"Unexpected image format: {type(img)}")
