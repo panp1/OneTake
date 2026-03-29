@@ -50,6 +50,33 @@ async def run_pipeline(job: dict) -> None:
         "feedback": feedback,
     }
 
+    # Check if Stage 1 already completed (brief exists in Neon) — skip if so
+    if stages and stages[0][0] == 1:
+        try:
+            from neon_client import get_brief, get_intake_request
+            existing_brief = await get_brief(request_id)
+            if existing_brief:
+                import json
+                brief_data = existing_brief.get("brief_data")
+                if isinstance(brief_data, str):
+                    brief_data = json.loads(brief_data)
+                if brief_data and "campaign_objective" in brief_data:
+                    request = await get_intake_request(request_id)
+                    context.update({
+                        "request_title": request.get("title", "Untitled"),
+                        "brief": brief_data,
+                        "personas": brief_data.get("personas", []),
+                        "cultural_research": brief_data.get("cultural_research", {}),
+                        "design_direction": existing_brief.get("design_direction", {}),
+                        "target_languages": request.get("target_languages", []),
+                        "target_regions": request.get("target_regions", []),
+                        "form_data": request.get("form_data", {}),
+                    })
+                    logger.info("SKIPPING Stage 1 — brief already exists in Neon (campaign: %s)", brief_data.get("campaign_objective", "")[:80])
+                    stages = [(n, name, fn) for n, name, fn in stages if n > 1]
+        except Exception as e:
+            logger.info("Could not check for existing brief: %s — running Stage 1", e)
+
     for stage_num, stage_name, stage_fn in stages:
         logger.info("Running Stage %d: %s", stage_num, stage_name)
         try:
