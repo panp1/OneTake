@@ -510,13 +510,46 @@ def _extract_dialogue(
 
 
 def _parse_json(text: str) -> dict:
-    """Parse JSON from LLM output, handling markdown code fences."""
+    """Parse JSON from LLM output — handles code fences and embedded JSON."""
+    if not text:
+        return {"raw_text": ""}
+
     cleaned = text.strip()
     if cleaned.startswith("```"):
         cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
         cleaned = cleaned.rsplit("```", 1)[0]
-    cleaned = cleaned.strip()
+        cleaned = cleaned.strip()
+
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError:
-        return {"raw_text": text}
+        pass
+
+    # Search for embedded JSON (brace-depth scan)
+    brace_depth = 0
+    json_start = -1
+    last_valid_json = None
+
+    for i, char in enumerate(cleaned):
+        if char == '{':
+            if brace_depth == 0:
+                json_start = i
+            brace_depth += 1
+        elif char == '}':
+            brace_depth -= 1
+            if brace_depth == 0 and json_start >= 0:
+                candidate = cleaned[json_start:i+1]
+                try:
+                    parsed = json.loads(candidate)
+                    if isinstance(parsed, dict) and len(parsed) > 1:
+                        last_valid_json = parsed
+                except json.JSONDecodeError:
+                    pass
+                json_start = -1
+
+    if last_valid_json:
+        logger.info("Extracted JSON from text (%d keys)", len(last_valid_json))
+        return last_valid_json
+
+    logger.warning("Failed to parse JSON from video script (%d chars)", len(text))
+    return {"raw_text": text}
