@@ -90,124 +90,151 @@ async def run_stage2(context: dict) -> dict:
             len(actor_jobs),
         )
 
-    for job in actor_jobs:
-        region = job["region"]
-        language = job["language"]
-        persona = job["persona"]
+    # Run actors in PARALLEL (3 concurrent) — each actor is independent
+    import asyncio
+    ACTOR_CONCURRENCY = 3
+    actor_semaphore = asyncio.Semaphore(ACTOR_CONCURRENCY)
+    all_actors: list[dict] = []
+    total_images = 0
 
-        # ==================================================================
-        # STEP 1: Generate actor identity card
-        # ==================================================================
-        if persona:
-            # Persona-driven: actor derived from persona archetype.
-            actor_prompt = build_persona_actor_prompt(persona, region, language)
-            actor_idx = job.get("actor_index", 0)
-            if actor_idx > 0:
-                actor_prompt += (
-                    f"\n\nIMPORTANT: This is actor #{actor_idx + 1} for the same persona. "
-                    f"Generate a DIFFERENT person — different gender, age within range, "
-                    f"appearance, and name. Must be visually distinct from other actors."
-                )
-            actor_text = await generate_text(PERSONA_SYSTEM_PROMPT, actor_prompt)
-        else:
-            # Fallback: region-driven actor (original behaviour).
-            actor_prompt = build_actor_prompt(brief, region, language)
-            actor_text = await generate_text(ACTOR_SYSTEM_PROMPT, actor_prompt)
-        actor_data = _parse_json(actor_text)
+    async def _process_actor(job):
+        nonlocal total_images
+        async with actor_semaphore:
+            return await _generate_one_actor(job, brief, design, request_id)
 
-        actor_id = await save_actor(request_id, {
-            "name": actor_data.get("name", f"Contributor-{region}"),
-            "face_lock": actor_data.get("face_lock", {}),
-            "prompt_seed": actor_data.get("prompt_seed", ""),
-            "outfit_variations": actor_data.get("outfit_variations", {}),
-            "signature_accessory": actor_data.get("signature_accessory", "headphones"),
-            "backdrops": actor_data.get("backdrops", []),
-            "persona_key": persona.get("archetype_key") if persona else None,
-            "persona_name": persona.get("persona_name") if persona else None,
-        })
-        actor_data["id"] = actor_id
-        actor_data["persona"] = persona
-        logger.info(
-            "Actor '%s' created (id=%s, region=%s, persona=%s)",
-            actor_data.get("name"),
-            actor_id,
-            region,
-            persona.get("archetype_key") if persona else "none",
-        )
-
-        # Track compositions used for this actor (ensures variety)
-        used_compositions: list[str] = []
-
-        # ==================================================================
-        # STEP 2: Generate HERO SEED IMAGE (full VQA validation)
-        # This is the golden reference — must pass strict threshold.
-        # ==================================================================
-        seed_url, seed_score, seed_comp = await _generate_validated_image(
-            actor_data=actor_data,
-            outfit_key="at_home_working",
-            backdrop_index=0,
-            design=design,
-            region=region,
-            request_id=request_id,
-            actor_id=actor_id,
-            max_retries=MAX_SEED_RETRIES,
-            vqa_threshold=SEED_VQA_THRESHOLD,
-            asset_type="base_image",
-            language=language,
-            is_seed=True,
-            image_index=0,
-            used_compositions=used_compositions,
-        )
-        used_compositions.append(seed_comp)
-
-        # Save validated seed URL on the actor profile for future reference
-        await update_actor_seed(actor_id, seed_url)
-        actor_data["validated_seed_url"] = seed_url
-        total_images += 1
-
-        logger.info(
-            "Hero seed saved for '%s': %s (score=%.2f)",
-            actor_data.get("name"), seed_url, seed_score,
-        )
-
-        # ==================================================================
-        # STEP 3: Generate OUTFIT/BACKDROP VARIATIONS using seed as reference
-        # Lower VQA threshold since the face identity is already validated.
-        # ==================================================================
-        outfit_keys = list(actor_data.get("outfit_variations", {}).keys())
-        # Skip the first outfit (already used for seed), generate remaining
-        remaining_outfits = [k for k in outfit_keys if k != "at_home_working"]
-
-        for var_idx, outfit_key in enumerate(remaining_outfits):
-            variation_url, variation_score, var_comp = await _generate_validated_image(
-                actor_data=actor_data,
-                outfit_key=outfit_key,
-                backdrop_index=(var_idx + 1),
-                design=design,
-                region=region,
-                request_id=request_id,
-                actor_id=actor_id,
-                max_retries=MAX_VARIATION_RETRIES,
-                vqa_threshold=VARIATION_VQA_THRESHOLD,
-                asset_type="base_image",
-                language=language,
-                is_seed=False,
-                image_index=(var_idx + 1),
-                used_compositions=used_compositions,
-            )
-            used_compositions.append(var_comp)
-            total_images += 1
-            logger.info(
-                "Variation '%s' for '%s': composition=%s, score=%.2f",
-                outfit_key, actor_data.get("name"), var_comp, variation_score,
-            )
-
-        all_actors.append(actor_data)
+    results = await asyncio.gather(
+        *[_process_actor(job) for job in actor_jobs],
+        return_exceptions=True,
+    )
+    for r in results:
+        if isinstance(r, Exception):
+            logger.error("Actor generation failed: %s", r)
+        elif r:
+            actor_data, img_count = r
+            all_actors.append(actor_data)
+            total_images += img_count
 
     return {
         "actors": all_actors,
         "image_count": total_images,
     }
+
+
+async def _generate_one_actor(job, brief, design, request_id):
+    """Generate a single actor with seed + variations. Returns (actor_data, image_count)."""
+    total_images = 0
+    region = job["region"]
+    language = job["language"]
+    persona = job["persona"]
+
+    # ==================================================================
+    # STEP 1: Generate actor identity card
+    # ==================================================================
+    if persona:
+        # Persona-driven: actor derived from persona archetype.
+        actor_prompt = build_persona_actor_prompt(persona, region, language)
+        actor_idx = job.get("actor_index", 0)
+        if actor_idx > 0:
+            actor_prompt += (
+                f"\n\nIMPORTANT: This is actor #{actor_idx + 1} for the same persona. "
+                f"Generate a DIFFERENT person — different gender, age within range, "
+                f"appearance, and name. Must be visually distinct from other actors."
+            )
+        actor_text = await generate_text(PERSONA_SYSTEM_PROMPT, actor_prompt)
+    else:
+        # Fallback: region-driven actor (original behaviour).
+        actor_prompt = build_actor_prompt(brief, region, language)
+        actor_text = await generate_text(ACTOR_SYSTEM_PROMPT, actor_prompt)
+    actor_data = _parse_json(actor_text)
+
+    actor_id = await save_actor(request_id, {
+        "name": actor_data.get("name", f"Contributor-{region}"),
+        "face_lock": actor_data.get("face_lock", {}),
+        "prompt_seed": actor_data.get("prompt_seed", ""),
+        "outfit_variations": actor_data.get("outfit_variations", {}),
+        "signature_accessory": actor_data.get("signature_accessory", "headphones"),
+        "backdrops": actor_data.get("backdrops", []),
+        "persona_key": persona.get("archetype_key") if persona else None,
+        "persona_name": persona.get("persona_name") if persona else None,
+    })
+    actor_data["id"] = actor_id
+    actor_data["persona"] = persona
+    logger.info(
+        "Actor '%s' created (id=%s, region=%s, persona=%s)",
+        actor_data.get("name"),
+        actor_id,
+        region,
+        persona.get("archetype_key") if persona else "none",
+    )
+
+    # Track compositions used for this actor (ensures variety)
+    used_compositions: list[str] = []
+
+    # ==================================================================
+    # STEP 2: Generate HERO SEED IMAGE (full VQA validation)
+    # This is the golden reference — must pass strict threshold.
+    # ==================================================================
+    seed_url, seed_score, seed_comp = await _generate_validated_image(
+        actor_data=actor_data,
+        outfit_key="at_home_working",
+        backdrop_index=0,
+        design=design,
+        region=region,
+        request_id=request_id,
+        actor_id=actor_id,
+        max_retries=MAX_SEED_RETRIES,
+        vqa_threshold=SEED_VQA_THRESHOLD,
+        asset_type="base_image",
+        language=language,
+        is_seed=True,
+        image_index=0,
+        used_compositions=used_compositions,
+    )
+    used_compositions.append(seed_comp)
+
+    # Save validated seed URL on the actor profile for future reference
+    await update_actor_seed(actor_id, seed_url)
+    actor_data["validated_seed_url"] = seed_url
+    total_images += 1
+
+    logger.info(
+        "Hero seed saved for '%s': %s (score=%.2f)",
+        actor_data.get("name"), seed_url, seed_score,
+    )
+
+    # ==================================================================
+    # STEP 3: Generate OUTFIT/BACKDROP VARIATIONS using seed as reference
+    # Lower VQA threshold since the face identity is already validated.
+    # ==================================================================
+    outfit_keys = list(actor_data.get("outfit_variations", {}).keys())
+    # Skip the first outfit (already used for seed), generate remaining
+    remaining_outfits = [k for k in outfit_keys if k != "at_home_working"]
+
+    for var_idx, outfit_key in enumerate(remaining_outfits):
+        variation_url, variation_score, var_comp = await _generate_validated_image(
+            actor_data=actor_data,
+            outfit_key=outfit_key,
+            backdrop_index=(var_idx + 1),
+            design=design,
+            region=region,
+        request_id=request_id,
+            actor_id=actor_id,
+            max_retries=MAX_VARIATION_RETRIES,
+            vqa_threshold=VARIATION_VQA_THRESHOLD,
+            asset_type="base_image",
+            language=language,
+            is_seed=False,
+            image_index=(var_idx + 1),
+            used_compositions=used_compositions,
+        )
+        used_compositions.append(var_comp)
+        total_images += 1
+        logger.info(
+            "Variation '%s' for '%s': composition=%s, score=%.2f",
+            outfit_key, actor_data.get("name"), var_comp, variation_score,
+        )
+
+    return actor_data, total_images
 
 
 async def _generate_validated_image(
