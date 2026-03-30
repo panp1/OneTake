@@ -449,6 +449,117 @@ def build_character_reference_set(actor_data: dict) -> list[dict[str, str]]:
     return angles
 
 
+def build_character_grid_prompts(actor_data: dict) -> list[dict[str, str]]:
+    """Generate 9-angle character reference prompts for a Higgsfield-style grid.
+
+    Returns 9 Seedream prompts that, when generated and stitched into a 3x3 grid,
+    give Kling 3.0 maximum character consistency from a SINGLE reference image.
+
+    Grid layout:
+    [front_face    ] [3/4_right     ] [side_right    ]
+    [close_up_face ] [eye_detail    ] [full_body_front]
+    [3/4_left      ] [back_view     ] [full_body_back ]
+    """
+    face_lock = actor_data.get("face_lock", {})
+    prompt_seed = actor_data.get("prompt_seed", "")
+    accessory = actor_data.get("signature_accessory", "")
+
+    # Build face description
+    face_parts = []
+    for key in ["skin_tone_hex", "eye_color", "jawline", "hair", "nose_shape", "distinguishing_marks", "age_range"]:
+        val = face_lock.get(key, "")
+        if val:
+            face_parts.append(str(val))
+    face_desc = ", ".join(face_parts) if face_parts else prompt_seed
+
+    outfits = actor_data.get("outfit_variations", {})
+    outfit = outfits.get("at_home_working", next(iter(outfits.values()), "casual clothes")) if outfits else "casual clothes"
+    if isinstance(outfit, dict):
+        outfit = outfit.get("description", "casual clothes")
+    acc = f", wearing {accessory}" if accessory else ""
+
+    base = (
+        f"Photorealistic portrait of a person: {face_desc}, "
+        f"wearing {outfit}{acc}. "
+        f"Plain neutral gray studio background. "
+        f"Professional reference photo, sharp focus, even studio lighting. "
+        f"Natural skin texture, visible pores, no beauty filter."
+    )
+
+    return [
+        {"angle": "front_face", "prompt": f"{base} FRONT VIEW — facing camera directly, neutral expression, both ears visible, shoulders square.", "row": 0, "col": 0},
+        {"angle": "3q_right", "prompt": f"{base} THREE-QUARTER RIGHT — turned 45° right, jawline visible, one ear showing, relaxed.", "row": 0, "col": 1},
+        {"angle": "side_right", "prompt": f"{base} RIGHT PROFILE — turned 90° right, full side profile, ear visible, nose bridge defined.", "row": 0, "col": 2},
+        {"angle": "close_up", "prompt": f"{base} EXTREME CLOSE-UP — face fills entire frame, eyes sharp, skin pores visible, slight smile.", "row": 1, "col": 0},
+        {"angle": "eye_detail", "prompt": f"{base} CLOSE-UP EYES — upper face only, eyes and eyebrows in sharp focus, natural eye color.", "row": 1, "col": 1},
+        {"angle": "full_front", "prompt": f"{base} FULL BODY FRONT — head to toe, standing relaxed, arms at sides, centered in frame.", "row": 1, "col": 2},
+        {"angle": "3q_left", "prompt": f"{base} THREE-QUARTER LEFT — turned 45° left, opposite jawline visible, natural posture.", "row": 2, "col": 0},
+        {"angle": "back_view", "prompt": f"{base} BACK VIEW — turned 180° away, back of head and shoulders, hair texture visible.", "row": 2, "col": 1},
+        {"angle": "full_back", "prompt": f"{base} FULL BODY BACK — head to toe from behind, standing, posture and build visible.", "row": 2, "col": 2},
+    ]
+
+
+async def generate_character_grid(
+    actor_data: dict,
+    request_id: str,
+) -> str:
+    """Generate a 3x3 character reference grid image.
+
+    1. Generates 9 angle images via Seedream
+    2. Stitches into a 3x3 grid using Pillow
+    3. Uploads to Vercel Blob
+    4. Returns the grid image URL
+
+    This single grid image is used as Kling's reference for maximum
+    character consistency — same concept as Higgsfield's character sheets.
+    """
+    from ai.seedream import generate_image
+    from blob_uploader import upload_to_blob
+    from PIL import Image
+    import io
+    import uuid
+
+    angle_prompts = build_character_grid_prompts(actor_data)
+
+    # Generate all 9 angles
+    cell_size = 512  # Each cell in the grid
+    grid = Image.new("RGB", (cell_size * 3, cell_size * 3), (128, 128, 128))
+
+    for angle_data in angle_prompts:
+        try:
+            img_bytes = await generate_image(
+                angle_data["prompt"],
+                dimension_key="square",
+            )
+            img = Image.open(io.BytesIO(img_bytes)).resize(
+                (cell_size, cell_size), Image.Resampling.LANCZOS
+            )
+            x = angle_data["col"] * cell_size
+            y = angle_data["row"] * cell_size
+            grid.paste(img, (x, y))
+            logger.info("Grid angle '%s' generated", angle_data["angle"])
+        except Exception as e:
+            logger.warning("Grid angle '%s' failed: %s — using gray placeholder", angle_data["angle"], e)
+
+    # Export grid as PNG
+    buf = io.BytesIO()
+    grid.save(buf, format="PNG")
+    grid_bytes = buf.getvalue()
+
+    # Upload to Blob
+    actor_id = str(actor_data.get("id", "unknown"))
+    filename = f"char_grid_{actor_id}_{uuid.uuid4().hex[:8]}.png"
+    grid_url = await upload_to_blob(
+        grid_bytes, filename,
+        folder=f"requests/{request_id}/grids",
+    )
+    logger.info(
+        "Character grid generated: 9 angles, %dKB, url=%s",
+        len(grid_bytes) // 1024, grid_url[:60],
+    )
+    return grid_url
+
+
 def validate_script_for_kling(script: dict) -> dict[str, Any]:
     """Validate a video script against Kling constraints.
 

@@ -124,26 +124,32 @@ async def run_video_stage(context: dict) -> dict:
         )
 
         # ==================================================================
-        # STEP 3: Use EXISTING actor images as Kling references
-        # These are already VQA-approved from Stage 2 — don't regenerate!
+        # STEP 3: Build character reference grid (9-angle Higgsfield-style)
+        # Uses existing approved images + generates a 3x3 multi-angle grid
+        # for maximum Kling character consistency from ONE reference image
         # ==================================================================
         from neon_client import get_assets
+        from prompts.video_director import generate_character_grid
         actor_id = str(actor.get("id", ""))
+
+        # Get existing approved images as additional references
         image_assets = await get_assets(request_id, asset_type="base_image")
-        reference_urls = [
+        existing_urls = [
             a["blob_url"] for a in image_assets
             if str(a.get("actor_id", "")) == actor_id and a.get("blob_url")
-        ][:3]  # Kling recommends 2-3 references max
+        ][:2]  # Keep 2 existing images as supplementary refs
 
-        if not reference_urls:
-            # Fallback: generate references if no existing images
-            logger.warning("No existing images for actor %s — generating references", actor_id)
-            reference_urls = await _generate_character_references(actor, request_id)
-
-        logger.info(
-            "Using %d existing actor images as Kling references",
-            len(reference_urls),
-        )
+        # Generate the 9-angle character grid
+        try:
+            grid_url = await generate_character_grid(actor, request_id)
+            reference_urls = [grid_url] + existing_urls  # Grid first, then existing
+            logger.info(
+                "Character grid + %d existing images = %d total references",
+                len(existing_urls), len(reference_urls),
+            )
+        except Exception as e:
+            logger.warning("Grid generation failed: %s — using existing images only", e)
+            reference_urls = existing_urls[:3]
 
         # ==================================================================
         # STEP 4: Generate silent video (Kling 3.0)
