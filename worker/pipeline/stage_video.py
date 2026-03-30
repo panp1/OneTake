@@ -152,11 +152,12 @@ async def run_video_stage(context: dict) -> dict:
             reference_urls = existing_urls[:3]
 
         # ==================================================================
-        # STEP 4: Generate silent video (Kling 3.0)
+        # STEP 4: Generate silent video (Kling 3.0 Omni)
         # ==================================================================
         silent_video_bytes = await _generate_silent_video(
             script_data=script_data,
             reference_urls=reference_urls,
+            actor=actor,
         )
         logger.info("Silent video generated: %d bytes", len(silent_video_bytes))
 
@@ -392,8 +393,13 @@ async def _generate_silent_video(
     *,
     script_data: dict,
     reference_urls: list[str],
+    actor: dict | None = None,
 ) -> bytes:
-    """Generate a silent video from the script using Kling 3.0.
+    """Generate a silent video from the script using Kling 3.0 Omni.
+
+    The Omni model uses <<<image_N>>> tags in prompts to bind reference
+    images. image_list[0] = <<<image_1>>> (character grid), etc.
+    References are for CHARACTER CONSISTENCY, not start/end frames.
 
     Tries multishot first (preferred), falls back to single-shot
     if multishot fails or the scene count is 1.
@@ -402,6 +408,9 @@ async def _generate_silent_video(
 
     if not scenes:
         raise ValueError("Script has no scenes — cannot generate video")
+
+    # Build actor description for prompt tagging
+    actor_desc = _build_actor_description(actor) if actor else "the person"
 
     # Try multishot if we have multiple scenes
     if len(scenes) > 1 and len(scenes) <= 6:
@@ -415,11 +424,13 @@ async def _generate_silent_video(
                 for w in multishot_data["warnings"]:
                     logger.warning("Multishot warning: %s", w)
 
-            # Build individual shot prompts for the API
+            # Build individual shot prompts WITH <<<image_N>>> tags
             shot_payloads: list[dict[str, Any]] = []
             for scene in scenes:
                 shot_payloads.append({
-                    "prompt": _build_single_scene_prompt(scene),
+                    "prompt": _build_single_scene_prompt(
+                        scene, actor_desc=actor_desc, num_refs=len(reference_urls),
+                    ),
                     "duration_s": scene.get("duration_s", 2),
                     "camera": scene.get("camera", "static"),
                     "transition": scene.get("transition", "hard_cut"),
@@ -439,7 +450,9 @@ async def _generate_silent_video(
             )
 
     # Fallback: generate a single video from the full script prompt
-    full_prompt = _build_full_script_prompt(scenes)
+    full_prompt = _build_full_script_prompt(
+        scenes, actor_desc=actor_desc, num_refs=len(reference_urls),
+    )
     total_duration = sum(s.get("duration_s", 2) for s in scenes)
     total_duration = min(total_duration, 15)
 
@@ -472,38 +485,113 @@ def _scenes_to_kling_format(scenes: list[dict]) -> list[dict]:
     return kling_scenes
 
 
-def _build_single_scene_prompt(scene: dict) -> str:
-    """Build a Kling prompt for a single scene without the director module."""
+def _build_actor_description(actor: dict) -> str:
+    """Build a short actor description for Kling prompt tagging."""
+    name = actor.get("name", "the person")
+    age = actor.get("age", "")
+    ethnicity = actor.get("ethnicity", "")
+    occupation = actor.get("occupation", "")
+    parts = [name]
+    if age:
+        parts.append(f"{age} years old")
+    if ethnicity:
+        parts.append(ethnicity)
+    if occupation:
+        parts.append(occupation)
+    return ", ".join(parts)
+
+
+def _build_image_tags(num_refs: int) -> str:
+    """Build the <<<image_N>>> tag string for Kling Omni prompts.
+
+    image_1 = character grid (9-angle reference sheet)
+    image_2, image_3 = existing approved actor photos
+    """
+    if num_refs == 0:
+        return ""
+    # Always reference the character grid as primary
+    tags = "<<<image_1>>>"
+    # Add supplementary refs if available
+    for i in range(2, min(num_refs + 1, 4)):
+        tags += f" <<<image_{i}>>>"
+    return tags
+
+
+def _build_single_scene_prompt(
+    scene: dict,
+    *,
+    actor_desc: str = "the person",
+    num_refs: int = 0,
+) -> str:
+    """Build a Kling Omni prompt for a single scene with <<<image_N>>> tags.
+
+    The Omni model binds image_list entries to <<<image_N>>> tags in the prompt.
+    This is how Kling knows the images are CHARACTER REFERENCES, not start frames.
+
+    Dialogue is embedded naturally in the prompt — Kling's native voice generation
+    (sound: "on") reads it and generates speech + lip sync. Keep dialogue in the
+    first 10 seconds of total video for best lip sync quality.
+    """
     parts = []
     camera = scene.get("camera", "static")
-    parts.append(f"[CAMERA: {camera}]")
-    parts.append(f"[ACTION: {scene.get('action', 'person in frame')}]")
+    image_tags = _build_image_tags(num_refs)
+
+    # Camera with subtle handheld shake for UGC authenticity
+    parts.append(f"{camera} with subtle handheld camera shake.")
+
+    # Bind character references via <<<image_N>>> tags
+    if image_tags:
+        parts.append(f"{image_tags} ({actor_desc})")
+
+    # Action — what the character is doing
+    parts.append(f"{scene.get('action', 'person in frame')}.")
+
+    # Acting direction — emotion, body language
     if scene.get("acting_direction"):
-        parts.append(f"({scene['acting_direction']})")
-    parts.append(f"[ENVIRONMENT: {scene.get('environment', 'modern home interior')}]")
-    parts.append(f"[LIGHTING: {scene.get('lighting', 'natural indoor lighting')}]")
-    parts.append(f"[TEXTURE: {scene.get('texture', 'iPhone UGC quality')}]")
+        parts.append(scene["acting_direction"] + ".")
+
+    # Dialogue — embedded naturally so Kling's native voice generates speech
+    # Kling reads dialogue from the prompt when sound="on"
+    if scene.get("dialogue"):
+        parts.append(f'{actor_desc.split(",")[0]} says, "{scene["dialogue"]}"')
+
+    # Scene context
+    parts.append(f"{scene.get('environment', 'modern home interior')}.")
+    parts.append(f"{scene.get('lighting', 'natural indoor lighting')}.")
+    parts.append(f"Filmed on iPhone, natural skin texture, no beauty filter, slight grain.")
     return " ".join(parts)
 
 
-def _build_full_script_prompt(scenes: list[dict]) -> str:
+def _build_full_script_prompt(
+    scenes: list[dict],
+    *,
+    actor_desc: str = "the person",
+    num_refs: int = 0,
+) -> str:
     """Build a single combined prompt from all scenes for single-shot mode."""
+    image_tags = _build_image_tags(num_refs)
+    actor_name = actor_desc.split(",")[0]
     parts = [
-        "Short-form vertical video ad. Maintain consistent character throughout."
+        f"Short-form vertical video ad with subtle handheld camera shake throughout. "
+        f"{image_tags} ({actor_desc}) is the main character. "
+        "Maintain consistent character appearance throughout all scenes."
     ]
     cumulative = 0
     for i, scene in enumerate(scenes, 1):
         duration = scene.get("duration_s", 2)
         cumulative += duration
+        dialogue_part = ""
+        if scene.get("dialogue"):
+            dialogue_part = f' {actor_name} says, "{scene["dialogue"]}"'
         parts.append(
             f"At {cumulative - duration}s-{cumulative}s: "
-            f"[CAMERA: {scene.get('camera', 'static')}] "
-            f"{scene.get('action', 'person in frame')}. "
-            f"({scene.get('acting_direction', 'natural')})"
+            f"{scene.get('camera', 'static')} with subtle handheld shake. "
+            f"{image_tags} {scene.get('action', 'person in frame')}. "
+            f"{scene.get('acting_direction', 'natural')}.{dialogue_part}"
         )
     parts.append(
-        "[ENVIRONMENT: modern home interior, natural lighting] "
-        "[TEXTURE: iPhone UGC quality, natural skin, no beauty filter]"
+        f"{scenes[0].get('environment', 'modern home interior')}. "
+        "Natural lighting. Filmed on iPhone, natural skin texture, no beauty filter, slight grain."
     )
     return "\n".join(parts)
 

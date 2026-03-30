@@ -1,19 +1,20 @@
 """AI Deglosser — Post-processing pipeline to remove the AI gloss.
 
 Runs AFTER Seedream image generation, BEFORE VQA evaluation.
-Transforms polished AI output into authentic UGC-quality photography
-by adding the imperfections that real cameras and real skin have.
+Adds the BAREST hint of imperfection — like a high-quality iPhone photo,
+NOT a vintage film look. If someone has to zoom in 300% to see the grain,
+that's correct.
 
 All processing uses Pillow + NumPy — zero paid APIs, runs locally.
 
 Pipeline:
-1. Desaturate slightly (AI images are over-saturated)
-2. Add film grain (sensor noise pattern, not uniform)
-3. Add skin texture micro-bumps (subtle displacement)
-4. Add chromatic aberration (color fringing at edges)
-5. Add lens vignette (subtle corner darkening)
-6. Add color temperature shift (warm/cool micro-variations)
-7. Compress + recompress (JPEG artifacts like a real phone photo)
+1. Desaturate barely (AI images are slightly over-saturated)
+2. Add micro grain (~0.4% intensity — invisible at 100% zoom)
+3. Add skin texture micro-bumps (near-imperceptible displacement)
+4. Add chromatic aberration (1px max — barely visible edge fringing)
+5. Add lens vignette (very subtle corner darkening)
+6. Add color temperature shift (near-zero — breaks mathematical perfection)
+7. Compress + recompress (high-quality JPEG to break pixel-perfect smoothness)
 8. Add subtle sharpening on texture areas (pores, fabric)
 """
 from __future__ import annotations
@@ -57,37 +58,40 @@ def degloss(
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     original_size = img.size
 
-    # Intensity presets
+    # Intensity presets — ULTRA SUBTLE (high-quality iPhone photo, not vintage film)
+    # Grain at 0.4% intensity — must zoom 300% to see it.
+    # Color shifts near-zero — no visible tinting.
+    # Chromatic aberration 1px max — barely visible edge fringing.
     presets = {
         "light": {
-            "desaturate": 0.92,
-            "grain_strength": 8,
-            "vignette_strength": 0.15,
+            "desaturate": 0.97,
+            "grain_strength": 1,
+            "vignette_strength": 0.03,
+            "chroma_shift": 0,
+            "jpeg_quality": 95,
+            "warmth_shift": 1,
+            "sharpen_passes": 0,
+            "micro_contrast": 1.01,
+        },
+        "medium": {
+            "desaturate": 0.96,
+            "grain_strength": 1,
+            "vignette_strength": 0.04,
             "chroma_shift": 1,
-            "jpeg_quality": 88,
-            "warmth_shift": 3,
+            "jpeg_quality": 93,
+            "warmth_shift": 1,
             "sharpen_passes": 0,
             "micro_contrast": 1.02,
         },
-        "medium": {
-            "desaturate": 0.88,
-            "grain_strength": 14,
-            "vignette_strength": 0.22,
-            "chroma_shift": 2,
-            "jpeg_quality": 82,
-            "warmth_shift": 5,
-            "sharpen_passes": 1,
-            "micro_contrast": 1.05,
-        },
         "heavy": {
-            "desaturate": 0.82,
-            "grain_strength": 22,
-            "vignette_strength": 0.30,
-            "chroma_shift": 3,
-            "jpeg_quality": 75,
-            "warmth_shift": 8,
-            "sharpen_passes": 2,
-            "micro_contrast": 1.08,
+            "desaturate": 0.95,
+            "grain_strength": 1,
+            "vignette_strength": 0.05,
+            "chroma_shift": 1,
+            "jpeg_quality": 90,
+            "warmth_shift": 1,
+            "sharpen_passes": 1,
+            "micro_contrast": 1.03,
         },
     }
     p = presets.get(intensity, presets["medium"])
@@ -167,8 +171,11 @@ def degloss(
 # INDIVIDUAL PROCESSING STAGES
 # =========================================================================
 
-def _add_film_grain(img: Image.Image, strength: int = 14) -> Image.Image:
-    """Add luminance-aware film grain (stronger in shadows, weaker in highlights)."""
+def _add_film_grain(img: Image.Image, strength: int = 1) -> Image.Image:
+    """Add luminance-aware film grain (stronger in shadows, weaker in highlights).
+
+    At strength=1, grain is ~0.4% intensity — invisible without zooming to 300%.
+    """
     arr = np.array(img, dtype=np.float32)
 
     # Generate base noise
@@ -204,8 +211,8 @@ def _add_surface_roughness(img: Image.Image) -> Image.Image:
     # Smoothness mask: areas with LOW detail = flat/glossy = need roughness
     smooth_mask = np.clip(1.0 - (detail_magnitude / 30.0), 0, 1)
 
-    # Generate micro-bump noise (small scale, subtle)
-    micro_noise = np.random.normal(0, 4, arr.shape).astype(np.float32)
+    # Generate micro-bump noise (barely visible — must zoom 300% to see)
+    micro_noise = np.random.normal(0, 1.5, arr.shape).astype(np.float32)
 
     # Apply noise only to smooth areas (skin, walls, flat surfaces)
     for c in range(3):
@@ -215,8 +222,8 @@ def _add_surface_roughness(img: Image.Image) -> Image.Image:
     return Image.fromarray(arr)
 
 
-def _add_chromatic_aberration(img: Image.Image, shift: int = 2) -> Image.Image:
-    """Add chromatic aberration — shift R and B channels in opposite directions."""
+def _add_chromatic_aberration(img: Image.Image, shift: int = 1) -> Image.Image:
+    """Add chromatic aberration — shift R and B channels 1px max (barely visible edge fringing)."""
     arr = np.array(img)
     h, w = arr.shape[:2]
 
@@ -243,8 +250,8 @@ def _add_chromatic_aberration(img: Image.Image, shift: int = 2) -> Image.Image:
     return Image.fromarray(blended)
 
 
-def _add_vignette(img: Image.Image, strength: float = 0.22) -> Image.Image:
-    """Add lens vignette — subtle darkening at corners."""
+def _add_vignette(img: Image.Image, strength: float = 0.04) -> Image.Image:
+    """Add lens vignette — very subtle corner darkening (barely perceptible)."""
     arr = np.array(img, dtype=np.float32)
     h, w = arr.shape[:2]
 
@@ -263,10 +270,11 @@ def _add_vignette(img: Image.Image, strength: float = 0.22) -> Image.Image:
     return Image.fromarray(arr)
 
 
-def _shift_color_temperature(img: Image.Image, shift: int = 5) -> Image.Image:
-    """Add subtle color temperature variation (warm or cool micro-tint).
+def _shift_color_temperature(img: Image.Image, shift: int = 1) -> Image.Image:
+    """Add near-zero color temperature variation (warm or cool micro-tint).
 
-    Simulates mixed lighting: window daylight + warm lamp.
+    At shift=1, this is a ~0.4% channel adjustment — completely imperceptible
+    to the naked eye but breaks the mathematically-perfect AI color balance.
     """
     arr = np.array(img, dtype=np.int16)
 
@@ -286,8 +294,12 @@ def _shift_color_temperature(img: Image.Image, shift: int = 5) -> Image.Image:
     return Image.fromarray(arr.astype(np.uint8))
 
 
-def _jpeg_roundtrip(img: Image.Image, quality: int = 82) -> Image.Image:
-    """Compress to JPEG and re-expand to add realistic compression artifacts."""
+def _jpeg_roundtrip(img: Image.Image, quality: int = 93) -> Image.Image:
+    """Compress to JPEG and re-expand to add subtle compression artifacts.
+
+    At quality=93, artifacts are imperceptible — just enough to break
+    the pixel-perfect smoothness of AI output.
+    """
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=quality)
     buf.seek(0)

@@ -132,7 +132,7 @@ async def generate_video(
         len(references or []),
     )
 
-    # Submit generation task
+    # Single-shot uses text2video (omni-video requires multi_shot=true)
     task_id = await _submit_task("videos/text2video", payload)
 
     # Poll for completion
@@ -218,8 +218,8 @@ async def generate_multishot_video(
         len(shots), total_duration, len(references or []),
     )
 
-    task_id = await _submit_task("videos/text2video", payload)
-    result = await _poll_task(task_id, endpoint="videos/text2video")
+    task_id = await _submit_task("videos/omni-video", payload)
+    result = await _poll_task(task_id, endpoint="videos/omni-video")
 
     # Kling V3: data.task_result.videos[0].url
     task_result = result.get("task_result", {})

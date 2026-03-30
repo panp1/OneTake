@@ -34,6 +34,24 @@ async def run_pipeline(job: dict) -> None:
     stage_target = job.get("stage_target")
     feedback = job.get("feedback")
 
+    # ── Campaign Splitter: check if multinational RFP needs splitting ──
+    # If 3+ countries, split into per-country child campaigns.
+    # Each child gets its own pipeline run with city-level targeting.
+    if job_type == "generate":
+        from pipeline.campaign_splitter import should_split, split_campaign
+        from neon_client import get_intake_request as _get_request
+        request = await _get_request(request_id)
+        if await should_split(request):
+            logger.info("Multinational campaign detected — splitting into per-country campaigns")
+            children = await split_campaign(request, request_id)
+            logger.info(
+                "Split complete: %d child campaigns. Parent job done. "
+                "Children will be picked up on next poll cycle.",
+                len(children),
+            )
+            # Mark parent job as complete (children are independent jobs)
+            return
+
     stages = [
         (1, "Strategic Intelligence", run_stage1),
         (2, "Character-Driven Image Generation", run_stage2),
@@ -47,13 +65,21 @@ async def run_pipeline(job: dict) -> None:
         target = int(stage_target)
         stages = [(n, name, fn) for n, name, fn in stages if n == target]
 
+    # If resuming from a stage, run that stage through the end.
+    if job_type == "resume_from" and stage_target is not None:
+        target = int(stage_target)
+        stages = [(n, name, fn) for n, name, fn in stages if n >= target]
+        logger.info("Resuming pipeline from Stage %d (stages %s)", target, [n for n, _, _ in stages])
+
     context: dict = {
         "request_id": request_id,
         "feedback": feedback,
     }
 
-    # Check if Stage 1 already completed (brief exists in Neon) — skip if so
-    if stages and stages[0][0] == 1:
+    # ── Load brief + request data from Neon ──────────────────────
+    # Always load if starting at stage > 1 (resume, regenerate, or auto-skip)
+    first_stage = stages[0][0] if stages else 1
+    if first_stage >= 1:
         try:
             from neon_client import get_brief, get_intake_request
             existing_brief = await get_brief(request_id)
@@ -74,22 +100,25 @@ async def run_pipeline(job: dict) -> None:
                         "target_regions": request.get("target_regions", []),
                         "form_data": request.get("form_data", {}),
                     })
-                    logger.info("SKIPPING Stage 1 — brief already exists in Neon (campaign: %s)", brief_data.get("campaign_objective", "")[:80])
-                    stages = [(n, name, fn) for n, name, fn in stages if n > 1]
+                    if first_stage == 1:
+                        logger.info("SKIPPING Stage 1 — brief already exists in Neon (campaign: %s)", brief_data.get("campaign_objective", "")[:80])
+                        stages = [(n, name, fn) for n, name, fn in stages if n > 1]
+                    else:
+                        logger.info("Loaded brief from Neon for resume/regen (campaign: %s)", brief_data.get("campaign_objective", "")[:80])
         except Exception as e:
-            logger.info("Could not check for existing brief: %s — running Stage 1", e)
+            logger.info("Could not check for existing brief: %s — continuing with empty brief", e)
 
     for stage_num, stage_name, stage_fn in stages:
         logger.info("Running Stage %d: %s", stage_num, stage_name)
 
-        # Stage 5 (Video) needs actors in context — load from Neon
-        if stage_num == 5 and "actors" not in context:
+        # Stages 4+ need actors in context — load from Neon if not already present
+        if stage_num >= 4 and "actors" not in context:
             try:
                 actors = await get_actors(request_id)
                 context["actors"] = actors
-                logger.info("Loaded %d actors from Neon for video stage", len(actors))
+                logger.info("Loaded %d actors from Neon for stage %d", len(actors), stage_num)
             except Exception as e:
-                logger.warning("Could not load actors for video: %s", e)
+                logger.warning("Could not load actors: %s", e)
                 context["actors"] = []
 
         try:

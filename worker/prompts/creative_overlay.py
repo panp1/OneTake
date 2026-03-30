@@ -10,8 +10,6 @@ Pure data module — no logic, no API calls.
 """
 from __future__ import annotations
 
-import os
-
 # ── OneForma Brand Kit ───────────────────────────────────────────
 # Extracted from Meta Ads Library audit (March 29, 2026)
 
@@ -98,35 +96,39 @@ You are designing a recruitment ad creative for OneForma as a single self-contai
 9. The HTML must render correctly in a headless Chromium browser.
 10. NO gold or yellow colors. ONLY purple, pink, white, dark gray. Stay on-brand.
 
-### DEPTH LAYERING (THE SECRET TO PRO CREATIVES):
-Use CSS z-index to create REAL DEPTH — elements in front of AND behind the person.
-This is what separates amateur from professional ad creatives.
+### LAYOUT COMPOSITION:
+The photo is the visual anchor. Text and brand elements FRAME the photo — never obscure it.
 
-Layer stack (back to front):
-  z-index: 0  — Background (white, gradient, or solid color)
-  z-index: 1  — Blob shape #1 (BEHIND the person, partially visible)
-  z-index: 2  — Headline text (BEHIND the person's shoulder/body — creates depth!)
-  z-index: 3  — Person cutout image (the main visual anchor)
-  z-index: 4  — Blob shape #2 (OVERLAPPING the person's arm/shoulder)
-  z-index: 5  — Subheadline, CTA button, badges (IN FRONT of everything)
+RULE #1: ALL TEXT MUST BE 100% READABLE. Never place text where it overlaps the person's face or body.
+RULE #2: The person's face must be FULLY VISIBLE — no text, blobs, or elements covering it.
+RULE #3: Use gradient overlays or solid-color text zones to guarantee readability.
 
-CRITICAL: The headline text MUST be partially occluded by the person cutout.
-This creates the illusion of 3D depth that makes creatives look hand-designed.
-Use position:absolute on ALL elements for precise z-index layering.
+Layout patterns (pick one per creative):
+  A. GRADIENT OVERLAY: Photo fills canvas. Dark gradient from bottom (or side) creates a text-safe zone.
+     Headline + CTA sit in the gradient zone. Person visible in the clear area.
+  B. SPLIT LAYOUT: Photo on one side (~60%), brand zone on other side (~40%).
+     All text in the brand zone on solid/gradient bg. Photo untouched.
+  C. CARD FRAME: Photo in a rounded rect, smaller than canvas. Text + blobs around the frame.
+     Professional, clean. Photo contained but prominent.
 
-### TYPOGRAPHY (MIXED FONTS FOR VISUAL INTEREST):
-- Headline: Bold serif OR heavy sans-serif (Georgia, 'Times New Roman', or system bold)
-- Subheadline: Light sans-serif (-apple-system, 'Segoe UI', Roboto)
-- CTA: Bold uppercase sans-serif with letter-spacing
-- Mixing serif headline with sans-serif body creates VISUAL TENSION that stops scrolling
-- Font sizes must create clear hierarchy: headline 2-3x larger than sub
+Decorative elements:
+- 1-2 subtle blob shapes (purple-pink gradient, low opacity ~0.15) for brand identity.
+- Blobs should be BACKGROUND decoration, not competing with the photo or text.
+- NO blobs overlapping the person's face or body.
+- Keep blobs in corners/edges where they add composition without distraction.
+
+### TYPOGRAPHY:
+- Headline: Bold system font, weight 800, large but NOT overlapping the photo subject.
+- Subheadline: Regular weight, 50-60% of headline size.
+- CTA: Bold uppercase in a pill button with gradient bg and box-shadow.
+- Clear hierarchy: headline > sub > CTA, all in the designated text zone.
+- Font sizes: headline 36-56px, sub 16-22px, CTA 14-18px (adjust for canvas size).
 
 ### DESIGN BALANCE:
-- Use 2-3 organic blob shapes (purple-pink gradient) — they ARE the OneForma brand identity.
-- At least ONE blob BEHIND the person, at least ONE partially in front.
 - Keep at least 20% whitespace — let the design breathe.
-- The person cutout is the visual anchor. Everything else supports depth illusion.
+- The person's face is the visual anchor. Everything else supports it.
 - Clean, premium, intentional feel. Every element has a purpose.
+- If in doubt, use LESS decoration. Simplicity > complexity.
 
 ### OVERLAY COPY RULES:
 - Headline: 3-7 words MAXIMUM. Short. Punchy. Scroll-stopping.
@@ -142,56 +144,101 @@ Use position:absolute on ALL elements for precise z-index layering.
 - READ THE SCENE DESCRIPTION CAREFULLY before writing ANY headline.
 
 ### IMAGE USAGE:
-You receive 3 image options per actor:
-- full_image_url: Original photo with background (use as background or in contained frame)
-- cutout_url: Person with transparent background (use for popout/floating effects)
-- cutout_shadow_url: Person cutout with drop shadow (use for premium floating look)
+You receive ONE image per actor: full_image_url (the original photo with background).
+DO NOT attempt background removal, cutouts, or transparent overlays on the image.
 
-Choose the best option for your design. You can use:
-- Cutout on white/gradient bg with blob shapes (matches OneForma's "Join Your Child" style)
-- Full image as background with text overlay (immersive UGC style)
-- Full image in a contained rounded frame with decorative elements around it
-- Cutout popping out of a card frame boundary
+Use the FULL IMAGE in one of these treatments:
+1. FULL BACKGROUND: Photo fills the entire canvas. Gradient overlay (bottom-to-top or side) creates readable text zones. Most immersive — best for TikTok, Stories, IG feed.
+2. CONTAINED FRAME: Photo inside a rounded rectangle (border-radius: 16px) positioned to one side. Text + decorative elements fill the other side. Clean, professional — best for LinkedIn, Facebook.
+3. SPLIT PANEL: Canvas divided ~60/40. Photo fills one side, text + brand elements fill the other on a solid/gradient bg. Modern editorial feel.
+
+For ALL treatments:
+- Photo must be displayed at its NATURAL aspect ratio — no stretching or squishing.
+- Use object-fit: cover with strategic object-position to focus on the person's face.
+- Add a semi-transparent gradient overlay where text appears (e.g., linear-gradient(to top, rgba(0,0,0,0.7), transparent)) to ensure text readability.
+- The person's face must be FULLY VISIBLE and not obscured by text or decorative elements.
 
 ### RETURN FORMAT:
 Return a JSON array. Each element has:
 {{
   "actor_name": "Name",
-  "scene": "at_home_working|at_home_relaxed|cafe_working|celebrating_earnings",
+  "scene": "scene_key",
   "overlay_headline": "3-7 word headline",
   "overlay_sub": "optional subheadline",
   "overlay_cta": "CTA text",
-  "image_treatment": "cutout_popout|contained_frame|full_background",
+  "image_treatment": "full_background|contained_frame|split_panel",
   "html": "<!DOCTYPE html><html>...</html>"
 }}
 """
 
-# ── Frontend Design Skill (loaded once at import) ────────────────
+# ── Creative Design Skill (refined for recruitment ad creatives) ──
 
-_FRONTEND_DESIGN_SKILL = ""
+CREATIVE_DESIGN_SKILL = """
+## $50K Designer Creative Skill — Recruitment Ad Creatives
 
-def get_frontend_design_skill() -> str:
-    """Load the frontend-design skill markdown for Kimi prompt injection."""
-    global _FRONTEND_DESIGN_SKILL
-    if _FRONTEND_DESIGN_SKILL:
-        return _FRONTEND_DESIGN_SKILL
+You are an elite creative director designing scroll-stopping recruitment ad
+creatives. Your output competes with $50K agency work from Ogilvy, Droga5,
+and Wieden+Kennedy. Every pixel must be intentional.
 
-    skill_path = os.path.join(
-        os.path.expanduser("~"),
-        ".claude/plugins/cache/claude-plugins-official/frontend-design",
-    )
-    # Find the SKILL.md file (path includes a hash directory)
-    for root, dirs, files in os.walk(skill_path):
-        for f in files:
-            if f == "SKILL.md":
-                with open(os.path.join(root, f), "r") as fh:
-                    _FRONTEND_DESIGN_SKILL = fh.read()
-                return _FRONTEND_DESIGN_SKILL
+### DESIGN PHILOSOPHY: Clean, Bold, Readable
+The photo is the hero. Text is the hook. Brand elements frame everything.
+ALL TEXT MUST BE 100% READABLE — never obscured by the person or busy backgrounds.
 
-    # Fallback: minimal design instructions
-    _FRONTEND_DESIGN_SKILL = (
-        "Design with clear visual hierarchy, generous whitespace, "
-        "consistent spacing, and scroll-stopping typography. "
-        "Avoid generic layouts — make each creative feel unique and intentional."
-    )
-    return _FRONTEND_DESIGN_SKILL
+EDITORIAL SIDE (stops the scroll):
+- Bold, large typography in a CLEAR TEXT ZONE (gradient overlay or solid bg panel)
+- Person's face fully visible and prominent — the human connection
+- Intentional negative space (20-30%) — let the design breathe
+- 1-2 subtle brand blobs in corners for identity (low opacity, decorative only)
+
+PERFORMANCE SIDE (drives the click):
+- Bold headline with optional highlight effect (key word in pink pill badge)
+- Trust badge: "Powered by Centific" — small, clean, positioned in corner
+- Stat callout when relevant (earnings, contributors, countries)
+- Strong CTA pill button with gradient bg and box shadow
+- Visual hierarchy: eye follows person's face → headline → CTA in under 2 seconds
+
+### COMPOSITION TECHNIQUES (what separates $50K from $500):
+
+1. GRADIENT TEXT ZONES — THE #1 TECHNIQUE:
+   Photo fills the canvas. A semi-transparent gradient overlay creates a readable zone
+   for text. The person is visible in the clear area. Text is 100% legible in the gradient.
+   Example: linear-gradient(to top, rgba(61,16,89,0.85) 0%, rgba(61,16,89,0.4) 40%, transparent 70%)
+
+2. SPLIT PANEL COMPOSITION:
+   Photo on one side (~55-65%), text + brand zone on the other (~35-45%).
+   Text zone has solid or gradient OneForma purple bg. Clean separation.
+   The photo is NEVER covered by text. Each element has its own space.
+
+3. ASYMMETRIC BALANCE:
+   Never center everything. Offset the person to one side (60/40 split).
+   Text anchored to the opposite edge. Blobs fill the visual gap.
+   The eye should trace a Z-pattern or diagonal across the creative.
+
+4. COLOR RESTRAINT WITH PUNCH:
+   80% of the creative is white/light gray (breathing room).
+   The remaining 20% is concentrated purple/pink (maximum impact).
+   One hot pink CTA button draws the eye like a magnet.
+
+5. SUBTLE MOTION CUES:
+   Diagonal blob placement suggests movement.
+   Rotated text elements (2-5 degrees) add energy without chaos.
+   Subtle box-shadow on the photo frame grounds it in the composition.
+
+### WHAT MAKES IT LOOK CHEAP (AVOID):
+- Text floating over busy photo areas with no backdrop
+- Every element centered and stacked vertically (template look)
+- Purple EVERYWHERE — no breathing room
+- Tiny headline that doesn't command attention
+- Generic stock photo treatment (full bleed, dark overlay)
+- CTA that blends into the background
+- Headline that doesn't match what's happening in the scene
+- Same layout for every creative (cookie cutter)
+
+### CTR OPTIMIZATION SIGNALS:
+- Human face visible and prominent (2x higher CTR than no face)
+- Eye contact with camera when possible (1.5x engagement boost)
+- Contrasting CTA button (pink on white > purple on purple)
+- Numbers in headline when relevant ("$25/hr", "50K+ contributors")
+- Question headlines outperform statements for recruitment
+- Urgency without desperation ("Limited spots" not "Apply NOW!!!")
+"""

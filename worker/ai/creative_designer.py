@@ -17,10 +17,11 @@ import httpx
 from config import NVIDIA_NIM_API_KEY, NVIDIA_NIM_BASE_URL, NVIDIA_NIM_DESIGN_MODEL, OPENROUTER_API_KEY
 from prompts.creative_overlay import (
     BRAND_KIT,
+    CREATIVE_DESIGN_SKILL,
     DESIGN_AUDIT,
     OVERLAY_INSTRUCTIONS,
-    get_frontend_design_skill,
 )
+from prompts.html_reference_templates import get_all_references_for_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +34,19 @@ async def design_creatives(
     brief: dict[str, Any],
     platform_copy: dict[str, Any],
     cultural_research: dict[str, Any] | None = None,
+    feedback: list[str] | None = None,
+    carousel_instructions: str | None = None,
+    approved_copy: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
-    """Call Kimi K2.5 to design 2-3 creatives for a persona x platform combo.
+    """Call Kimi K2.5 to design creatives for a persona x platform combo.
+
+    Two-phase architecture:
+    - If ``approved_copy`` is provided, the designer uses pre-approved copy
+      and focuses ONLY on visual layout/HTML (Phase 2).
+    - If not provided, the designer generates both copy and HTML (legacy mode).
+
+    For single creatives: returns 2-3 designs.
+    For carousels: returns one object per slide (5-8 slides).
 
     Parameters
     ----------
@@ -52,6 +64,8 @@ async def design_creatives(
         Stage 3 ad copy for this platform (for reference — overlay must not duplicate).
     cultural_research : dict, optional
         Cultural research data for the target region.
+    feedback : list[str], optional
+        Quality issues from previous attempt — injected into prompt for retry.
 
     Returns
     -------
@@ -115,25 +129,64 @@ async def design_creatives(
         width=w, height=h, safe_margin=margin,
     )
 
-    # Assemble the mega-prompt
+    # Assemble the system prompt with concrete HTML reference templates
+    reference_html = get_all_references_for_prompt()
     system_prompt = (
-        f"{get_frontend_design_skill()}\n\n"
+        f"{CREATIVE_DESIGN_SKILL}\n\n"
         f"{BRAND_KIT}\n\n"
         f"{DESIGN_AUDIT}\n\n"
-        f"{instructions}"
+        f"{instructions}\n\n"
+        f"## HTML REFERENCE TEMPLATES (study these, adapt for your design):\n"
+        f"These are WORKING examples. Use the same techniques — full photo base, "
+        f"overlay shapes/gradients for text zones, pill CTAs, accent lines.\n"
+        f"{reference_html}"
     )
 
-    user_prompt = (
-        f"Design 2-3 unique ad creatives for OneForma recruitment.\n\n"
-        f"CAMPAIGN BRIEF:\n{brief_text}\n\n"
-        f"TARGET PERSONA:\n{persona_text}\n\n"
-        f"ACTORS (use different actors and scenes for each creative):\n{actors_text}\n\n"
-        f"PLATFORM: {platform} ({w}x{h}px, {margin}px safe area)\n\n"
-        f"PLATFORM AD COPY (for reference — do NOT duplicate on creative):\n{copy_ref}\n\n"
-        f"Return a JSON array of 2-3 creative objects. Each must have: "
-        f"actor_name, scene, overlay_headline, overlay_sub, overlay_cta, "
-        f"image_treatment, html."
-    )
+    # Build user prompt — Phase 2 (with approved copy) or legacy mode
+    if approved_copy:
+        # PHASE 2: Copy is pre-approved. Designer focuses ONLY on layout.
+        copy_block = json.dumps(approved_copy, indent=2, default=str)
+        user_prompt = (
+            f"Design {len(approved_copy)} ad creatives for OneForma recruitment.\n"
+            f"The OVERLAY COPY has been pre-approved — use it EXACTLY as provided.\n"
+            f"Your job is VISUAL DESIGN ONLY: layout, z-index depth, typography, composition.\n"
+            f"Do NOT change the headline, subheadline, or CTA text.\n\n"
+            f"PRE-APPROVED COPY (use verbatim):\n{copy_block}\n\n"
+            f"ACTORS (match actor_name from copy to get the right images):\n{actors_text}\n\n"
+            f"PLATFORM: {platform} ({w}x{h}px, {margin}px safe area)\n\n"
+            f"CAMPAIGN: {brief_text}\n\n"
+            f"Return a JSON array of {len(approved_copy)} creative objects. Each must have: "
+            f"actor_name, scene, overlay_headline, overlay_sub, overlay_cta, "
+            f"image_treatment, html.\n"
+            f"The overlay_headline/sub/cta MUST match the pre-approved copy EXACTLY."
+        )
+    else:
+        # LEGACY MODE: Designer generates both copy and HTML
+        user_prompt = (
+            f"Design 2-3 unique ad creatives for OneForma recruitment.\n\n"
+            f"CAMPAIGN BRIEF:\n{brief_text}\n\n"
+            f"TARGET PERSONA:\n{persona_text}\n\n"
+            f"ACTORS (use different actors and scenes for each creative):\n{actors_text}\n\n"
+            f"PLATFORM: {platform} ({w}x{h}px, {margin}px safe area)\n\n"
+            f"PLATFORM AD COPY (for reference — do NOT duplicate on creative):\n{copy_ref}\n\n"
+            f"Return a JSON array of 2-3 creative objects. Each must have: "
+            f"actor_name, scene, overlay_headline, overlay_sub, overlay_cta, "
+            f"image_treatment, html."
+        )
+
+    # Inject carousel structure (overrides single-creative instructions)
+    if carousel_instructions:
+        user_prompt += carousel_instructions
+
+    # Inject feedback from evaluation gate (retry loop)
+    if feedback:
+        feedback_text = "\n".join(f"- {f}" for f in feedback)
+        user_prompt += (
+            f"\n\n⚠️ CRITICAL — PREVIOUS ATTEMPT FAILED QUALITY REVIEW. Fix these issues:\n"
+            f"{feedback_text}\n\n"
+            f"Your REVISED designs MUST address every issue above. "
+            f"Focus especially on z-index depth layering and headline-scene match."
+        )
 
     logger.info(
         "Designing creatives: persona=%s, platform=%s, prompt=%d chars",
@@ -141,11 +194,13 @@ async def design_creatives(
         len(system_prompt) + len(user_prompt),
     )
 
-    # Inject ad-creative marketing skills
-    from prompts.marketing_skills import get_skills_for_stage
-    skills = get_skills_for_stage("creative")
-    if skills:
-        system_prompt = f"{system_prompt}\n\n{skills}"
+    # Inject marketing skills — only in legacy mode (Phase 2 has approved copy,
+    # the designer just needs design skills which are already in CREATIVE_DESIGN_SKILL)
+    if not approved_copy:
+        from prompts.marketing_skills import get_skills_for_stage
+        skills = get_skills_for_stage("creative")
+        if skills:
+            system_prompt = f"{system_prompt}\n\n{skills}"
 
     # Model cascade: GLM-5 (design) → Kimi K2.5 (fallback) → OpenRouter (paid)
     providers = []

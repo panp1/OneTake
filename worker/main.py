@@ -17,12 +17,10 @@ import logging
 import os
 import sys
 
-from config import POLL_INTERVAL_SECONDS
+from config import POLL_INTERVAL_SECONDS, WORKER_ID
 from neon_client import (
-    fetch_pending_jobs,
     mark_job_complete,
     mark_job_failed,
-    mark_job_processing,
 )
 from pipeline.orchestrator import run_pipeline
 from process_manager import ProcessManager
@@ -133,20 +131,20 @@ async def main():
     logger.info("MLX server will auto-start on first generation request.")
 
     from mlx_server_manager import mlx_server
+    from neon_client import claim_next_job
 
     try:
         while True:
             try:
-                jobs = await fetch_pending_jobs()
+                job = await claim_next_job(WORKER_ID)
 
-                for job in jobs:
+                if job:
                     logger.info(
                         "Processing job %s (type=%s, request=%s)",
                         job["id"],
                         job["job_type"],
                         job["request_id"],
                     )
-                    await mark_job_processing(job["id"])
 
                     try:
                         await run_pipeline(job)

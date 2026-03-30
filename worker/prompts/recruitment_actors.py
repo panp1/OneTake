@@ -157,25 +157,44 @@ Return ONLY valid JSON matching this EXACT schema:
     "distinguishing_marks": "1-2 unique features (light stubble, dimple, beauty mark, laugh lines, glasses)"
   }},
   "prompt_seed": "One dense paragraph (80-120 words) describing this EXACT person that gets pasted into EVERY Seedream generation for consistency. Include: ethnicity, age, skin tone hex, face shape, hair, eye color, distinguishing marks, default expression. This is the IDENTITY LOCK — if you generate 20 images with this seed, they should all clearly be the same person.",
-  "outfit_variations": {{
-    "at_home_working": "What they wear while annotating data at home (e.g., casual t-shirt, headphones on, comfortable pants)",
-    "at_home_relaxed": "Relaxed version — hoodie/sweater, sitting on couch or bed with laptop",
-    "cafe_working": "What they wear to a cafe to work (slightly more put-together but still casual)",
-    "celebrating_earnings": "Casual outfit, looking at phone with satisfied expression — just got paid"
+  "scenes": {{
+    "scene_key_1": {{
+      "name": "Short human-readable scene name (e.g., 'Morning desk session')",
+      "setting": "Detailed environment description for Seedream — specific to THIS persona's actual life in {region}. Include: room/location type, furniture, objects, lighting, time of day. Must feel REAL for someone of this age, income, and lifestyle in {region}.",
+      "outfit": "What they're wearing in this specific scene — matches the setting and activity.",
+      "pose_and_action": "What they're physically doing — typing, scrolling phone, talking, celebrating, etc.",
+      "emotion": "Facial expression and body language — focused, smiling, surprised, satisfied, etc.",
+      "ad_angle": "What marketing message this scene supports (flexibility, earnings, community, ease, etc.)"
+    }},
+    "scene_key_2": {{ ... }},
+    "scene_key_3": {{ ... }},
+    "scene_key_4": {{ ... }}
   }},
-  "signature_accessory": "ONE item they ALWAYS have visible (over-ear headphones, wireless earbuds, specific watch, bracelet, hair clip, glasses — pick something relevant to data annotation work)",
+  "signature_accessory": "ONE item they ALWAYS have visible (over-ear headphones, wireless earbuds, specific watch, bracelet, hair clip, glasses — pick something relevant to the task type)",
   "backdrops": [
-    "A CLEAN, MODERN, well-lit {region} home office — tidy desk, laptop, natural light from window. Middle-class interior, NOT dirty or luxury. No pools, no cracked walls.",
-    "A CLEAN, well-maintained {region} cafe or coworking space — good lighting, modern furniture, coffee on table. Real neighborhood cafe, not a luxury lounge.",
-    "A CLEAN {region} balcony or courtyard — natural greenery, warm light, pleasant outdoor workspace. Dignified residential setting.",
-    "A close-up portrait framing — neutral or softly blurred background, warm lighting, focus entirely on the person's face and expression."
+    "Backdrop 1: A specific, culturally authentic {region} interior matching scene 1. CLEAN and dignified. Middle-class, NOT luxury or poverty. Include specific furniture, decor, and lighting typical of {region}.",
+    "Backdrop 2: A different {region} location matching scene 2. Could be outdoor, cafe, coworking, campus, etc. Specific to where THIS persona actually spends time.",
+    "Backdrop 3: A third distinct {region} setting matching scene 3. Must feel different from backdrops 1-2.",
+    "Backdrop 4: Close-up portrait framing with softly blurred background. Warm lighting, focus on face and expression."
   ]
 }}
+
+SCENE GENERATION RULES:
+- Generate EXACTLY 4 scenes. Each scene key must be a unique snake_case identifier.
+- Scenes must be SPECIFIC to this persona's real life — not generic stock photo scenarios.
+- Consider: Where does a {persona} in {region} actually work? Relax? Celebrate? Commute?
+- Demographics matter: A 20-year-old student's scenes differ from a 35-year-old parent's scenes.
+- Income matters: Don't put a student in a luxury home office. Don't put a professional in a dorm room.
+- Culture matters: A cafe in Marrakech looks different from a cafe in Seattle or Seoul.
+- Task type matters: If the task is voice recording, show them speaking/recording. If it's data annotation, show them typing/scrolling. If it's an onsite study, show them commuting/arriving.
+- One scene MUST show a "reward moment" — checking phone for payment, telling someone about earnings, treating themselves.
+- One scene MUST show the actual task being performed — this is the "this is what the work looks like" image.
+- Scene names should be human-readable and evocative, NOT generic (e.g., "Kitchen table before class" not "at_home_working").
 
 RULES:
 - Face lock = the person's PERMANENT features. Same in every image.
 - Prompt seed = the dense text that Seedream uses for EVERY generation. It's the identity.
-- Outfit variations = 4 different looks for different ad contexts.
+- Scenes = 4 DYNAMIC scenarios based on persona demographics, lifestyle, region, and task type.
 - Signature accessory = appears in EVERY image (creates recognition across ad set).
 - Backdrops = 4 realistic settings from {region} (NOT generic Western settings).
 - Age 18-35 (the OneForma contributor demographic).
@@ -225,9 +244,27 @@ def build_image_prompt(
 
     face_lock = actor.get("face_lock", {})
     prompt_seed = actor.get("prompt_seed", "")
-    outfits = actor.get("outfit_variations", {})
-    outfit = outfits.get(outfit_key, outfits.get("at_home_working", "casual clothes, headphones"))
     backdrops = actor.get("backdrops", ["home office with laptop"])
+
+    # Resolve outfit/scene description — dynamic scenes (new) or outfit_variations (legacy)
+    scenes = actor.get("scenes", {})
+    outfits = actor.get("outfit_variations", {})
+
+    if scenes and outfit_key in scenes:
+        # Dynamic scene — rich structured data
+        scene_data = scenes[outfit_key]
+        outfit = scene_data.get("outfit", "casual clothes")
+        pose = scene_data.get("pose_and_action", "sitting at a desk, working on laptop")
+        emotion = scene_data.get("emotion", "focused, natural expression")
+        setting = scene_data.get("setting", "")
+        # Override backdrop with scene-specific setting if provided
+        if setting:
+            backdrops = [setting] + backdrops[1:]  # Use scene setting as primary backdrop
+    else:
+        # Legacy outfit_variations — simple string description
+        outfit = outfits.get(outfit_key, outfits.get("at_home_working", "casual clothes, headphones"))
+        pose = ""
+        emotion = ""
     backdrop = backdrops[backdrop_index % len(backdrops)] if backdrops else "home office"
     accessory = actor.get("signature_accessory", "headphones")
 
@@ -253,11 +290,18 @@ def build_image_prompt(
     if do_not:
         do_not_block = "\nDO NOT (banned for this campaign):\n" + "\n".join(f"- {x}" for x in do_not)
 
+    # Build pose/emotion block for dynamic scenes
+    pose_block = ""
+    if pose:
+        pose_block += f"\nPOSE & ACTION: {pose}"
+    if emotion:
+        pose_block += f"\nEXPRESSION & EMOTION: {emotion}"
+
     prompt = f"""{prompt_seed}
 
 OUTFIT FOR THIS SHOT: {outfit}
 SIGNATURE ACCESSORY (MUST be visible): {accessory}
-BACKDROP: {backdrop}
+BACKDROP: {backdrop}{pose_block}
 
 ART DIRECTION:
 - Style: {photo_dir.get("style", "UGC candid")}
@@ -307,9 +351,15 @@ ad targeting real people in {region}."""
 def build_visual_qa_prompt(actor: dict, region: str, outfit_key: str = "at_home_working") -> str:
     """Build the VLM visual QA prompt for evaluating a generated actor image."""
     face_lock = actor.get("face_lock", {})
-    outfits = actor.get("outfit_variations", {})
-    outfit = outfits.get(outfit_key, "casual clothes")
     accessory = actor.get("signature_accessory", "headphones")
+
+    # Resolve outfit from dynamic scenes or legacy outfit_variations
+    scenes = actor.get("scenes", {})
+    outfits = actor.get("outfit_variations", {})
+    if scenes and outfit_key in scenes:
+        outfit = scenes[outfit_key].get("outfit", "casual clothes")
+    else:
+        outfit = outfits.get(outfit_key, "casual clothes")
 
     return f"""Evaluate this recruitment ad image for identity consistency, cultural authenticity, and realism.
 
@@ -327,6 +377,15 @@ EXPECTED OUTFIT: {outfit}
 SIGNATURE ACCESSORY (must be visible): {accessory}
 REGION: {region}
 
+REALISM CHECK (HARD FAIL — if ANY of these are true, overall_score MUST be 0.0):
+- Image looks like a cartoon, illustration, anime, or digital painting
+- Eyes are unnaturally large, perfectly round, or have anime-style shine
+- Skin looks painted, airbrushed to perfection, or has visible brush strokes
+- Hair looks like drawn/painted strands rather than real hair texture
+- Overall image has a "rendered" or "illustrated" quality rather than photographic
+- Image looks like it came from Midjourney, DALL-E, or Stable Diffusion in illustration mode
+If the image fails ANY of the above, score 0.0 for ALL dimensions and set passed=false.
+
 Check EACH of these and score 0.0-1.0:
 
 1. IDENTITY CONSISTENCY: Does the person match the face_lock description above?
@@ -343,6 +402,7 @@ Check EACH of these and score 0.0-1.0:
    - AUTO-REJECT (score 0.0): hex codes visible on screens (#XXXXXX), gibberish/debug text on devices,
      fake money/currency rendered on screens, fake app UIs with placeholder data,
      any text that looks like code or technical output visible in the scene
+   - AUTO-REJECT (score 0.0): cartoon/illustration/anime/digital painting appearance (see REALISM CHECK above)
 
 3. CULTURAL AUTHENTICITY: Does this person look like they belong in {region}?
    - Check for: appropriate ethnicity, realistic clothing for the region, authentic setting
@@ -440,7 +500,7 @@ Return ONLY valid JSON with the same schema as a regular actor:
   "name": "A different culturally appropriate name (they are siblings)",
   "face_lock": {{...same schema as regular actor...}},
   "prompt_seed": "Include 'identical twin of {source_name}' in the prompt seed. Reference the source actor's validated_seed_url if available.",
-  "outfit_variations": {{...4 variations, DIFFERENT from {source_name}'s outfits...}},
+  "scenes": {{...4 dynamic scene variations with setting/outfit/pose/emotion/ad_angle, DIFFERENT from {source_name}'s scenes...}},
   "signature_accessory": "DIFFERENT from {source_name}'s accessory (this is how viewers tell them apart)",
   "backdrops": ["Same region-appropriate settings as {source_name}"]
 }}

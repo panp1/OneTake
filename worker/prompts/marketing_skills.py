@@ -26,7 +26,7 @@ SKILLS_DIR = os.path.join(
 STAGE_SKILLS: dict[str, list[str]] = {
     "brief": ["marketing-psychology", "copywriting", "ad-creative"],
     "copy": ["copywriting", "ad-creative", "paid-ads", "social-content"],
-    "creative": ["ad-creative", "copywriting"],
+    "creative": ["creative-design-patterns", "ad-creative", "copywriting", "paid-ads", "social-content"],
     "video": ["marketing-psychology", "copywriting", "social-content"],
     "evaluation": ["marketing-psychology", "ad-creative"],
 }

@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 # This drives the REFLOW — same image, different layout per platform.
 
 PLATFORM_SPECS: dict[str, dict[str, Any]] = {
+    # ── Single-image ad formats ──────────────────────────────────
     "ig_feed":        {"width": 1080, "height": 1080, "safe_margin": 60,  "label": "Instagram Feed"},
     "ig_story":       {"width": 1080, "height": 1920, "safe_margin": 80,  "label": "Instagram Story"},
     "linkedin_feed":  {"width": 1200, "height": 627,  "safe_margin": 48,  "label": "LinkedIn Feed"},
@@ -39,11 +40,65 @@ PLATFORM_SPECS: dict[str, dict[str, Any]] = {
     "twitter_post":   {"width": 1200, "height": 675,  "safe_margin": 48,  "label": "X/Twitter Post"},
     "indeed_banner":  {"width": 1200, "height": 628,  "safe_margin": 40,  "label": "Indeed Banner"},
     "whatsapp_story": {"width": 1080, "height": 1920, "safe_margin": 80,  "label": "WhatsApp Status"},
+
+    # ── WeChat formats ───────────────────────────────────────────
+    "wechat_moments":  {
+        "width": 1080, "height": 1080, "safe_margin": 108, "label": "WeChat Moments",
+        # Safe margin = 10% from each edge (device clipping varies)
+        # CRITICAL: text overlay must be < 20% of image area (WeChat policy)
+        "text_overlay_max_pct": 20,
+    },
+    "wechat_channels": {
+        "width": 1080, "height": 1920, "safe_margin": 100, "label": "WeChat Channels",
+        "safe_top": 120, "safe_right": 60, "safe_bottom": 300, "safe_left": 60,
+        # Bottom 300px: action bar (like/comment/share) + username overlay
+        # Similar to TikTok/Douyin layout
+    },
+
+    # ── Carousel formats (per-side safe zones) ───────────────────
+    # safe_top/right/bottom/left = pixels eaten by platform UI overlays
+    # safe_margin = fallback for code that reads the old uniform field
+    "linkedin_carousel": {
+        "width": 1080, "height": 1080, "safe_margin": 60, "label": "LinkedIn Carousel",
+        "safe_top": 60, "safe_right": 60, "safe_bottom": 100, "safe_left": 60,
+        # Bottom: page indicator dots + "See more" link area
+        "max_slides": 20, "format": "carousel",
+        "content_style": "text_first",  # No actor photos on slides 2+
+    },
+    "ig_carousel": {
+        "width": 1080, "height": 1350, "safe_margin": 80, "label": "Instagram Carousel",
+        "safe_top": 80, "safe_right": 60, "safe_bottom": 130, "safe_left": 60,
+        # Bottom: dots indicator (40px) + caption preview (~90px)
+        # 4:5 ratio = max feed real estate. 1080x1440 (3:4) also works
+        "max_slides": 20, "format": "carousel",
+        "content_style": "visual_story",  # Actor photos most slides
+    },
+    "tiktok_carousel": {
+        "width": 1080, "height": 1920, "safe_margin": 100, "label": "TikTok Carousel",
+        "safe_top": 150, "safe_right": 164, "safe_bottom": 400, "safe_left": 60,
+        # Top: status bar + back button (150px)
+        # Right: action buttons — like/comment/share/save column (164px)
+        # Bottom: caption + music bar + nav (400px!) — MASSIVE dead zone
+        # Left: relatively safe (60px breathing room)
+        "max_slides": 35, "format": "carousel",
+        "content_style": "polished_casual",  # Bold text, solid colors, minimal
+    },
+    "wechat_carousel": {
+        "width": 1080, "height": 1080, "safe_margin": 108, "label": "WeChat Moments Carousel",
+        "safe_top": 108, "safe_right": 108, "safe_bottom": 108, "safe_left": 108,
+        # 10% margin all sides (device clipping)
+        # Text overlay < 20% of image area (WeChat policy — enforced!)
+        # 3-6 cards per carousel (WeChat limit)
+        "max_slides": 6, "format": "carousel",
+        "content_style": "visual_minimal",  # Minimal text, visual-first, < 20% text overlay
+        "text_overlay_max_pct": 20,
+    },
 }
 
 # Backwards compat: old keys still work
 PLATFORM_SPECS["facebook_stories"] = PLATFORM_SPECS["ig_story"]
-PLATFORM_SPECS["linkedin_carousel"] = PLATFORM_SPECS["ig_feed"]
+PLATFORM_SPECS["instagram_feed"] = PLATFORM_SPECS["ig_feed"]
+PLATFORM_SPECS["instagram_stories"] = PLATFORM_SPECS["ig_story"]
 
 
 # ── Templates ────────────────────────────────────────────────────

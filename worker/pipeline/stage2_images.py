@@ -204,12 +204,33 @@ async def _generate_actor_images(actor_data, design, request_id):
     used_compositions: list[str] = []
 
     # ==================================================================
+    # Resolve scene keys — dynamic scenes (new) or outfit_variations (legacy)
+    # Dynamic scenes: actor_data["scenes"] = {"morning_desk": {...}, ...}
+    # Legacy: actor_data["outfit_variations"] = {"at_home_working": "...", ...}
+    # ==================================================================
+    scenes = actor_data.get("scenes", {})
+    outfit_variations = actor_data.get("outfit_variations", {})
+
+    if scenes:
+        # Dynamic scenes — use scene keys, first one is the seed
+        all_scene_keys = list(scenes.keys())
+        seed_key = all_scene_keys[0] if all_scene_keys else "default"
+        logger.info(
+            "Using %d dynamic scenes for '%s': %s",
+            len(all_scene_keys), actor_data.get("name", "?"), all_scene_keys,
+        )
+    else:
+        # Legacy outfit_variations
+        all_scene_keys = list(outfit_variations.keys())
+        seed_key = "at_home_working" if "at_home_working" in all_scene_keys else (all_scene_keys[0] if all_scene_keys else "default")
+
+    # ==================================================================
     # STEP 2: Generate HERO SEED IMAGE (full VQA validation)
     # This is the golden reference — must pass strict threshold.
     # ==================================================================
     seed_url, seed_score, seed_comp = await _generate_validated_image(
         actor_data=actor_data,
-        outfit_key="at_home_working",
+        outfit_key=seed_key,
         backdrop_index=0,
         design=design,
         region=region,
@@ -231,17 +252,15 @@ async def _generate_actor_images(actor_data, design, request_id):
     total_images += 1
 
     logger.info(
-        "Hero seed saved for '%s': %s (score=%.2f)",
-        actor_data.get("name"), seed_url, seed_score,
+        "Hero seed saved for '%s': %s (score=%.2f, scene=%s)",
+        actor_data.get("name"), seed_url, seed_score, seed_key,
     )
 
     # ==================================================================
-    # STEP 3: Generate OUTFIT/BACKDROP VARIATIONS using seed as reference
+    # STEP 3: Generate SCENE VARIATIONS using seed as reference
     # Lower VQA threshold since the face identity is already validated.
     # ==================================================================
-    outfit_keys = list(actor_data.get("outfit_variations", {}).keys())
-    # Skip the first outfit (already used for seed), generate remaining
-    remaining_outfits = [k for k in outfit_keys if k != "at_home_working"]
+    remaining_outfits = [k for k in all_scene_keys if k != seed_key]
 
     # Run variations IN PARALLEL (they're independent once seed is approved)
     async def _gen_variation(var_idx, outfit_key):
@@ -361,7 +380,9 @@ async def _generate_validated_image(
             mild_positive = ["good quality", "decent", "acceptable", "clear face", "visible accessory", "appropriate"]
             negative = ["looks artificial", "appears fake", "unrealistic skin", "plastic skin", "ai-generated look",
                         "poor quality", "should reject", "distorted", "extra fingers", "hex code", "glitchy",
-                        "uncanny valley", "oversaturated", "too smooth", "mannequin"]
+                        "uncanny valley", "oversaturated", "too smooth", "mannequin",
+                        "cartoon", "anime", "illustration", "illustrated", "digital painting",
+                        "rendered", "painted", "brush strokes", "stylized", "comic", "manga"]
 
             pos_count = sum(1 for w in strong_positive if w in raw)
             mild_count = sum(1 for w in mild_positive if w in raw)

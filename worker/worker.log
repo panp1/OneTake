@@ -1,135 +1,150 @@
-2026-03-29 18:33:09,379 [INFO] process_manager: ProcessManager: ensuring clean start...
-2026-03-29 18:33:11,460 [INFO] process_manager: ProcessManager: clean start confirmed — zero existing processes
-2026-03-29 18:33:11,461 [INFO] process_manager: ProcessManager: registered worker PID 88311
-2026-03-29 18:33:11,495 [INFO] __main__: Process manager: worker=88311, orphan_mlx=0, orphan_workers=0
-2026-03-29 18:33:11,496 [INFO] __main__: Centric local worker started (PID=88311). Polling every 10s.
-2026-03-29 18:33:11,496 [INFO] __main__: MLX server will auto-start on first generation request.
-2026-03-29 18:33:11,900 [INFO] neon_client: Connection pool created.
-2026-03-29 18:33:12,020 [INFO] __main__: Processing job 3f60cce6-d901-49da-b4fa-22ac89aaf969 (type=regenerate_stage, request=6a2ecbc4-b2f1-4310-b252-704b7fa20b22)
-2026-03-29 18:33:12,207 [INFO] pipeline.orchestrator: Running Stage 5: Video Generation
-2026-03-29 18:33:12,331 [INFO] pipeline.orchestrator: Loaded 3 actors from Neon for video stage
-2026-03-29 18:33:12,331 [INFO] pipeline.stage_video: Video pipeline for actor 'Omar' (persona=unknown, region=Global)
-2026-03-29 18:33:12,331 [INFO] pipeline.stage_video: Selected template: pov_reveal — POV: you're scrolling and find this opportunity
-2026-03-29 18:33:14,364 [INFO] httpx: HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
-2026-03-29 18:36:17,541 [INFO] pipeline.stage_video: Script validated: 5 scenes, 12s total, lip sync safe=True (attempt 1)
-2026-03-29 18:36:17,541 [INFO] pipeline.stage_video: Script generated: 5 scenes, 12s estimated, dialogue ends at 8s
-2026-03-29 18:36:17,542 [INFO] ai.seedream: Generating image via bytedance-seed/seedream-4.5 (1080x1080, prompt=1185 chars)...
-2026-03-29 18:36:27,796 [INFO] httpx: HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
-2026-03-29 18:36:28,452 [INFO] ai.seedream: Image decoded from data URI: 843242 bytes
-2026-03-29 18:36:29,033 [INFO] httpx: HTTP Request: PUT https://blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_27e23809-1f9f-41c0-9413-aee9ba0e3e25_front_288e2aa9.png "HTTP/1.1 200 OK"
-2026-03-29 18:36:29,034 [INFO] blob_uploader: Uploaded requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_27e23809-1f9f-41c0-9413-aee9ba0e3e25_front_288e2aa9.png -> https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_27e23809-1f9f-41c0-9413-aee9ba0e3e25_front_288e2aa9-zNsdE2Q3F8yLXQjYjg8ISlBKz9sDt0.png
-2026-03-29 18:36:29,034 [INFO] pipeline.stage_video: Reference front generated: https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_27e23809-1f9f-41c0-9413-aee9ba0e3e25_front_288e2aa9-zNsdE2Q3F8yLXQjYjg8ISlBKz9sDt0.png
-2026-03-29 18:36:29,034 [INFO] ai.seedream: Generating image via bytedance-seed/seedream-4.5 (1080x1080, prompt=1191 chars)...
-2026-03-29 18:36:39,224 [INFO] httpx: HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
-2026-03-29 18:36:40,326 [INFO] ai.seedream: Image decoded from data URI: 888947 bytes
-2026-03-29 18:36:40,723 [INFO] httpx: HTTP Request: PUT https://blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_27e23809-1f9f-41c0-9413-aee9ba0e3e25_side_44deaf91.png "HTTP/1.1 200 OK"
-2026-03-29 18:36:40,724 [INFO] blob_uploader: Uploaded requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_27e23809-1f9f-41c0-9413-aee9ba0e3e25_side_44deaf91.png -> https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_27e23809-1f9f-41c0-9413-aee9ba0e3e25_side_44deaf91-cHpcV20cmX6mWHxvdzyVbmQj7EGf8o.png
-2026-03-29 18:36:40,724 [INFO] pipeline.stage_video: Reference side generated: https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_27e23809-1f9f-41c0-9413-aee9ba0e3e25_side_44deaf91-cHpcV20cmX6mWHxvdzyVbmQj7EGf8o.png
-2026-03-29 18:36:40,724 [INFO] ai.seedream: Generating image via bytedance-seed/seedream-4.5 (1080x1080, prompt=1236 chars)...
-2026-03-29 18:36:50,863 [INFO] httpx: HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
-2026-03-29 18:36:54,885 [INFO] ai.seedream: Image decoded from data URI: 784941 bytes
-2026-03-29 18:36:55,492 [INFO] httpx: HTTP Request: PUT https://blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_27e23809-1f9f-41c0-9413-aee9ba0e3e25_back_6c354bb1.png "HTTP/1.1 200 OK"
-2026-03-29 18:36:55,493 [INFO] blob_uploader: Uploaded requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_27e23809-1f9f-41c0-9413-aee9ba0e3e25_back_6c354bb1.png -> https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_27e23809-1f9f-41c0-9413-aee9ba0e3e25_back_6c354bb1-nzKcexj93h1gVuqIzvuLfE0johnrCH.png
-2026-03-29 18:36:55,493 [INFO] pipeline.stage_video: Reference back generated: https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_27e23809-1f9f-41c0-9413-aee9ba0e3e25_back_6c354bb1-nzKcexj93h1gVuqIzvuLfE0johnrCH.png
-2026-03-29 18:36:55,493 [INFO] pipeline.stage_video: Character references generated: 3 angles
-2026-03-29 18:36:55,493 [INFO] ai.kling_client: Kling multishot: 5 shots, total 12s, refs=3
-2026-03-29 18:36:55,493 [INFO] ai.kling_client: Kling API request: POST https://api.klingai.com/v1/videos/text2video payload_keys=['model', 'mode', 'shots', 'resolution', 'aspect_ratio', 'references']
-2026-03-29 18:36:56,615 [INFO] httpx: HTTP Request: POST https://api.klingai.com/v1/videos/text2video "HTTP/1.1 400 Bad Request"
-2026-03-29 18:36:56,616 [ERROR] ai.kling_client: Kling API error 400: {"code":1201,"message":"mode value 'multishot' is invalid","request_id":"dc6a71f4-6275-4955-a157-ca4549096e12"}
-2026-03-29 18:36:56,616 [WARNING] pipeline.stage_video: Multishot generation failed (Client error '400 Bad Request' for url 'https://api.klingai.com/v1/videos/text2video'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400), falling back to single-shot
-2026-03-29 18:36:56,616 [INFO] ai.kling_client: Kling generate_video: duration=12s, resolution=1080p, ratio=9:16, start_frame=no, refs=3
-2026-03-29 18:36:56,616 [INFO] ai.kling_client: Kling API request: POST https://api.klingai.com/v1/videos/text2video payload_keys=['model_name', 'prompt', 'duration', 'mode', 'aspect_ratio', 'image_list']
-2026-03-29 18:36:57,497 [INFO] httpx: HTTP Request: POST https://api.klingai.com/v1/videos/text2video "HTTP/1.1 200 OK"
-2026-03-29 18:36:57,498 [INFO] ai.kling_client: Kling task submitted: 867362347487871046 (status=submitted)
-2026-03-29 18:36:58,419 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:36:58,420 [INFO] ai.kling_client: Kling task 867362347487871046: submitted (poll 1/120, ~0s)
-2026-03-29 18:37:04,278 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:37:10,237 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:37:16,116 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:37:21,935 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:37:27,906 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:37:33,645 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:37:33,646 [INFO] ai.kling_client: Kling task 867362347487871046: processing (poll 7/120, ~30s)
-2026-03-29 18:37:39,482 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:37:45,216 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:37:50,951 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:37:56,709 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:38:02,698 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:38:08,973 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:38:08,974 [INFO] ai.kling_client: Kling task 867362347487871046: processing (poll 13/120, ~60s)
-2026-03-29 18:38:14,908 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:38:20,585 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:38:26,401 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:38:32,322 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:38:38,130 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:38:44,195 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:38:44,196 [INFO] ai.kling_client: Kling task 867362347487871046: processing (poll 19/120, ~90s)
-2026-03-29 18:38:50,019 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:38:55,932 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:39:01,814 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:39:07,690 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:39:13,487 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:39:19,362 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:39:19,363 [INFO] ai.kling_client: Kling task 867362347487871046: processing (poll 25/120, ~120s)
-2026-03-29 18:39:25,265 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:39:31,306 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:39:37,234 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:39:43,084 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:39:48,917 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:39:54,862 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867362347487871046 "HTTP/1.1 200 OK"
-2026-03-29 18:39:54,863 [INFO] ai.kling_client: Kling task 867362347487871046 completed after 31 polls
-2026-03-29 18:39:56,498 [INFO] httpx: HTTP Request: GET https://v16-kling-fdl.klingai.com/bs2/upload-ylab-stunt-sgp/muse/860381236416610375/VIDEO/20260330/b9e7a046449a5d14064ecd36abed9efa-7260a1f0-415e-4a8b-87b8-10846f92d16c.mp4?cacheKey=ChtzZWN1cml0eS5rbGluZy5tZXRhX2VuY3J5cHQSsAFMim9SjbRoUs2i0TYZe_JLtWKVpHW_egyF1zZr4UOhdiFQWq5N_jz9TsF3F9GOMHdSVOOCTAC6_PM13gVsdZhzhv1QfEz2SFkFugR_oXdgcP7eNvy8-5GitQGeGelSkZN8OGVDPSfh96BJXIr6HBuTe0-dofhCO-Vw462m2ZYH8JJEpOIhN3veLyhWbC-oo0760WNm-ixc-TYfSrExOQGr_jaMS6lFLoLNy4lsBJaUvxoSyfxirU_pcpSwYh-JFVmDEt6gIiB_G2tCBuHYxMJ3xQGkMtuCvJhgBKiIjfaM980mtfdgQigFMAE&x-kcdn-pid=112781&ksSecret=930acd187435342f9c256621a31f38ac&ksTime=69f13733 "HTTP/1.1 200 OK"
-2026-03-29 18:40:02,496 [INFO] ai.kling_client: Video downloaded: 24374065 bytes
-2026-03-29 18:40:02,496 [INFO] pipeline.stage_video: Single-shot video generated: 24374065 bytes
-2026-03-29 18:40:02,496 [INFO] pipeline.stage_video: Silent video generated: 24374065 bytes
-2026-03-29 18:40:02,496 [INFO] pipeline.stage_video: Generating language variant: English
-2026-03-29 18:40:02,497 [INFO] ai.tts_engine: TTS: text=102 chars, language=English (en), provider=xtts
-2026-03-29 18:40:02,509 [WARNING] ai.tts_engine: XTTS server unavailable (All connection attempts failed), falling back to in-process
-2026-03-29 18:40:02,511 [WARNING] pipeline.stage_video: TTS/lip sync skipped for English: TTS library not installed. Run: pip install TTS — uploading silent video
-2026-03-29 18:40:04,793 [INFO] httpx: HTTP Request: PUT https://blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/videos/video_27e23809-1f9f-41c0-9413-aee9ba0e3e25_pov_reveal_English_c2c4c821.mp4 "HTTP/1.1 200 OK"
-2026-03-29 18:40:04,795 [INFO] blob_uploader: Uploaded requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/videos/video_27e23809-1f9f-41c0-9413-aee9ba0e3e25_pov_reveal_English_c2c4c821.mp4 -> https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/videos/video_27e23809-1f9f-41c0-9413-aee9ba0e3e25_pov_reveal_English_c2c4c821-AmOPlNEVaJBgOYGTQpU2LIXYhQf3Cl.mp4
-2026-03-29 18:40:04,795 [INFO] pipeline.stage_video: Video uploaded: https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/videos/video_27e23809-1f9f-41c0-9413-aee9ba0e3e25_pov_reveal_English_c2c4c821-AmOPlNEVaJBgOYGTQpU2LIXYhQf3Cl.mp4
-2026-03-29 18:40:06,336 [INFO] pipeline.stage_video: Video pipeline for actor 'Contributor-MA' (persona=unknown, region=Global)
-2026-03-29 18:40:06,336 [INFO] pipeline.stage_video: Selected template: pov_reveal — POV: you're scrolling and find this opportunity
-2026-03-29 18:40:07,229 [INFO] httpx: HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
-2026-03-29 18:40:57,954 [INFO] pipeline.stage_video: Script validated: 5 scenes, 12s total, lip sync safe=True (attempt 1)
-2026-03-29 18:40:57,954 [INFO] pipeline.stage_video: Script generated: 5 scenes, 12s estimated, dialogue ends at 10s
-2026-03-29 18:40:57,954 [INFO] ai.seedream: Generating image via bytedance-seed/seedream-4.5 (1080x1080, prompt=925 chars)...
-2026-03-29 18:41:08,181 [INFO] httpx: HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
-2026-03-29 18:41:10,433 [INFO] ai.seedream: Image decoded from data URI: 804384 bytes
-2026-03-29 18:41:10,815 [INFO] httpx: HTTP Request: PUT https://blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_2ef63a4e-74ab-43cd-8445-d4dfbe3d7f57_front_615f596b.png "HTTP/1.1 200 OK"
-2026-03-29 18:41:10,816 [INFO] blob_uploader: Uploaded requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_2ef63a4e-74ab-43cd-8445-d4dfbe3d7f57_front_615f596b.png -> https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_2ef63a4e-74ab-43cd-8445-d4dfbe3d7f57_front_615f596b-V2eP1WZ3hdpIBMjUSulRJsyDdwkNZr.png
-2026-03-29 18:41:10,816 [INFO] pipeline.stage_video: Reference front generated: https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_2ef63a4e-74ab-43cd-8445-d4dfbe3d7f57_front_615f596b-V2eP1WZ3hdpIBMjUSulRJsyDdwkNZr.png
-2026-03-29 18:41:10,816 [INFO] ai.seedream: Generating image via bytedance-seed/seedream-4.5 (1080x1080, prompt=931 chars)...
-2026-03-29 18:41:20,775 [INFO] httpx: HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
-2026-03-29 18:41:20,910 [INFO] ai.seedream: Image decoded from data URI: 833148 bytes
-2026-03-29 18:41:21,357 [INFO] httpx: HTTP Request: PUT https://blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_2ef63a4e-74ab-43cd-8445-d4dfbe3d7f57_side_56925977.png "HTTP/1.1 200 OK"
-2026-03-29 18:41:21,357 [INFO] blob_uploader: Uploaded requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_2ef63a4e-74ab-43cd-8445-d4dfbe3d7f57_side_56925977.png -> https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_2ef63a4e-74ab-43cd-8445-d4dfbe3d7f57_side_56925977-iiXBHpEMPgeq5M1cg6rI0kIyiGjy7c.png
-2026-03-29 18:41:21,358 [INFO] pipeline.stage_video: Reference side generated: https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_2ef63a4e-74ab-43cd-8445-d4dfbe3d7f57_side_56925977-iiXBHpEMPgeq5M1cg6rI0kIyiGjy7c.png
-2026-03-29 18:41:21,358 [INFO] ai.seedream: Generating image via bytedance-seed/seedream-4.5 (1080x1080, prompt=976 chars)...
-2026-03-29 18:41:30,503 [INFO] httpx: HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
-2026-03-29 18:41:30,645 [INFO] ai.seedream: Image decoded from data URI: 807077 bytes
-2026-03-29 18:41:31,217 [INFO] httpx: HTTP Request: PUT https://blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_2ef63a4e-74ab-43cd-8445-d4dfbe3d7f57_back_5749ac66.png "HTTP/1.1 200 OK"
-2026-03-29 18:41:31,218 [INFO] blob_uploader: Uploaded requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_2ef63a4e-74ab-43cd-8445-d4dfbe3d7f57_back_5749ac66.png -> https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_2ef63a4e-74ab-43cd-8445-d4dfbe3d7f57_back_5749ac66-cOjQ6Nr1ZLLkabBz8E1ZPtQJVawiRC.png
-2026-03-29 18:41:31,218 [INFO] pipeline.stage_video: Reference back generated: https://nek6dllf79zuiibo.public.blob.vercel-storage.com/requests/6a2ecbc4-b2f1-4310-b252-704b7fa20b22/references/ref_2ef63a4e-74ab-43cd-8445-d4dfbe3d7f57_back_5749ac66-cOjQ6Nr1ZLLkabBz8E1ZPtQJVawiRC.png
-2026-03-29 18:41:31,219 [INFO] pipeline.stage_video: Character references generated: 3 angles
-2026-03-29 18:41:31,219 [INFO] ai.kling_client: Kling multishot: 5 shots, total 12s, refs=3
-2026-03-29 18:41:31,219 [INFO] ai.kling_client: Kling API request: POST https://api.klingai.com/v1/videos/text2video payload_keys=['model', 'mode', 'shots', 'resolution', 'aspect_ratio', 'references']
-2026-03-29 18:41:32,038 [INFO] httpx: HTTP Request: POST https://api.klingai.com/v1/videos/text2video "HTTP/1.1 400 Bad Request"
-2026-03-29 18:41:32,038 [ERROR] ai.kling_client: Kling API error 400: {"code":1201,"message":"mode value 'multishot' is invalid","request_id":"de66fd27-81cd-4d4f-8a90-dfb0fc8924cb"}
-2026-03-29 18:41:32,038 [WARNING] pipeline.stage_video: Multishot generation failed (Client error '400 Bad Request' for url 'https://api.klingai.com/v1/videos/text2video'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400), falling back to single-shot
-2026-03-29 18:41:32,038 [INFO] ai.kling_client: Kling generate_video: duration=12s, resolution=1080p, ratio=9:16, start_frame=no, refs=3
-2026-03-29 18:41:32,038 [INFO] ai.kling_client: Kling API request: POST https://api.klingai.com/v1/videos/text2video payload_keys=['model_name', 'prompt', 'duration', 'mode', 'aspect_ratio', 'image_list']
-2026-03-29 18:41:32,954 [INFO] httpx: HTTP Request: POST https://api.klingai.com/v1/videos/text2video "HTTP/1.1 200 OK"
-2026-03-29 18:41:32,956 [INFO] ai.kling_client: Kling task submitted: 867363502757912642 (status=submitted)
-2026-03-29 18:41:33,603 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867363502757912642 "HTTP/1.1 200 OK"
-2026-03-29 18:41:33,604 [INFO] ai.kling_client: Kling task 867363502757912642: submitted (poll 1/120, ~0s)
-2026-03-29 18:41:39,507 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867363502757912642 "HTTP/1.1 200 OK"
-2026-03-29 18:41:45,761 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867363502757912642 "HTTP/1.1 200 OK"
-2026-03-29 18:41:51,497 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867363502757912642 "HTTP/1.1 200 OK"
-2026-03-29 18:41:57,325 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867363502757912642 "HTTP/1.1 200 OK"
-2026-03-29 18:42:03,469 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867363502757912642 "HTTP/1.1 200 OK"
-2026-03-29 18:42:09,416 [INFO] httpx: HTTP Request: GET https://api.klingai.com/v1/videos/text2video/867363502757912642 "HTTP/1.1 200 OK"
-2026-03-29 18:42:09,416 [INFO] ai.kling_client: Kling task 867363502757912642: processing (poll 7/120, ~30s)
+2026-03-30 16:01:16,081 [INFO] process_manager: ProcessManager: ensuring clean start...
+2026-03-30 16:01:16,112 [WARNING] process_manager: ProcessManager: found 1 worker process(es) to kill: [50530]
+2026-03-30 16:01:18,164 [INFO] process_manager: ProcessManager: clean start confirmed — zero existing processes
+2026-03-30 16:01:18,164 [INFO] process_manager: ProcessManager: registered worker PID 50783
+2026-03-30 16:01:18,197 [INFO] __main__: Process manager: worker=50783, orphan_mlx=0, orphan_workers=0
+2026-03-30 16:01:18,198 [INFO] __main__: Centric local worker started (PID=50783). Polling every 10s.
+2026-03-30 16:01:18,198 [INFO] __main__: MLX server will auto-start on first generation request.
+2026-03-30 16:01:18,518 [INFO] neon_client: Connection pool created.
+2026-03-30 16:01:18,639 [INFO] __main__: Processing job 873387a5-e26a-4164-ab69-7069b01dce2b (type=generate, request=6f527000-f914-4f69-8c5c-3e3b7eb94055)
+2026-03-30 16:01:18,906 [INFO] pipeline.orchestrator: Running Stage 1: Strategic Intelligence
+2026-03-30 16:01:19,018 [INFO] pipeline.stage1_intelligence: No cached research for Morocco — will need live research.
+2026-03-30 16:01:19,018 [INFO] pipeline.stage1_intelligence: Step 1: Cultural research for 5 regions ...
+2026-03-30 16:01:19,018 [INFO] cache_manager: Research cache HIT for Morocco (0 hours old)
+2026-03-30 16:01:19,018 [INFO] prompts.cultural_research: Using CACHED research for Morocco (skipping 9 API calls)
+2026-03-30 16:01:19,018 [INFO] prompts.cultural_research: Starting LIVE cultural research for region=France, language=French, demographic=young adults 18-35
+2026-03-30 16:01:19,019 [INFO] prompts.cultural_research: Researching dimension 'ai_fatigue' for France ...
+2026-03-30 16:01:19,052 [INFO] prompts.cultural_research: Researching dimension 'gig_work_perception' for France ...
+2026-03-30 16:01:19,057 [INFO] prompts.cultural_research: Researching dimension 'data_annotation_trust' for France ...
+2026-03-30 16:01:19,062 [INFO] prompts.cultural_research: Researching dimension 'platform_reality' for France ...
+2026-03-30 16:01:19,067 [INFO] prompts.cultural_research: Researching dimension 'demographic_channel_map' for France ...
+2026-03-30 16:01:19,072 [INFO] prompts.cultural_research: Researching dimension 'economic_context' for France ...
+2026-03-30 16:01:19,077 [INFO] prompts.cultural_research: Researching dimension 'cultural_sensitivities' for France ...
+2026-03-30 16:01:19,081 [INFO] prompts.cultural_research: Researching dimension 'tech_literacy' for France ...
+2026-03-30 16:01:19,086 [INFO] prompts.cultural_research: Researching dimension 'language_nuance' for France ...
+2026-03-30 16:01:37,208 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:01:37,209 [INFO] prompts.cultural_research: Cultural research via NIM (1382 chars)
+2026-03-30 16:01:55,234 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:01:55,236 [INFO] prompts.cultural_research: Cultural research via NIM (3047 chars)
+2026-03-30 16:02:05,882 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:02:05,882 [INFO] prompts.cultural_research: Cultural research via NIM (4144 chars)
+2026-03-30 16:02:09,570 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:02:09,571 [INFO] prompts.cultural_research: Cultural research via NIM (2547 chars)
+2026-03-30 16:02:10,800 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:02:10,801 [INFO] prompts.cultural_research: Cultural research via NIM (4858 chars)
+2026-03-30 16:02:31,174 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:02:31,177 [INFO] prompts.cultural_research: Cultural research via NIM (7039 chars)
+2026-03-30 16:02:45,002 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:02:45,003 [INFO] prompts.cultural_research: Cultural research via NIM (4875 chars)
+2026-03-30 16:02:57,683 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:02:57,685 [INFO] prompts.cultural_research: Cultural research via NIM (7628 chars)
+2026-03-30 16:03:51,896 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:03:51,963 [INFO] prompts.cultural_research: Cultural research via NIM (11434 chars)
+2026-03-30 16:03:51,964 [WARNING] prompts.cultural_research: PRIOR CORRECTIONS for France: instagram: priors said high in France, but Kimi says it's DECLINING. Update priors.; tiktok: priors said high in France, but Kimi says it's DECLINING. Update priors.; whatsapp: priors said high in France, but Kimi says it's DECLINING. Update priors.
+2026-03-30 16:03:51,964 [INFO] prompts.cultural_research: NEW INTEL for France: snapchat: Kimi mentions this platform for France but we don't have it in our priors. Consider adding.; vk: Kimi mentions this platform for France but we don't have it in our priors. Consider adding.; wechat: Kimi mentions this platform for France but we don't have it in our priors. Consider adding.; twitter: Kimi mentions this platform for France but we don't have it in our priors. Consider adding.; kakao: Kimi mentions this platform for France but we don't have it in our priors. Consider adding.; discord: Kimi mentions this platform for France but we don't have it in our priors. Consider adding.; youtube: Kimi mentions this platform for France but we don't have it in our priors. Consider adding.; line: Kimi mentions this platform for France but we don't have it in our priors. Consider adding.; weibo: Kimi mentions this platform for France but we don't have it in our priors. Consider adding.; signal: Kimi mentions this platform for France but we don't have it in our priors. Consider adding.
+2026-03-30 16:03:51,964 [INFO] prompts.cultural_research: Cultural research complete for France — 9 dimensions. Validation: 0 confirmed, 3 corrected, 10 new, 0 warnings
+2026-03-30 16:03:51,966 [INFO] cache_manager: Research cached for France (9 dimensions)
+2026-03-30 16:03:51,966 [INFO] prompts.cultural_research: Starting LIVE cultural research for region=Brazil, language=English, demographic=young adults 18-35
+2026-03-30 16:03:51,966 [INFO] prompts.cultural_research: Researching dimension 'ai_fatigue' for Brazil ...
+2026-03-30 16:03:51,979 [INFO] prompts.cultural_research: Researching dimension 'gig_work_perception' for Brazil ...
+2026-03-30 16:03:51,988 [INFO] prompts.cultural_research: Researching dimension 'data_annotation_trust' for Brazil ...
+2026-03-30 16:03:51,996 [INFO] prompts.cultural_research: Researching dimension 'platform_reality' for Brazil ...
+2026-03-30 16:03:52,003 [INFO] prompts.cultural_research: Researching dimension 'demographic_channel_map' for Brazil ...
+2026-03-30 16:03:52,010 [INFO] prompts.cultural_research: Researching dimension 'economic_context' for Brazil ...
+2026-03-30 16:03:52,016 [INFO] prompts.cultural_research: Researching dimension 'cultural_sensitivities' for Brazil ...
+2026-03-30 16:03:52,021 [INFO] prompts.cultural_research: Researching dimension 'tech_literacy' for Brazil ...
+2026-03-30 16:03:52,027 [INFO] prompts.cultural_research: Researching dimension 'language_nuance' for Brazil ...
+2026-03-30 16:03:52,220 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-30 16:03:52,220 [WARNING] prompts.cultural_research: Cultural research via NIM failed: Client error '429 Too Many Requests' for url 'https://integrate.api.nvidia.com/v1/chat/completions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+2026-03-30 16:03:52,584 [INFO] httpx: HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:04:18,139 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:04:18,140 [INFO] prompts.cultural_research: Cultural research via NIM (2063 chars)
+2026-03-30 16:04:19,819 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:04:19,819 [INFO] prompts.cultural_research: Cultural research via NIM (4716 chars)
+2026-03-30 16:04:21,359 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:04:21,359 [INFO] prompts.cultural_research: Cultural research via NIM (4333 chars)
+2026-03-30 16:04:24,752 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:04:24,753 [INFO] prompts.cultural_research: Cultural research via NIM (4890 chars)
+2026-03-30 16:04:28,244 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:04:28,244 [INFO] prompts.cultural_research: Cultural research via NIM (4728 chars)
+2026-03-30 16:04:28,310 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:04:28,311 [INFO] prompts.cultural_research: Cultural research via NIM (2330 chars)
+2026-03-30 16:04:33,672 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:04:33,673 [INFO] prompts.cultural_research: Cultural research via NIM (8293 chars)
+2026-03-30 16:04:39,016 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:04:39,017 [INFO] prompts.cultural_research: Cultural research via NIM (5316 chars)
+2026-03-30 16:09:05,447 [INFO] prompts.cultural_research: Cultural research via OpenRouter (11414 chars)
+2026-03-30 16:09:05,448 [WARNING] prompts.cultural_research: PRIOR CORRECTIONS for Brazil: instagram: priors said high in Brazil, but Kimi says it's DECLINING. Update priors.; tiktok: priors said high in Brazil, but Kimi says it's DECLINING. Update priors.; whatsapp: priors said high in Brazil, but Kimi says it's DECLINING. Update priors.
+2026-03-30 16:09:05,448 [INFO] prompts.cultural_research: NEW INTEL for Brazil: snapchat: Kimi mentions this platform for Brazil but we don't have it in our priors. Consider adding.; vk: Kimi mentions this platform for Brazil but we don't have it in our priors. Consider adding.; wechat: Kimi mentions this platform for Brazil but we don't have it in our priors. Consider adding.; twitter: Kimi mentions this platform for Brazil but we don't have it in our priors. Consider adding.; kakao: Kimi mentions this platform for Brazil but we don't have it in our priors. Consider adding.; discord: Kimi mentions this platform for Brazil but we don't have it in our priors. Consider adding.; youtube: Kimi mentions this platform for Brazil but we don't have it in our priors. Consider adding.; viber: Kimi mentions this platform for Brazil but we don't have it in our priors. Consider adding.; line: Kimi mentions this platform for Brazil but we don't have it in our priors. Consider adding.; weibo: Kimi mentions this platform for Brazil but we don't have it in our priors. Consider adding.; signal: Kimi mentions this platform for Brazil but we don't have it in our priors. Consider adding.
+2026-03-30 16:09:05,448 [INFO] prompts.cultural_research: Cultural research complete for Brazil — 9 dimensions. Validation: 0 confirmed, 3 corrected, 11 new, 0 warnings
+2026-03-30 16:09:05,450 [INFO] cache_manager: Research cached for Brazil (9 dimensions)
+2026-03-30 16:09:05,450 [INFO] prompts.cultural_research: Starting LIVE cultural research for region=Spain, language=Portuguese, demographic=young adults 18-35
+2026-03-30 16:09:05,451 [INFO] prompts.cultural_research: Researching dimension 'ai_fatigue' for Spain ...
+2026-03-30 16:09:05,464 [INFO] prompts.cultural_research: Researching dimension 'gig_work_perception' for Spain ...
+2026-03-30 16:09:05,473 [INFO] prompts.cultural_research: Researching dimension 'data_annotation_trust' for Spain ...
+2026-03-30 16:09:05,481 [INFO] prompts.cultural_research: Researching dimension 'platform_reality' for Spain ...
+2026-03-30 16:09:05,487 [INFO] prompts.cultural_research: Researching dimension 'demographic_channel_map' for Spain ...
+2026-03-30 16:09:05,494 [INFO] prompts.cultural_research: Researching dimension 'economic_context' for Spain ...
+2026-03-30 16:09:05,500 [INFO] prompts.cultural_research: Researching dimension 'cultural_sensitivities' for Spain ...
+2026-03-30 16:09:05,506 [INFO] prompts.cultural_research: Researching dimension 'tech_literacy' for Spain ...
+2026-03-30 16:09:05,511 [INFO] prompts.cultural_research: Researching dimension 'language_nuance' for Spain ...
+2026-03-30 16:09:31,739 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:09:31,741 [INFO] prompts.cultural_research: Cultural research via NIM (3061 chars)
+2026-03-30 16:09:32,614 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:09:32,615 [INFO] prompts.cultural_research: Cultural research via NIM (2386 chars)
+2026-03-30 16:09:35,527 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:09:35,528 [INFO] prompts.cultural_research: Cultural research via NIM (1819 chars)
+2026-03-30 16:09:47,504 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:09:47,505 [INFO] prompts.cultural_research: Cultural research via NIM (4645 chars)
+2026-03-30 16:10:06,485 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:10:06,485 [INFO] prompts.cultural_research: Cultural research via NIM (6852 chars)
+2026-03-30 16:10:09,526 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:10:09,526 [INFO] prompts.cultural_research: Cultural research via NIM (5032 chars)
+2026-03-30 16:10:10,381 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:10:10,382 [INFO] prompts.cultural_research: Cultural research via NIM (4124 chars)
+2026-03-30 16:10:25,399 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:10:25,401 [INFO] prompts.cultural_research: Cultural research via NIM (6116 chars)
+2026-03-30 16:10:40,138 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:10:40,138 [INFO] prompts.cultural_research: Cultural research via NIM (8984 chars)
+2026-03-30 16:10:40,139 [WARNING] prompts.cultural_research: PRIOR CORRECTIONS for Spain: instagram: priors said high in Spain, but Kimi says it's DECLINING. Update priors.; tiktok: priors said high in Spain, but Kimi says it's DECLINING. Update priors.; whatsapp: priors said high in Spain, but Kimi says it's DECLINING. Update priors.
+2026-03-30 16:10:40,139 [INFO] prompts.cultural_research: NEW INTEL for Spain: snapchat: Kimi mentions this platform for Spain but we don't have it in our priors. Consider adding.; vk: Kimi mentions this platform for Spain but we don't have it in our priors. Consider adding.; wechat: Kimi mentions this platform for Spain but we don't have it in our priors. Consider adding.; twitter: Kimi mentions this platform for Spain but we don't have it in our priors. Consider adding.; kakao: Kimi mentions this platform for Spain but we don't have it in our priors. Consider adding.; discord: Kimi mentions this platform for Spain but we don't have it in our priors. Consider adding.; youtube: Kimi mentions this platform for Spain but we don't have it in our priors. Consider adding.; line: Kimi mentions this platform for Spain but we don't have it in our priors. Consider adding.; weibo: Kimi mentions this platform for Spain but we don't have it in our priors. Consider adding.; signal: Kimi mentions this platform for Spain but we don't have it in our priors. Consider adding.
+2026-03-30 16:10:40,139 [INFO] prompts.cultural_research: Cultural research complete for Spain — 9 dimensions. Validation: 0 confirmed, 3 corrected, 10 new, 0 warnings
+2026-03-30 16:10:40,140 [INFO] cache_manager: Research cached for Spain (9 dimensions)
+2026-03-30 16:10:40,140 [INFO] prompts.cultural_research: Starting LIVE cultural research for region=India (Tamil Nadu), language=Spanish, demographic=young adults 18-35
+2026-03-30 16:10:40,140 [INFO] prompts.cultural_research: Researching dimension 'ai_fatigue' for India (Tamil Nadu) ...
+2026-03-30 16:10:40,148 [INFO] prompts.cultural_research: Researching dimension 'gig_work_perception' for India (Tamil Nadu) ...
+2026-03-30 16:10:40,155 [INFO] prompts.cultural_research: Researching dimension 'data_annotation_trust' for India (Tamil Nadu) ...
+2026-03-30 16:10:40,162 [INFO] prompts.cultural_research: Researching dimension 'platform_reality' for India (Tamil Nadu) ...
+2026-03-30 16:10:40,169 [INFO] prompts.cultural_research: Researching dimension 'demographic_channel_map' for India (Tamil Nadu) ...
+2026-03-30 16:10:40,175 [INFO] prompts.cultural_research: Researching dimension 'economic_context' for India (Tamil Nadu) ...
+2026-03-30 16:10:40,180 [INFO] prompts.cultural_research: Researching dimension 'cultural_sensitivities' for India (Tamil Nadu) ...
+2026-03-30 16:10:40,186 [INFO] prompts.cultural_research: Researching dimension 'tech_literacy' for India (Tamil Nadu) ...
+2026-03-30 16:10:40,191 [INFO] prompts.cultural_research: Researching dimension 'language_nuance' for India (Tamil Nadu) ...
+2026-03-30 16:10:40,385 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-30 16:10:40,386 [WARNING] prompts.cultural_research: Cultural research via NIM failed: Client error '429 Too Many Requests' for url 'https://integrate.api.nvidia.com/v1/chat/completions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+2026-03-30 16:10:40,764 [INFO] httpx: HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:11:03,868 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:11:03,869 [INFO] prompts.cultural_research: Cultural research via NIM (1794 chars)
+2026-03-30 16:11:10,804 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:11:10,804 [INFO] prompts.cultural_research: Cultural research via NIM (4571 chars)
+2026-03-30 16:11:22,981 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:11:22,981 [INFO] prompts.cultural_research: Cultural research via NIM (4799 chars)
+2026-03-30 16:11:33,403 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:11:33,403 [INFO] prompts.cultural_research: Cultural research via NIM (4241 chars)
+2026-03-30 16:11:44,058 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:11:44,058 [INFO] prompts.cultural_research: Cultural research via NIM (6217 chars)
+2026-03-30 16:11:56,382 [INFO] prompts.cultural_research: Cultural research via OpenRouter (3588 chars)
+2026-03-30 16:11:58,987 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:11:58,987 [INFO] prompts.cultural_research: Cultural research via NIM (6009 chars)
+2026-03-30 16:11:59,404 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:11:59,406 [INFO] prompts.cultural_research: Cultural research via NIM (8785 chars)
+2026-03-30 16:12:42,208 [INFO] httpx: HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-30 16:12:42,242 [INFO] prompts.cultural_research: Cultural research via NIM (14224 chars)
+2026-03-30 16:12:42,242 [WARNING] prompts.cultural_research: PRIOR CORRECTIONS for India (Tamil Nadu): instagram: priors said high in India (Tamil Nadu), but Kimi says it's DECLINING. Update priors.; tiktok: priors said high in India (Tamil Nadu), but Kimi says it's DECLINING. Update priors.; whatsapp: priors said high in India (Tamil Nadu), but Kimi says it's DECLINING. Update priors.
+2026-03-30 16:12:42,243 [INFO] prompts.cultural_research: NEW INTEL for India (Tamil Nadu): snapchat: Kimi mentions this platform for India (Tamil Nadu) but we don't have it in our priors. Consider adding.; vk: Kimi mentions this platform for India (Tamil Nadu) but we don't have it in our priors. Consider adding.; wechat: Kimi mentions this platform for India (Tamil Nadu) but we don't have it in our priors. Consider adding.; twitter: Kimi mentions this platform for India (Tamil Nadu) but we don't have it in our priors. Consider adding.; kakao: Kimi mentions this platform for India (Tamil Nadu) but we don't have it in our priors. Consider adding.; discord: Kimi mentions this platform for India (Tamil Nadu) but we don't have it in our priors. Consider adding.; youtube: Kimi mentions this platform for India (Tamil Nadu) but we don't have it in our priors. Consider adding.; line: Kimi mentions this platform for India (Tamil Nadu) but we don't have it in our priors. Consider adding.; weibo: Kimi mentions this platform for India (Tamil Nadu) but we don't have it in our priors. Consider adding.; signal: Kimi mentions this platform for India (Tamil Nadu) but we don't have it in our priors. Consider adding.
+2026-03-30 16:12:42,243 [INFO] prompts.cultural_research: Cultural research complete for India (Tamil Nadu) — 9 dimensions. Validation: 0 confirmed, 3 corrected, 10 new, 0 warnings
+2026-03-30 16:12:42,243 [INFO] cache_manager: Research cached for India (Tamil Nadu) (9 dimensions)
+2026-03-30 16:12:42,243 [INFO] pipeline.stage1_intelligence: Cultural research complete: ['Morocco', 'France', 'Brazil', 'Spain', 'India (Tamil Nadu)']
+2026-03-30 16:12:42,243 [INFO] pipeline.stage1_intelligence: Step 2: Generating personas (LLM-powered, dynamic)...
