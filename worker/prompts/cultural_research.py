@@ -22,7 +22,7 @@ from typing import Any
 
 import httpx
 
-from config import OPENROUTER_API_KEY
+from config import NVIDIA_NIM_API_KEY, NVIDIA_NIM_BASE_URL, OPENROUTER_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -433,8 +433,8 @@ async def _call_kimi(query: str, output_keys: list[str]) -> dict[str, Any]:
     dict
         Parsed JSON response with the requested output keys.
     """
-    if not OPENROUTER_API_KEY:
-        logger.warning("OPENROUTER_API_KEY not set — returning empty research result.")
+    if not NVIDIA_NIM_API_KEY and not OPENROUTER_API_KEY:
+        logger.warning("No LLM API key — returning empty research result.")
         return {k: "unavailable — no API key" for k in output_keys}
 
     keys_instruction = (
@@ -442,57 +442,60 @@ async def _call_kimi(query: str, output_keys: list[str]) -> dict[str, Any]:
         "Each value should be a string with a detailed, specific answer."
     )
 
-    try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            resp = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
+    messages = [
+        {"role": "system", "content": _RESEARCH_SYSTEM_PROMPT},
+        {"role": "user", "content": f"{query}\n\n{keys_instruction}"},
+    ]
+
+    # Try NIM (free) first, then OpenRouter (paid)
+    providers = []
+    if NVIDIA_NIM_API_KEY:
+        providers.append(("NIM", f"{NVIDIA_NIM_BASE_URL}/chat/completions", NVIDIA_NIM_API_KEY))
+    if OPENROUTER_API_KEY:
+        providers.append(("OpenRouter", "https://openrouter.ai/api/v1/chat/completions", OPENROUTER_API_KEY))
+
+    content = ""
+    for provider_name, url, key in providers:
+        try:
+            async with httpx.AsyncClient(timeout=90) as client:
+                payload = {
                     "model": "moonshotai/kimi-k2.5",
-                    "messages": [
-                        {"role": "system", "content": _RESEARCH_SYSTEM_PROMPT},
-                        {
-                            "role": "user",
-                            "content": f"{query}\n\n{keys_instruction}",
-                        },
-                    ],
+                    "messages": messages,
                     "temperature": 0.3,
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            msg = data.get("choices", [{}])[0].get("message", {})
-            content = msg.get("content") or msg.get("reasoning") or ""
+                    "stream": False,
+                }
+                if provider_name == "NIM":
+                    payload["chat_template_kwargs"] = {"thinking": False}
 
-            if not content:
-                logger.warning("Kimi K2.5 returned empty content — using fallback.")
-                return {k: "unavailable — empty API response" for k in output_keys}
+                resp = await client.post(url, headers={
+                    "Authorization": f"Bearer {key}",
+                    "Content-Type": "application/json",
+                }, json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+                msg = data.get("choices", [{}])[0].get("message", {})
+                content = msg.get("content") or msg.get("reasoning") or ""
+                logger.info("Cultural research via %s (%d chars)", provider_name, len(content))
+                break
+        except Exception as e:
+            logger.warning("Cultural research via %s failed: %s", provider_name, e)
+            continue
 
-            # Parse JSON from response, handling possible markdown fences.
-            cleaned = content.strip()
-            if cleaned.startswith("```"):
-                cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
-                cleaned = cleaned.rsplit("```", 1)[0]
-            cleaned = cleaned.strip()
+    if not content:
+        logger.warning("All providers failed — returning empty research.")
+        return {k: "unavailable — all API providers failed" for k in output_keys}
 
-            return json.loads(cleaned)
-
-    except httpx.HTTPStatusError as exc:
-        logger.error(
-            "Kimi K2.5 API error (status=%d): %s",
-            exc.response.status_code,
-            exc.response.text[:500],
-        )
-        return {k: f"error — API returned {exc.response.status_code}" for k in output_keys}
-    except (json.JSONDecodeError, KeyError, IndexError) as exc:
-        logger.error("Failed to parse Kimi K2.5 response: %s", exc)
+    # Parse JSON from response, handling possible markdown fences.
+    try:
+        cleaned = content.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
+            cleaned = cleaned.rsplit("```", 1)[0]
+        cleaned = cleaned.strip()
+        return json.loads(cleaned)
+    except (json.JSONDecodeError, KeyError) as exc:
+        logger.error("Failed to parse research response: %s", exc)
         return {k: "error — failed to parse response" for k in output_keys}
-    except httpx.TimeoutException:
-        logger.error("Kimi K2.5 request timed out")
-        return {k: "error — request timed out" for k in output_keys}
 
 
 # ---------------------------------------------------------------------------

@@ -19,7 +19,7 @@ import logging
 
 import httpx
 
-from config import OPENROUTER_API_KEY
+from config import NVIDIA_NIM_API_KEY, NVIDIA_NIM_BASE_URL, OPENROUTER_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +45,8 @@ async def analyze_image(
     str
         The model's text output (typically JSON when prompted for it).
     """
-    if not OPENROUTER_API_KEY:
-        logger.warning("No OPENROUTER_API_KEY — returning mock VLM response.")
+    if not NVIDIA_NIM_API_KEY and not OPENROUTER_API_KEY:
+        logger.warning("No VLM API key — returning mock response.")
         return '{"overall_score": 0.85, "passed": true, "dimensions": {}}'
 
     # Read and base64 encode the image
@@ -58,47 +58,48 @@ async def analyze_image(
     # Detect mime type
     mime = "image/png" if image_path.lower().endswith(".png") else "image/jpeg"
 
-    try:
-        async with httpx.AsyncClient(timeout=90) as client:
-            resp = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
+                {"type": "text", "text": prompt},
+            ],
+        }
+    ]
+
+    # Try NIM first (free), then OpenRouter (paid)
+    providers = []
+    if NVIDIA_NIM_API_KEY:
+        providers.append(("NIM", f"{NVIDIA_NIM_BASE_URL}/chat/completions", NVIDIA_NIM_API_KEY))
+    if OPENROUTER_API_KEY:
+        providers.append(("OpenRouter", "https://openrouter.ai/api/v1/chat/completions", OPENROUTER_API_KEY))
+
+    for provider_name, url, key in providers:
+        try:
+            async with httpx.AsyncClient(timeout=90) as client:
+                resp = await client.post(url, headers={
+                    "Authorization": f"Bearer {key}",
                     "Content-Type": "application/json",
-                },
-                json={
+                }, json={
                     "model": "moonshotai/kimi-k2.5",
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:{mime};base64,{b64}",
-                                    },
-                                },
-                                {
-                                    "type": "text",
-                                    "text": prompt,
-                                },
-                            ],
-                        }
-                    ],
+                    "messages": messages,
                     "max_tokens": max_tokens,
                     "temperature": 0.2,
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            msg = data["choices"][0]["message"]
-            content = msg.get("content") or msg.get("reasoning") or ""
-            return content
+                    "stream": False,
+                })
+                resp.raise_for_status()
+                data = resp.json()
+                msg = data["choices"][0]["message"]
+                content = msg.get("content") or msg.get("reasoning") or ""
+                logger.info("VLM analyze_image via %s (%d chars)", provider_name, len(content))
+                return content
+        except Exception as e:
+            logger.warning("VLM via %s failed: %s", provider_name, e)
+            continue
 
-    except Exception as e:
-        logger.error("Kimi K2.5 Vision error: %s", e)
-        # Return a passing mock so the pipeline doesn't crash
-        return '{"overall_score": 0.80, "passed": true, "dimensions": {}, "issues": []}'
+    logger.error("All VLM providers failed")
+    return '{"overall_score": 0.80, "passed": true, "dimensions": {}, "issues": []}'
 
 
 async def analyze_image_url(
@@ -120,44 +121,45 @@ async def analyze_image_url(
     str
         The model's text response.
     """
-    if not OPENROUTER_API_KEY:
-        logger.warning("No OPENROUTER_API_KEY — returning mock VLM response.")
+    if not NVIDIA_NIM_API_KEY and not OPENROUTER_API_KEY:
+        logger.warning("No VLM API key — returning mock response.")
         return '{"overall_score": 0.85, "passed": true, "dimensions": {}}'
 
-    try:
-        async with httpx.AsyncClient(timeout=90) as client:
-            resp = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "image_url", "image_url": {"url": image_url}},
+                {"type": "text", "text": prompt},
+            ],
+        }
+    ]
+
+    providers = []
+    if NVIDIA_NIM_API_KEY:
+        providers.append(("NIM", f"{NVIDIA_NIM_BASE_URL}/chat/completions", NVIDIA_NIM_API_KEY))
+    if OPENROUTER_API_KEY:
+        providers.append(("OpenRouter", "https://openrouter.ai/api/v1/chat/completions", OPENROUTER_API_KEY))
+
+    for provider_name, url, key in providers:
+        try:
+            async with httpx.AsyncClient(timeout=90) as client:
+                resp = await client.post(url, headers={
+                    "Authorization": f"Bearer {key}",
                     "Content-Type": "application/json",
-                },
-                json={
+                }, json={
                     "model": "moonshotai/kimi-k2.5",
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "image_url",
-                                    "image_url": {"url": image_url},
-                                },
-                                {
-                                    "type": "text",
-                                    "text": prompt,
-                                },
-                            ],
-                        }
-                    ],
+                    "messages": messages,
                     "max_tokens": max_tokens,
                     "temperature": 0.2,
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            msg = data["choices"][0]["message"]
-            return msg.get("content") or msg.get("reasoning") or ""
+                    "stream": False,
+                })
+                resp.raise_for_status()
+                data = resp.json()
+                msg = data["choices"][0]["message"]
+                return msg.get("content") or msg.get("reasoning") or ""
+        except Exception as e:
+            logger.warning("VLM URL via %s failed: %s", provider_name, e)
+            continue
 
-    except Exception as e:
-        logger.error("Kimi K2.5 Vision URL error: %s", e)
-        return '{"overall_score": 0.80, "passed": true, "dimensions": {}, "issues": []}'
+    return '{"overall_score": 0.80, "passed": true, "dimensions": {}, "issues": []}'
