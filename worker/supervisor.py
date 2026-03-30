@@ -196,26 +196,55 @@ class Supervisor:
                     wid, exit_code, state.restart_count, self.max_restarts,
                 )
 
-                # Mark any in-flight job as failed
+                # Reset orphaned job to pending for retry (not failed)
+                # Add retry_count to prevent infinite crash loops on poison jobs
                 try:
                     from neon_client import _get_pool
                     pool = await _get_pool()
                     async with pool.acquire() as conn:
                         row = await conn.fetchrow(
                             """
-                            SELECT id::text FROM compute_jobs
+                            UPDATE compute_jobs
+                            SET status = CASE
+                                WHEN COALESCE((feedback_data->>'crash_retry_count')::int, 0) >= 2
+                                THEN 'failed'
+                                ELSE 'pending'
+                            END,
+                            started_at = CASE
+                                WHEN COALESCE((feedback_data->>'crash_retry_count')::int, 0) >= 2
+                                THEN started_at
+                                ELSE NULL
+                            END,
+                            worker_id = NULL,
+                            error_message = CASE
+                                WHEN COALESCE((feedback_data->>'crash_retry_count')::int, 0) >= 2
+                                THEN $2
+                                ELSE NULL
+                            END,
+                            completed_at = CASE
+                                WHEN COALESCE((feedback_data->>'crash_retry_count')::int, 0) >= 2
+                                THEN NOW()
+                                ELSE NULL
+                            END,
+                            feedback_data = jsonb_set(
+                                COALESCE(feedback_data, '{}'::jsonb),
+                                '{crash_retry_count}',
+                                (COALESCE((feedback_data->>'crash_retry_count')::int, 0) + 1)::text::jsonb
+                            )
                             WHERE worker_id = $1 AND status = 'processing'
+                            RETURNING id::text, status
                             """,
                             wid,
+                            f"Worker {wid} crashed 3 times — poison job",
                         )
                         if row:
-                            await mark_job_failed(
-                                str(row["id"]),
-                                f"Worker {wid} crashed (exit_code={exit_code})",
-                            )
-                            logger.info("Marked orphaned job %s as failed", row["id"])
+                            new_status = row["status"]
+                            if new_status == "pending":
+                                logger.info("Reset orphaned job %s to pending (will be retried)", row["id"])
+                            else:
+                                logger.error("Marked orphaned job %s as failed (exceeded crash retries)", row["id"])
                 except Exception as e:
-                    logger.error("Failed to mark orphaned job: %s", e)
+                    logger.error("Failed to handle orphaned job: %s", e)
 
                 state.process = None
                 if state.restart_count < self.max_restarts:
@@ -223,6 +252,12 @@ class Supervisor:
                     logger.info("Worker %s eligible for restart (count=%d)", wid, state.restart_count)
                 else:
                     logger.error("Worker %s exceeded max restarts (%d) — not restarting", wid, self.max_restarts)
+
+        # Periodic stale job cleanup (not just on startup)
+        from neon_client import reset_stale_jobs
+        stale_count = await reset_stale_jobs(self.stale_threshold)
+        if stale_count > 0:
+            logger.warning("Reset %d stale jobs back to pending (stuck >%dm)", stale_count, self.stale_threshold)
 
     async def _cleanup_stale_jobs(self):
         """Reset jobs stuck in processing (from previous crashed runs)."""

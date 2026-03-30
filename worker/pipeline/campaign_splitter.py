@@ -149,6 +149,20 @@ async def split_campaign(
     from ai.local_llm import generate_text
     from neon_client import _get_pool
 
+    # Idempotency: check if already split
+    pool = await _get_pool()
+    async with pool.acquire() as conn:
+        current_status = await conn.fetchval(
+            "SELECT status FROM intake_requests WHERE id = $1::uuid", request_id
+        )
+        if current_status == "split":
+            logger.info("Campaign %s already split — skipping", request_id)
+            existing = await conn.fetch(
+                "SELECT id::text, title FROM intake_requests WHERE form_data->>'parent_request_id' = $1",
+                request_id,
+            )
+            return [{"child_request_id": str(r["id"]), "title": r["title"], "country": ""} for r in existing]
+
     regions = request.get("target_regions", [])
     form_data = request.get("form_data", {})
     task_type = request.get("task_type", "data annotation")
@@ -170,7 +184,6 @@ async def split_campaign(
     )
 
     children: list[dict] = []
-    pool = await _get_pool()
 
     for country, country_region_list in country_regions.items():
         # Determine languages for this country
