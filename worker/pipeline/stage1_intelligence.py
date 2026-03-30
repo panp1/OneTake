@@ -209,7 +209,7 @@ async def run_stage1(context: dict) -> dict:
     logger.info("Step 5: Generating persona-driven design direction...")
     design_prompt = build_design_direction_prompt(brief_data, request)
     design_prompt += "\n\n" + persona_context
-    design_text = await generate_text(BRIEF_SYSTEM_PROMPT, design_prompt, thinking=True)
+    design_text = await generate_text(enhanced_system, design_prompt, thinking=False, max_tokens=4096)
     design_data = _parse_json(design_text)
 
     # ==================================================================

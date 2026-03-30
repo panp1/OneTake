@@ -140,11 +140,11 @@ async def _generate_one_actor(job, brief, design, request_id):
                 f"Generate a DIFFERENT person — different gender, age within range, "
                 f"appearance, and name. Must be visually distinct from other actors."
             )
-        actor_text = await generate_text(PERSONA_SYSTEM_PROMPT, actor_prompt)
+        actor_text = await generate_text(PERSONA_SYSTEM_PROMPT, actor_prompt, thinking=False, max_tokens=4096)
     else:
         # Fallback: region-driven actor (original behaviour).
         actor_prompt = build_actor_prompt(brief, region, language)
-        actor_text = await generate_text(ACTOR_SYSTEM_PROMPT, actor_prompt)
+        actor_text = await generate_text(ACTOR_SYSTEM_PROMPT, actor_prompt, thinking=False, max_tokens=4096)
     actor_data = _parse_json(actor_text)
 
     actor_id = await save_actor(request_id, {
