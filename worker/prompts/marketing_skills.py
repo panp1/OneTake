@@ -29,6 +29,7 @@ STAGE_SKILLS: dict[str, list[str]] = {
     "creative": ["creative-design-patterns", "ad-creative", "copywriting", "paid-ads", "social-content"],
     "video": ["marketing-psychology", "copywriting", "social-content"],
     "evaluation": ["marketing-psychology", "ad-creative"],
+    "strategy": ["campaign-strategy", "paid-ads"],
 }
 
 
