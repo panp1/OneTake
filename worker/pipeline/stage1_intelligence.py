@@ -18,7 +18,7 @@ import json
 import logging
 
 from ai.local_llm import generate_text
-from neon_client import get_intake_request, save_brief
+from neon_client import get_intake_request, save_brief, save_actor, update_actor_targeting
 from prompts.cultural_research import (
     apply_research_to_personas,
     build_research_summary,
@@ -103,6 +103,35 @@ async def run_stage1(context: dict) -> dict:
         "3 personas: %s",
         [f"{p['archetype_key']} ({p.get('persona_name', '?')})" for p in personas],
     )
+
+    # ==================================================================
+    # STEP 2b: SAVE ACTOR STUBS + TARGETING PROFILES TO NEON
+    # Create a minimal actor record for each persona so we can persist
+    # the targeting_profile now (stage2 will enrich with images later).
+    # ==================================================================
+    for persona in personas:
+        targeting = persona.get("targeting_profile", {})
+        try:
+            actor_id = await save_actor(request_id, {
+                "name": persona.get("persona_name", persona.get("archetype", "Contributor")),
+                "face_lock": {"archetype_key": persona.get("archetype_key", "")},
+                "prompt_seed": "",
+                "outfit_variations": {},
+                "signature_accessory": "",
+                "backdrops": [],
+            })
+            persona["actor_id"] = actor_id
+            if targeting:
+                await update_actor_targeting(actor_id, targeting)
+                logger.info(
+                    "Saved targeting_profile for persona '%s' (pool=%s, cpl=%s, weight=%d%%)",
+                    persona.get("archetype_key", "?"),
+                    targeting.get("estimated_pool_size", "?"),
+                    targeting.get("expected_cpl_tier", "?"),
+                    targeting.get("budget_weight_pct", 0),
+                )
+        except Exception as exc:
+            logger.warning("Could not save actor stub / targeting for '%s': %s", persona.get("archetype_key", "?"), exc)
 
     # ==================================================================
     # STEP 3: GENERATE BRIEF FROM PERSONAS (messaging built ON their psychology)

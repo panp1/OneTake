@@ -1269,12 +1269,41 @@ For each persona, output:
   }
 - jobs_to_be_done: list of 3 "jobs" this person is trying to accomplish by signing up
 - score: relevance score 0-3 (how likely they are to convert for THIS specific project)
+- targeting_profile: {
+    demographics: {
+      age_min: integer (lower bound of age_range),
+      age_max: integer (upper bound of age_range),
+      gender: "all" | "male" | "female",
+      education_level: "high_school" | "university" | "graduate" | "any",
+      occupation: specific job title or "student" or "freelancer",
+      income_bracket: "low" | "medium" | "high",
+      languages: list of languages this persona speaks,
+      relationship_status: "single" | "married" | "any"
+    },
+    interests: {
+      hyper: list of 3+ VERY specific interests related to the task (e.g., "AI data labeling", "voice recording freelance", "linguistic research" — NOT generic like "technology"),
+      hot: list of 2-3 stacked interests (e.g., "side hustle" + "flexible work schedule"),
+      broad: list of 3-5 wider interests to cover the full target base (e.g., "part time jobs", "online earning", "university life")
+    },
+    behaviors: list of 3 behavioral traits (e.g., "smartphone power user", "mobile payment user", "online course taker"),
+    psychographics: {
+      values: list of 3 core values,
+      pain_points: same as persona pain_points (reference),
+      media_consumption: list of platform + usage patterns (e.g., "TikTok 2hrs/day", "WhatsApp groups")
+    },
+    estimated_pool_size: "large" | "medium" | "small" — how many people match this targeting in the region,
+    expected_cpl_tier: "low" | "medium" | "high" — estimated cost per lead on primary channels,
+    budget_weight_pct: integer 1-100 — what % of budget this persona should get (all personas must sum to 100)
+  }
 
-CRITICAL: 
+CRITICAL:
 - Personas must be DIFFERENT from each other (different demographics, different motivations)
 - Personas must be SPECIFIC to the project location, compensation, and requirements
 - Use the cultural research to inform platform choices and messaging
 - Think about WHO would actually show up for this — not who you wish would show up
+- targeting_profile.interests.hyper MUST be specific to the task type. For audio recording → "voice acting", "podcast production", "audiobook narration". For data annotation → "AI training data", "data labeling", "machine learning datasets". NEVER generic like "technology" or "AI".
+- budget_weight_pct across all personas MUST sum to exactly 100
+- estimated_pool_size should reflect actual market size in the target region based on cultural research
 
 OUTPUT: Return a JSON array of 3 persona objects. No markdown, no commentary.
 """
