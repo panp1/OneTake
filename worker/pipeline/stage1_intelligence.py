@@ -28,6 +28,7 @@ from prompts.eval_registry import evaluate as run_evaluator
 from prompts.persona_engine import (
     build_persona_brief_prompt,
     generate_personas,
+    generate_personas_llm,
 )
 from prompts.recruitment_brief import (
     BRIEF_SYSTEM_PROMPT,
@@ -89,12 +90,14 @@ async def run_stage1(context: dict) -> dict:
     # requirements, then enriched with cultural research findings.
     # These personas are the FOUNDATION for everything else.
     # ==================================================================
-    logger.info("Step 2: Generating personas...")
-    personas = generate_personas(request)
+    logger.info("Step 2: Generating personas (LLM-powered, dynamic)...")
+    personas = await generate_personas_llm(request, cultural_research=cultural_research)
 
-    if cultural_research:
-        personas = apply_research_to_personas(personas, cultural_research)
-        logger.info("Personas enriched with cultural research.")
+    if cultural_research and personas:
+        # Only apply research if personas came from deterministic fallback (no research injected yet)
+        if not any("digital_habitat" in p for p in personas):
+            personas = apply_research_to_personas(personas, cultural_research)
+            logger.info("Personas enriched with cultural research.")
 
     logger.info(
         "3 personas: %s",

@@ -1235,3 +1235,168 @@ def apply_cultural_research(
     from prompts.cultural_research import apply_research_to_personas
 
     return apply_research_to_personas(personas, research)
+
+
+# =========================================================================
+# LLM-POWERED DYNAMIC PERSONA GENERATION (Qwen 397B via NIM)
+# =========================================================================
+
+PERSONA_GEN_SYSTEM = """You are an expert recruitment marketing strategist.
+Generate 3 DISTINCT target personas for a specific recruitment campaign.
+
+Each persona must be a REAL person profile — not a generic archetype.
+Base your personas on the cultural research data and job description provided.
+
+For each persona, output:
+- archetype_key: a snake_case key (e.g., "seattle_tech_worker", "diverse_local_resident")
+- archetype: human-readable title (e.g., "Seattle Tech Professional")
+- persona_name: a realistic first name appropriate for the region
+- age: specific age (not range)
+- age_range: range like "25-35"
+- region: which target region this persona is from
+- language: primary language
+- lifestyle: 1-2 sentence description of their daily life
+- motivations: list of 3 specific reasons they'd sign up for THIS project
+- pain_points: list of 3 specific barriers or concerns they'd have about THIS project
+- objections: list of 3 things they'd say to push back ("Is this legit?", etc.)
+- digital_habitat: list of 5 platforms where they spend time (be specific to the region)
+- best_channels: list of 3 ad platforms to reach them
+- psychology_profile: {
+    primary_bias: which cognitive bias to leverage (e.g., "social_proof", "loss_aversion"),
+    secondary_bias: second bias,
+    messaging_angle: the core message that would resonate,
+    trigger_words: list of 4-5 words/phrases that would catch their attention
+  }
+- jobs_to_be_done: list of 3 "jobs" this person is trying to accomplish by signing up
+- score: relevance score 0-3 (how likely they are to convert for THIS specific project)
+
+CRITICAL: 
+- Personas must be DIFFERENT from each other (different demographics, different motivations)
+- Personas must be SPECIFIC to the project location, compensation, and requirements
+- Use the cultural research to inform platform choices and messaging
+- Think about WHO would actually show up for this — not who you wish would show up
+
+OUTPUT: Return a JSON array of 3 persona objects. No markdown, no commentary.
+"""
+
+
+async def generate_personas_llm(
+    intake_data: dict,
+    cultural_research: dict | None = None,
+    count: int = 3,
+) -> list[dict]:
+    """Generate personas dynamically using Qwen 397B + cultural research.
+
+    Instead of picking from 8 hardcoded archetypes, the LLM creates
+    CUSTOM personas based on the actual project description, location,
+    compensation, requirements, and cultural research findings.
+
+    Falls back to the old deterministic method if LLM fails.
+    """
+    import json
+    import logging
+    logger = logging.getLogger(__name__)
+
+    form_data = intake_data.get("form_data", {})
+
+    # Build the project context for the LLM
+    project_context = f"""
+PROJECT DETAILS:
+- Title: {intake_data.get("title", "Unknown")}
+- Task type: {intake_data.get("task_type", "Unknown")}
+- Description: {json.dumps(form_data.get("description", ""), default=str)[:500]}
+- Compensation: {json.dumps(form_data.get("compensation", {}), default=str)}
+- Location: {json.dumps(form_data.get("location", {}), default=str)}
+- Requirements: {json.dumps(form_data.get("requirements", {}), default=str)[:500]}
+- Time commitment: {json.dumps(form_data.get("time_commitment", {}), default=str)}
+- Target regions: {intake_data.get("target_regions", [])}
+- Target languages: {intake_data.get("target_languages", [])}
+- Volume needed: {intake_data.get("volume_needed", "Unknown")}
+- Key selling points: {json.dumps(form_data.get("key_selling_points", []), default=str)}
+- Diversity focus: {form_data.get("diversity_focus", "")}
+"""
+
+    # Add cultural research if available
+    research_context = ""
+    if cultural_research:
+        for region, data in cultural_research.items():
+            if isinstance(data, dict):
+                research_context += f"\nCULTURAL RESEARCH — {region}:\n"
+                for dim, val in data.items():
+                    if isinstance(val, str) and len(val) > 20:
+                        research_context += f"  {dim}: {val[:300]}\n"
+
+    # Add archetype examples (for inspiration, not as templates)
+    archetype_examples = "\nEXAMPLE ARCHETYPES (for inspiration — create CUSTOM personas, don't copy these):\n"
+    for key, arch in list(PERSONA_ARCHETYPES.items())[:4]:
+        archetype_examples += f"- {arch['archetype']} ({arch['age_range']}): {arch['lifestyle']}\n"
+
+    user_prompt = (
+        f"{project_context}\n"
+        f"{research_context}\n"
+        f"{archetype_examples}\n"
+        f"Generate {count} CUSTOM personas specifically for this project. "
+        f"Return a JSON array of {count} persona objects."
+    )
+
+    try:
+        from ai.local_llm import generate_text
+        result = await generate_text(
+            PERSONA_GEN_SYSTEM,
+            user_prompt,
+            thinking=True,
+            max_tokens=8192,
+            temperature=0.7,
+        )
+
+        # Parse JSON
+        cleaned = result.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
+            cleaned = cleaned.rsplit("```", 1)[0].strip()
+
+        # Try direct parse
+        try:
+            personas = json.loads(cleaned)
+            if isinstance(personas, list) and len(personas) >= 1:
+                logger.info(
+                    "LLM generated %d dynamic personas: %s",
+                    len(personas),
+                    [p.get("archetype_key", "?") for p in personas],
+                )
+                return personas[:count]
+        except json.JSONDecodeError:
+            pass
+
+        # Search for JSON array in text
+        bracket_depth = 0
+        arr_start = -1
+        for i, char in enumerate(cleaned):
+            if char == '[':
+                if bracket_depth == 0:
+                    arr_start = i
+                bracket_depth += 1
+            elif char == ']':
+                bracket_depth -= 1
+                if bracket_depth == 0 and arr_start >= 0:
+                    candidate = cleaned[arr_start:i+1]
+                    try:
+                        parsed = json.loads(candidate)
+                        if isinstance(parsed, list) and len(parsed) >= 1:
+                            logger.info(
+                                "LLM generated %d dynamic personas (extracted): %s",
+                                len(parsed),
+                                [p.get("archetype_key", "?") for p in parsed],
+                            )
+                            return parsed[:count]
+                    except json.JSONDecodeError:
+                        pass
+                    arr_start = -1
+
+        logger.warning("LLM persona generation failed to parse — falling back to deterministic")
+
+    except Exception as e:
+        logger.warning("LLM persona generation failed: %s — falling back to deterministic", e)
+
+    # Fallback: old deterministic method
+    return generate_personas(intake_data, count=count)
