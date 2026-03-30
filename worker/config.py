@@ -1,7 +1,8 @@
 """Configuration for the Centric Intake local worker.
 
 All settings come from environment variables with sensible defaults.
-Create a .env file in the worker/ directory for local development.
+In multi-worker mode, each worker loads its own .env.workerN file
+with a unique NIM API key (rate limits are per-key).
 """
 from __future__ import annotations
 
@@ -9,7 +10,15 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv()
+# Worker identity — set by supervisor or defaults to "worker-0" (dev mode)
+WORKER_ID = os.environ.get("WORKER_ID", "worker-0")
+
+# Load worker-specific env file if specified, otherwise default .env
+_env_file = os.environ.get("ENV_FILE", ".env")
+if os.path.exists(_env_file):
+    load_dotenv(_env_file, override=True)
+else:
+    load_dotenv()  # fall back to default .env
 
 # ---------------------------------------------------------------------------
 # Neon Postgres
@@ -79,7 +88,7 @@ COMPOSE_CONCURRENCY = int(os.environ.get("COMPOSE_CONCURRENCY", "5"))
 # ---------------------------------------------------------------------------
 KLING_ACCESS_KEY = os.environ.get("KLING_ACCESS_KEY", "")
 KLING_SECRET_KEY = os.environ.get("KLING_SECRET_KEY", "")
-KLING_MODEL = os.environ.get("KLING_MODEL", "kling-3.0")
+KLING_MODEL = os.environ.get("KLING_MODEL", "kling-v3-omni")
 
 # ---------------------------------------------------------------------------
 # ElevenLabs TTS (Premium Voice Synthesis)
