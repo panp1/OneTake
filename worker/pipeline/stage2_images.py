@@ -353,10 +353,15 @@ async def _generate_validated_image(
         if qa_score == 0 and "raw_text" in qa_data and len(qa_data["raw_text"]) > 100:
             raw = qa_data["raw_text"].lower()
 
-            # Count positive and negative signals for weighted scoring
-            strong_positive = ["realistic", "authentic", "natural lighting", "consistent", "matches", "well-composed", "professional"]
-            mild_positive = ["good", "decent", "acceptable", "reasonable", "clear", "visible"]
-            negative = ["artificial", "fake", "unrealistic", "poor", "reject", "glitch", "distorted", "extra fingers", "hex code"]
+            # Count positive and negative PHRASES (not just words — avoids false negatives)
+            # "not artificial" should NOT trigger negative. "looks artificial" SHOULD.
+            strong_positive = ["looks realistic", "appears realistic", "natural skin", "authentic", "natural lighting",
+                               "consistent with", "matches the", "well-composed", "professional quality", "good realism",
+                               "believable", "convincing", "high quality", "well-lit"]
+            mild_positive = ["good quality", "decent", "acceptable", "clear face", "visible accessory", "appropriate"]
+            negative = ["looks artificial", "appears fake", "unrealistic skin", "plastic skin", "ai-generated look",
+                        "poor quality", "should reject", "distorted", "extra fingers", "hex code", "glitchy",
+                        "uncanny valley", "oversaturated", "too smooth", "mannequin"]
 
             pos_count = sum(1 for w in strong_positive if w in raw)
             mild_count = sum(1 for w in mild_positive if w in raw)
