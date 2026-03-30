@@ -18,7 +18,7 @@ import json
 import logging
 
 from ai.local_llm import generate_text
-from neon_client import get_intake_request, save_brief, save_actor, update_actor_targeting
+from neon_client import get_intake_request, save_brief, save_actor, save_campaign_strategy, update_actor_targeting
 from prompts.cultural_research import (
     apply_research_to_personas,
     build_research_summary,
@@ -134,6 +134,129 @@ async def run_stage1(context: dict) -> dict:
             logger.warning("Could not save actor stub / targeting for '%s': %s", persona.get("archetype_key", "?"), exc)
 
     # ==================================================================
+    # STEP 3b: CAMPAIGN STRATEGY ENGINE (budget cascade + strategy per country)
+    # Generate media-buying strategy per country: budget allocation,
+    # campaign structure, ad set splits, split test variable.
+    # Uses generate-then-evaluate loop with feedback (max 3 retries).
+    # ==================================================================
+    from prompts.campaign_strategy import (
+        calculate_budget_cascade,
+        generate_campaign_strategy,
+    )
+    from ai.campaign_evaluator import evaluate_campaign_strategy as eval_strategy
+    from ai.campaign_evaluator import MAX_RETRIES as STRATEGY_MAX_RETRIES
+    from ai.campaign_evaluator import PASS_THRESHOLD as STRATEGY_THRESHOLD
+
+    monthly_budget = form_data.get("monthly_budget")
+
+    # Get channel strategy from personas or defaults
+    channel_strategy = []
+    for p in personas:
+        channel_strategy.extend(p.get("best_channels", []))
+    channel_strategy = list(set(channel_strategy)) or ["ig_feed", "facebook_feed"]
+
+    # Build country list with opportunity scores from cultural research
+    countries_data = []
+    for region in target_regions:
+        research = cultural_research.get(region, {})
+        # Derive opportunity score from research richness
+        opp_score = min(1.0, 0.3 + len(json.dumps(research, default=str)) / 10000)
+        countries_data.append({"country": region, "market_opportunity_score": round(opp_score, 2)})
+
+    # Calculate budget cascade
+    budget_data = calculate_budget_cascade(
+        total_monthly=monthly_budget,
+        countries=countries_data,
+        personas=personas,
+    )
+    logger.info(
+        "Budget cascade: mode=%s, countries=%d, deferred=%d, flags=%d",
+        budget_data["budget_mode"],
+        len(budget_data["country_allocations"]),
+        len(budget_data["deferred_markets"]),
+        len(budget_data["flags"]),
+    )
+
+    # Generate strategy per active country
+    all_strategies = {}
+    for region in target_regions:
+        country_alloc = budget_data["country_allocations"].get(region, {})
+        if not country_alloc and budget_data["budget_mode"] == "fixed":
+            logger.info("Skipping deferred market: %s", region)
+            continue
+
+        country_budget_for_llm = {
+            "budget_mode": budget_data["budget_mode"],
+            "total_monthly": monthly_budget,
+            "country_monthly": country_alloc.get("monthly") if isinstance(country_alloc, dict) else None,
+            "persona_allocations": country_alloc.get("persona_allocations", {}) if isinstance(country_alloc, dict) else {},
+        }
+
+        # Generate + evaluate with feedback loop
+        feedback = []
+        best_strategy = {}
+        best_score = 0.0
+
+        for attempt in range(STRATEGY_MAX_RETRIES):
+            strategy = await generate_campaign_strategy(
+                country=region,
+                personas=personas,
+                cultural_research=cultural_research.get(region, {}),
+                channel_strategy=channel_strategy,
+                budget_data=country_budget_for_llm,
+                task_type=task_type,
+                task_description=form_data.get("description", ""),
+                feedback=feedback if feedback else None,
+            )
+
+            if not strategy:
+                logger.warning("Empty strategy for %s (attempt %d)", region, attempt + 1)
+                continue
+
+            eval_result = eval_strategy(
+                strategy=strategy,
+                personas=personas,
+                channel_strategy=channel_strategy,
+                budget_mode=budget_data["budget_mode"],
+            )
+
+            score = eval_result["overall_score"]
+            logger.info(
+                "Strategy eval for %s: %.2f (%s, attempt %d/%d)",
+                region, score, "PASS" if eval_result["passed"] else "FAIL",
+                attempt + 1, STRATEGY_MAX_RETRIES,
+            )
+
+            if score > best_score:
+                best_score = score
+                best_strategy = strategy
+                best_strategy["_evaluation"] = eval_result
+
+            if eval_result["passed"]:
+                break
+
+            feedback = eval_result["issues"]
+
+        # Save to Neon
+        if best_strategy:
+            await save_campaign_strategy(request_id, {
+                "country": region,
+                "tier": best_strategy.get("tier", 1),
+                "monthly_budget": country_alloc.get("monthly") if isinstance(country_alloc, dict) else None,
+                "budget_mode": budget_data["budget_mode"],
+                "strategy_data": best_strategy,
+                "evaluation_score": best_score,
+                "evaluation_data": best_strategy.get("_evaluation"),
+                "evaluation_passed": best_score >= STRATEGY_THRESHOLD,
+            })
+            all_strategies[region] = best_strategy
+            logger.info("Saved campaign strategy for %s (score=%.2f)", region, best_score)
+
+    context["campaign_strategies"] = all_strategies
+    context["budget_data"] = budget_data
+    logger.info("Campaign strategy generation complete: %d country strategies", len(all_strategies))
+
+    # ==================================================================
     # STEP 3: GENERATE BRIEF FROM PERSONAS (messaging built ON their psychology)
     # The brief is NOT generic — it's built specifically for these
     # 3 personas, their pain points, motivations, psychology hooks,
@@ -229,6 +352,19 @@ async def run_stage1(context: dict) -> dict:
     brief_data["personas"] = personas
     brief_data["cultural_research"] = cultural_research
 
+    # Add budget + strategy data to the brief
+    if budget_data:
+        brief_data["budget_data"] = budget_data
+    if all_strategies:
+        brief_data["campaign_strategies_summary"] = {
+            region: {
+                "tier": s.get("tier"),
+                "ad_set_count": sum(len(c.get("ad_sets", [])) for c in s.get("campaigns", [])),
+                "split_test_variable": s.get("split_test", {}).get("variable"),
+            }
+            for region, s in all_strategies.items()
+        }
+
     # ==================================================================
     # STEP 5: DESIGN DIRECTION (visual world for THESE personas)
     # The design direction is informed by who the personas are,
@@ -265,6 +401,8 @@ async def run_stage1(context: dict) -> dict:
         "design_direction": design_data,
         "personas": personas,
         "cultural_research": cultural_research,
+        "campaign_strategies": all_strategies,
+        "budget_data": budget_data,
         "target_languages": target_languages,
         "target_regions": target_regions,
         "form_data": form_data,
