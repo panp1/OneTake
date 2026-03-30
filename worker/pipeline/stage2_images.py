@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 MAX_SEED_RETRIES = 3
 MAX_VARIATION_RETRIES = 2
-SEED_VQA_THRESHOLD = 0.78  # Lowered: VQA prose fallback caps at 0.80, was blocking all seeds
+SEED_VQA_THRESHOLD = 0.85
 VARIATION_VQA_THRESHOLD = 0.75  # Lower bar — face is already validated
 ACTORS_PER_PERSONA = 3
 
@@ -349,19 +349,34 @@ async def _generate_validated_image(
         qa_data = _parse_json(qa_result)
         qa_score = float(qa_data.get("overall_score", qa_data.get("score", 0)))
 
-        # If VQA returned text but no parseable JSON, check for positive signals
+        # If VQA returned text but no parseable JSON, score by signal strength
         if qa_score == 0 and "raw_text" in qa_data and len(qa_data["raw_text"]) > 100:
             raw = qa_data["raw_text"].lower()
-            # Kimi often writes prose instead of JSON — look for pass/fail signals
-            if any(w in raw for w in ["realistic", "authentic", "natural", "good quality", "well-composed"]):
-                qa_score = 0.80
-                logger.info("VQA returned prose (no JSON) but positive signals detected — assigning %.2f", qa_score)
-            elif any(w in raw for w in ["artificial", "fake", "unrealistic", "poor", "reject"]):
+
+            # Count positive and negative signals for weighted scoring
+            strong_positive = ["realistic", "authentic", "natural lighting", "consistent", "matches", "well-composed", "professional"]
+            mild_positive = ["good", "decent", "acceptable", "reasonable", "clear", "visible"]
+            negative = ["artificial", "fake", "unrealistic", "poor", "reject", "glitch", "distorted", "extra fingers", "hex code"]
+
+            pos_count = sum(1 for w in strong_positive if w in raw)
+            mild_count = sum(1 for w in mild_positive if w in raw)
+            neg_count = sum(1 for w in negative if w in raw)
+
+            if neg_count > 0:
                 qa_score = 0.40
-                logger.info("VQA returned prose with negative signals — assigning %.2f", qa_score)
+                logger.info("VQA prose: %d negative signals — score %.2f", neg_count, qa_score)
+            elif pos_count >= 3:
+                qa_score = 0.92  # Strong positive = high confidence pass
+                logger.info("VQA prose: %d strong positive signals — score %.2f", pos_count, qa_score)
+            elif pos_count >= 1:
+                qa_score = 0.87  # Some positive = passes seed threshold
+                logger.info("VQA prose: %d positive + %d mild signals — score %.2f", pos_count, mild_count, qa_score)
+            elif mild_count >= 2:
+                qa_score = 0.82  # Mild positive only
+                logger.info("VQA prose: %d mild positive signals — score %.2f", mild_count, qa_score)
             else:
-                qa_score = 0.75
-                logger.info("VQA returned prose (no JSON, no clear signal) — assigning default %.2f", qa_score)
+                qa_score = 0.75  # Ambiguous
+                logger.info("VQA prose: no clear signals — default score %.2f", qa_score)
 
         try:
             os.unlink(tmp_path)
