@@ -177,7 +177,7 @@ async def evaluate(
     *,
     temperature: float = 0.2,
     max_tokens: int = 8192,
-    thinking: bool = True,  # Let Qwen think — JSON comes AFTER thinking
+    thinking: bool = False,  # Evals need JSON output, not reasoning. Think=True exhausts tokens on 9B.
 ) -> dict[str, Any]:
     """Run any evaluator by key. Returns standardized result.
 
