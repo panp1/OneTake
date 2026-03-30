@@ -210,14 +210,15 @@ async def _generate_one_actor(job, brief, design, request_id):
     # Skip the first outfit (already used for seed), generate remaining
     remaining_outfits = [k for k in outfit_keys if k != "at_home_working"]
 
-    for var_idx, outfit_key in enumerate(remaining_outfits):
-        variation_url, variation_score, var_comp = await _generate_validated_image(
+    # Run variations IN PARALLEL (they're independent once seed is approved)
+    async def _gen_variation(var_idx, outfit_key):
+        return await _generate_validated_image(
             actor_data=actor_data,
             outfit_key=outfit_key,
             backdrop_index=(var_idx + 1),
             design=design,
             region=region,
-        request_id=request_id,
+            request_id=request_id,
             actor_id=actor_id,
             max_retries=MAX_VARIATION_RETRIES,
             vqa_threshold=VARIATION_VQA_THRESHOLD,
@@ -227,12 +228,22 @@ async def _generate_one_actor(job, brief, design, request_id):
             image_index=(var_idx + 1),
             used_compositions=used_compositions,
         )
-        used_compositions.append(var_comp)
-        total_images += 1
-        logger.info(
-            "Variation '%s' for '%s': composition=%s, score=%.2f",
-            outfit_key, actor_data.get("name"), var_comp, variation_score,
-        )
+
+    var_results = await asyncio.gather(
+        *[_gen_variation(i, k) for i, k in enumerate(remaining_outfits)],
+        return_exceptions=True,
+    )
+    for i, r in enumerate(var_results):
+        if isinstance(r, Exception):
+            logger.error("Variation '%s' failed: %s", remaining_outfits[i], r)
+        else:
+            var_url, var_score, var_comp = r
+            used_compositions.append(var_comp)
+            total_images += 1
+            logger.info(
+                "Variation '%s' for '%s': composition=%s, score=%.2f",
+                remaining_outfits[i], actor_data.get("name"), var_comp, var_score,
+            )
 
     return actor_data, total_images
 

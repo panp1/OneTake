@@ -546,8 +546,16 @@ async def research_region(
         A comprehensive research profile with keys matching RESEARCH_DIMENSIONS,
         plus metadata about the research itself.
     """
+    # Check cache first — research changes slowly, reuse for 7 days
+    from cache_manager import get_cached_research, save_research_cache
+
+    cached = get_cached_research(region)
+    if cached:
+        logger.info("Using CACHED research for %s (skipping %d API calls)", region, len(RESEARCH_DIMENSIONS))
+        return cached
+
     logger.info(
-        "Starting cultural research for region=%s, language=%s, demographic=%s",
+        "Starting LIVE cultural research for region=%s, language=%s, demographic=%s",
         region,
         language,
         demographic,
@@ -595,6 +603,9 @@ async def research_region(
         len(RESEARCH_DIMENSIONS),
         validation["summary"],
     )
+
+    # Cache for future campaigns targeting the same region
+    save_research_cache(region, research)
 
     return research
 
