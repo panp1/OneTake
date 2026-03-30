@@ -65,6 +65,69 @@ async def fetch_pending_jobs() -> list[dict[str, Any]]:
     return [_row_to_dict(r) for r in rows]
 
 
+async def claim_next_job(worker_id: str) -> dict[str, Any] | None:
+    """Atomically claim the next pending job for this worker.
+
+    Uses FOR UPDATE SKIP LOCKED to guarantee no two workers
+    ever claim the same job, even when polling simultaneously.
+
+    Returns the claimed job dict, or None if no pending jobs exist.
+    """
+    pool = await _get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            UPDATE compute_jobs
+            SET status = 'processing',
+                started_at = NOW(),
+                worker_id = $1
+            WHERE id = (
+                SELECT id FROM compute_jobs
+                WHERE status = 'pending'
+                ORDER BY created_at ASC
+                LIMIT 1
+                FOR UPDATE SKIP LOCKED
+            )
+            RETURNING id, request_id, job_type, stage_target, feedback, created_at
+            """,
+            worker_id,
+        )
+    if row is None:
+        return None
+    return _row_to_dict(row)
+
+
+async def count_pending_jobs() -> int:
+    """Count pending jobs in the queue. Used by supervisor for scaling decisions."""
+    pool = await _get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT COUNT(*) as cnt FROM compute_jobs WHERE status = 'pending'"
+        )
+    return int(row["cnt"]) if row else 0
+
+
+async def reset_stale_jobs(threshold_minutes: int = 30) -> int:
+    """Reset jobs stuck in 'processing' for longer than threshold back to 'pending'.
+
+    Returns number of jobs reset. Called by supervisor on startup and periodically.
+    """
+    pool = await _get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            """
+            UPDATE compute_jobs
+            SET status = 'pending', started_at = NULL, worker_id = NULL
+            WHERE status = 'processing'
+            AND started_at < NOW() - INTERVAL '1 minute' * $1
+            """,
+            threshold_minutes,
+        )
+    # result is like "UPDATE 3"
+    count = int(result.split()[-1]) if result else 0
+    return count
+
+
 async def mark_job_processing(job_id: str) -> None:
     """Mark a compute job as processing."""
     pool = await _get_pool()
