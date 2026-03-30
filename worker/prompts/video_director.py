@@ -139,6 +139,14 @@ def build_kling_prompt(
     lighting = scene.get("lighting", "natural_afternoon")
     texture = scene.get("texture", "iphone_ugc")
 
+    # Auto-add handheld camera shake for high-intensity/mobile scenes
+    # Makes it feel like real UGC filmed on a phone (car, walking, outdoor)
+    high_intensity_keywords = ["car", "walking", "running", "street", "outdoor", "moving", "rushing", "commuting"]
+    env_lower = environment.lower() + " " + action.lower()
+    if any(kw in env_lower for kw in high_intensity_keywords):
+        camera_desc += ", subtle handheld shake from phone movement, slight motion blur"
+        texture = "iphone_ugc"  # Force UGC texture for mobile scenes
+
     # Resolve lighting and texture from presets
     lighting_desc = LIGHTING_PRESETS.get(lighting, lighting)
     texture_desc = TEXTURE_PRESETS.get(texture, texture)
@@ -514,6 +522,7 @@ async def generate_character_grid(
     character consistency — same concept as Higgsfield's character sheets.
     """
     from ai.seedream import generate_image
+    from ai.deglosser import degloss
     from blob_uploader import upload_to_blob
     from PIL import Image
     import io
@@ -521,16 +530,18 @@ async def generate_character_grid(
 
     angle_prompts = build_character_grid_prompts(actor_data)
 
-    # Generate all 9 angles
+    # Generate all 9 angles with anti-AI deglosser applied
     cell_size = 512  # Each cell in the grid
     grid = Image.new("RGB", (cell_size * 3, cell_size * 3), (128, 128, 128))
 
     for angle_data in angle_prompts:
         try:
-            img_bytes = await generate_image(
+            raw_bytes = await generate_image(
                 angle_data["prompt"],
                 dimension_key="square",
             )
+            # Apply anti-AI deglosser — Kling references must look real
+            img_bytes = degloss(raw_bytes, intensity="medium")
             img = Image.open(io.BytesIO(img_bytes)).resize(
                 (cell_size, cell_size), Image.Resampling.LANCZOS
             )

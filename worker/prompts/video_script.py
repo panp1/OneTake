@@ -83,6 +83,17 @@ SCREEN RULES:
 - NO readable screen content — no UI, no text, no fake apps
 - Instead of "shows earnings on phone" → "eyes light up, genuine celebratory reaction"
 - The PERSON is always the visual focus, not any device
+
+SCENE SETTINGS (vary across shots for visual interest):
+- KITCHEN: Modern, clean kitchen background. Person in casual tee, talking naturally. Warm lighting.
+- CAR: Selfie angle from driver/passenger seat. Urgent energy, "I just found out" vibe. HANDHELD SHAKE.
+- DESK: Sitting at desk/table, sweater or smart-casual. Hand gestures. Lamp or accent lighting.
+- OUTDOOR/WALKING: Moving through street or park. Camera follows. HANDHELD SHAKE for realism.
+- COUCH/HOME: Relaxed setting, comfortable clothes. Intimate, confessional tone.
+- CAFE: Coffee shop background, natural light. Social, approachable energy.
+
+The script should specify which SETTING each beat happens in. Variety across beats keeps it engaging.
+Car and walking scenes MUST specify handheld camera for authentic UGC feel.
 """
 
 # ---------------------------------------------------------------------------
