@@ -401,8 +401,24 @@ _RESEARCH_SYSTEM_PROMPT = (
     "You are a cultural research analyst specializing in recruitment advertising "
     "and labor markets.\n\n"
     "Your task is to provide ACCURATE, CURRENT, and SPECIFIC cultural intelligence "
-    "about a target region for a recruitment advertising campaign. Use your web "
-    "search capabilities to find the most recent data available.\n\n"
+    "about a target region for a recruitment advertising campaign.\n\n"
+    "AUTHORITATIVE DATA SOURCES (prioritize these for accuracy):\n"
+    "- Pew Research Center (pewresearch.org) — social media usage, demographics\n"
+    "- Statista (statista.com) — platform market share, user counts per country\n"
+    "- DataReportal / We Are Social — annual digital reports per country\n"
+    "- Bureau of Labor Statistics (bls.gov) — US employment, wages, gig economy\n"
+    "- World Bank Data — global economic indicators, income levels\n"
+    "- SimilarWeb — website/app traffic by region\n"
+    "- App Annie / data.ai — app downloads and engagement by country\n"
+    "- Glassdoor / Indeed / LinkedIn Economic Graph — job market data\n"
+    "- Ookla Speedtest — internet speed by region\n"
+    "- GSMA Intelligence — mobile connectivity, data costs\n"
+    "- Hootsuite Social Trends — annual social media trends\n"
+    "- eMarketer/Insider Intelligence — ad spend, digital adoption\n"
+    "- US Census Bureau — demographics, household data\n"
+    "- Eurostat — European labor statistics\n"
+    "- ILO (International Labour Organization) — global labor data\n\n"
+    "When citing data, include the SOURCE and YEAR (e.g., 'Pew 2024', 'Statista Q1 2025').\n\n"
     "RULES:\n"
     "- Return ONLY valid JSON with the exact keys requested.\n"
     "- Be specific — no vague generalizations. Cite numbers, platform names, "
@@ -457,7 +473,7 @@ async def _call_kimi(query: str, output_keys: list[str]) -> dict[str, Any]:
     content = ""
     for provider_name, url, key in providers:
         try:
-            async with httpx.AsyncClient(timeout=90) as client:
+            async with httpx.AsyncClient(timeout=180) as client:
                 payload = {
                     "model": "moonshotai/kimi-k2.5",
                     "messages": messages,
