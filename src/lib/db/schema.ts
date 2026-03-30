@@ -230,7 +230,26 @@ export async function createTables(): Promise<void> {
     )
   `;
 
-  // 15. user_roles — no FK dependencies
+  // 15. campaign_strategies — media plan per country
+  await sql`
+    CREATE TABLE IF NOT EXISTS campaign_strategies (
+      id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      request_id       UUID REFERENCES intake_requests(id) ON DELETE CASCADE,
+      country          TEXT NOT NULL,
+      tier             INT DEFAULT 1,
+      monthly_budget   NUMERIC,
+      budget_mode      TEXT DEFAULT 'ratio' CHECK (budget_mode IN ('fixed', 'ratio')),
+      strategy_data    JSONB NOT NULL,
+      evaluation_score NUMERIC,
+      evaluation_data  JSONB,
+      evaluation_passed BOOLEAN,
+      version          INT DEFAULT 1,
+      created_at       TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_campaign_strategies_request ON campaign_strategies(request_id)`;
+
+  // 16. user_roles — no FK dependencies
   await sql`
     CREATE TABLE IF NOT EXISTS user_roles (
       id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

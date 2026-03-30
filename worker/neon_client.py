@@ -395,3 +395,44 @@ async def get_assets(request_id: str, asset_type: str | None = None) -> list[dic
                 request_id,
             )
     return [_row_to_dict(r) for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# Campaign strategies
+# ---------------------------------------------------------------------------
+
+async def save_campaign_strategy(request_id: str, strategy: dict) -> str:
+    """Save a campaign strategy to Neon. Returns the strategy ID."""
+    import uuid
+    pool = await _get_pool()
+    strategy_id = str(uuid.uuid4())
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            INSERT INTO campaign_strategies (id, request_id, country, tier, monthly_budget,
+                budget_mode, strategy_data, evaluation_score, evaluation_data, evaluation_passed)
+            VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7::jsonb, $8, $9::jsonb, $10)
+            """,
+            strategy_id,
+            request_id,
+            strategy.get("country", "global"),
+            strategy.get("tier", 1),
+            strategy.get("monthly_budget"),
+            strategy.get("budget_mode", "ratio"),
+            json.dumps(strategy.get("strategy_data", {})),
+            strategy.get("evaluation_score"),
+            json.dumps(strategy.get("evaluation_data", {})) if strategy.get("evaluation_data") else None,
+            strategy.get("evaluation_passed"),
+        )
+    return strategy_id
+
+
+async def update_actor_targeting(actor_id: str, targeting_profile: dict) -> None:
+    """Save targeting_profile JSONB on an actor profile."""
+    pool = await _get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE actor_profiles SET targeting_profile = $1::jsonb WHERE id = $2::uuid",
+            json.dumps(targeting_profile),
+            actor_id,
+        )
