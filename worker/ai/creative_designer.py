@@ -14,7 +14,7 @@ from typing import Any
 
 import httpx
 
-from config import NVIDIA_NIM_API_KEY, NVIDIA_NIM_BASE_URL, OPENROUTER_API_KEY
+from config import NVIDIA_NIM_API_KEY, NVIDIA_NIM_BASE_URL, NVIDIA_NIM_DESIGN_MODEL, OPENROUTER_API_KEY
 from prompts.creative_overlay import (
     BRAND_KIT,
     DESIGN_AUDIT,
@@ -141,18 +141,25 @@ async def design_creatives(
         len(system_prompt) + len(user_prompt),
     )
 
-    # Try NVIDIA NIM (free) first, fallback to OpenRouter (paid)
+    # Inject ad-creative marketing skills
+    from prompts.marketing_skills import get_skills_for_stage
+    skills = get_skills_for_stage("creative")
+    if skills:
+        system_prompt = f"{system_prompt}\n\n{skills}"
+
+    # Model cascade: GLM-5 (design) → Kimi K2.5 (fallback) → OpenRouter (paid)
     providers = []
     if NVIDIA_NIM_API_KEY:
-        providers.append(("NIM", f"{NVIDIA_NIM_BASE_URL}/chat/completions", NVIDIA_NIM_API_KEY))
+        providers.append(("NIM-GLM5", f"{NVIDIA_NIM_BASE_URL}/chat/completions", NVIDIA_NIM_API_KEY, NVIDIA_NIM_DESIGN_MODEL))
+        providers.append(("NIM-Kimi", f"{NVIDIA_NIM_BASE_URL}/chat/completions", NVIDIA_NIM_API_KEY, "moonshotai/kimi-k2.5"))
     if OPENROUTER_API_KEY:
-        providers.append(("OpenRouter", "https://openrouter.ai/api/v1/chat/completions", OPENROUTER_API_KEY))
+        providers.append(("OpenRouter", "https://openrouter.ai/api/v1/chat/completions", OPENROUTER_API_KEY, "moonshotai/kimi-k2.5"))
 
     content = ""
-    for provider_name, url, key in providers:
+    for provider_name, url, key, model in providers:
         try:
             payload = {
-                "model": "moonshotai/kimi-k2.5",
+                "model": model,
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
@@ -161,8 +168,6 @@ async def design_creatives(
                 "temperature": 0.8,
                 "stream": False,
             }
-            if provider_name == "NIM":
-                payload["chat_template_kwargs"] = {"thinking": False}
 
             async with httpx.AsyncClient(timeout=180) as client:
                 resp = await client.post(url, headers={

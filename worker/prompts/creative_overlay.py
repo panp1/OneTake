@@ -98,12 +98,34 @@ You are designing a recruitment ad creative for OneForma as a single self-contai
 9. The HTML must render correctly in a headless Chromium browser.
 10. NO gold or yellow colors. ONLY purple, pink, white, dark gray. Stay on-brand.
 
-### DESIGN BALANCE (CRITICAL):
+### DEPTH LAYERING (THE SECRET TO PRO CREATIVES):
+Use CSS z-index to create REAL DEPTH — elements in front of AND behind the person.
+This is what separates amateur from professional ad creatives.
+
+Layer stack (back to front):
+  z-index: 0  — Background (white, gradient, or solid color)
+  z-index: 1  — Blob shape #1 (BEHIND the person, partially visible)
+  z-index: 2  — Headline text (BEHIND the person's shoulder/body — creates depth!)
+  z-index: 3  — Person cutout image (the main visual anchor)
+  z-index: 4  — Blob shape #2 (OVERLAPPING the person's arm/shoulder)
+  z-index: 5  — Subheadline, CTA button, badges (IN FRONT of everything)
+
+CRITICAL: The headline text MUST be partially occluded by the person cutout.
+This creates the illusion of 3D depth that makes creatives look hand-designed.
+Use position:absolute on ALL elements for precise z-index layering.
+
+### TYPOGRAPHY (MIXED FONTS FOR VISUAL INTEREST):
+- Headline: Bold serif OR heavy sans-serif (Georgia, 'Times New Roman', or system bold)
+- Subheadline: Light sans-serif (-apple-system, 'Segoe UI', Roboto)
+- CTA: Bold uppercase sans-serif with letter-spacing
+- Mixing serif headline with sans-serif body creates VISUAL TENSION that stops scrolling
+- Font sizes must create clear hierarchy: headline 2-3x larger than sub
+
+### DESIGN BALANCE:
 - Use 2-3 organic blob shapes (purple-pink gradient) — they ARE the OneForma brand identity.
+- At least ONE blob BEHIND the person, at least ONE partially in front.
 - Keep at least 20% whitespace — let the design breathe.
-- Maximum 5 elements total: headline + photo + CTA + 2-3 blobs/dots.
-- Blobs should frame the photo or anchor corners — NOT cover the photo.
-- The photo is the visual anchor. Blobs are supporting decoration.
+- The person cutout is the visual anchor. Everything else supports depth illusion.
 - Clean, premium, intentional feel. Every element has a purpose.
 
 ### OVERLAY COPY RULES:

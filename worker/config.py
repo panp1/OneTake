@@ -30,6 +30,7 @@ NVIDIA_NIM_BASE_URL = os.environ.get("NVIDIA_NIM_BASE_URL", "https://integrate.a
 NVIDIA_NIM_MODEL = os.environ.get("NVIDIA_NIM_MODEL", "moonshotai/kimi-k2.5")
 NVIDIA_NIM_REASONING_MODEL = os.environ.get("NVIDIA_NIM_REASONING_MODEL", "qwen/qwen3.5-397b-a17b")
 NVIDIA_NIM_CREATIVE_MODEL = os.environ.get("NVIDIA_NIM_CREATIVE_MODEL", "google/gemma-3-27b-it")
+NVIDIA_NIM_DESIGN_MODEL = os.environ.get("NVIDIA_NIM_DESIGN_MODEL", "z-ai/glm5")
 
 # ---------------------------------------------------------------------------
 # OpenRouter (Seedream 4.5 image gen + fallback LLM)
