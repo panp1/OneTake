@@ -64,32 +64,6 @@ export default function SignUpPage() {
           gap: "20px",
         }}
       >
-        <div style={{ textAlign: "center" }}>
-          <h1
-            style={{
-              fontSize: "32px",
-              fontWeight: 700,
-              color: "white",
-              letterSpacing: "-0.5px",
-              fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
-              margin: 0,
-              textShadow: "0 2px 20px rgba(0,0,0,0.3)",
-            }}
-          >
-            OneForma
-          </h1>
-          <p
-            style={{
-              fontSize: "13px",
-              color: "rgba(255,255,255,0.5)",
-              marginTop: "4px",
-              fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
-            }}
-          >
-            Creative OS — Recruitment Marketing Intelligence
-          </p>
-        </div>
-
         <SignUp
           signInUrl="/sign-in"
           appearance={{
