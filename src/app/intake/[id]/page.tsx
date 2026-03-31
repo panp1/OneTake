@@ -34,6 +34,7 @@ import DesignElementPreview from "@/components/DesignElementPreview";
 import MockupPreview from "@/components/MockupPreview";
 import RecruiterDetailView from "@/components/RecruiterDetailView";
 import BriefExecutive from "@/components/BriefExecutive";
+import AssetReviewPanel from "@/components/AssetReviewPanel";
 import { extractField, formatLabel } from "@/lib/format";
 import PipelineNav from "@/components/PipelineNav";
 import type { PipelineStage } from "@/components/PipelineNav";
@@ -610,7 +611,7 @@ export default function IntakeDetailPage({
               </section>
             )}
 
-            {/* Creative Assets — 4 Category View */}
+            {/* Generated Assets — Tabbed Review Panel */}
             {hasOutputs && (
               <LiveSection
                 id="section-images"
@@ -619,139 +620,11 @@ export default function IntakeDetailPage({
                 accentColor="#22c55e"
                 visible={assets.length > 0}
               >
-                <AssetCategoryTabs
-                  activeTab={activeAssetTab}
-                  onTabChange={setActiveAssetTab}
-                  counts={assetCounts}
+                <AssetReviewPanel
+                  assets={assets}
+                  onRefine={(asset) => setRefineAsset(asset)}
+                  onRetry={(asset) => handleRetry(asset)}
                 />
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {activeAssetTab === 'characters' && characters.map(asset => (
-                    <AssetCard
-                      key={asset.id}
-                      imageUrl={asset.blob_url || ''}
-                      title={extractField(asset.content, "actor_name", "Character")}
-                      subtitle={extractField(asset.content, "outfit_key", asset.format).replace(/_/g, " ")}
-                      badges={[
-                        { label: extractField(asset.content, "composition", ""), color: 'gray' },
-                        {
-                          label: `${((asset.evaluation_score || 0) * 100).toFixed(0)}%`,
-                          color: (asset.evaluation_score || 0) >= 0.85 ? 'green' : (asset.evaluation_score || 0) >= 0.70 ? 'yellow' : 'red',
-                        },
-                      ]}
-                      selected={selectedAssets.has(asset.id)}
-                      onSelect={() => toggleSelect(asset.id)}
-                      onDownload={() => { if (asset.blob_url) window.open(asset.blob_url, '_blank'); }}
-                      onRetry={() => handleRetry(asset)}
-                      onRefine={() => setRefineAsset(asset)}
-                    />
-                  ))}
-
-                  {activeAssetTab === 'elements' && composed.map(asset => (
-                    <AssetCard
-                      key={`elem-${asset.id}`}
-                      imageUrl=""
-                      title={extractField(asset.content, "template", "Template")}
-                      subtitle={extractField(asset.copy_data, "headline", extractField(asset.content, "headline", ""))}
-                      badges={[
-                        { label: asset.platform, color: 'blue' },
-                        {
-                          label: `${((asset.evaluation_score || 0) * 100).toFixed(0)}%`,
-                          color: (asset.evaluation_score || 0) >= 0.85 ? 'green' : (asset.evaluation_score || 0) >= 0.70 ? 'yellow' : 'red',
-                        },
-                      ]}
-                      selected={selectedAssets.has(asset.id)}
-                      onSelect={() => toggleSelect(asset.id)}
-                      onDownload={() => { if (asset.blob_url) window.open(asset.blob_url, '_blank'); }}
-                      onRetry={() => handleRetry(asset)}
-                      onRefine={() => setRefineAsset(asset)}
-                      customPreview={
-                        <DesignElementPreview
-                          template={extractField(asset.content, "template")}
-                          headline={extractField(asset.copy_data, "headline", extractField(asset.content, "headline"))}
-                          subheadline={extractField(asset.copy_data, "subheadline", extractField(asset.content, "subheadline"))}
-                          ctaText={extractField(asset.copy_data, "cta_text", extractField(asset.content, "cta_text"))}
-                          platform={asset.platform}
-                        />
-                      }
-                    />
-                  ))}
-
-                  {activeAssetTab === 'composed' && composed.map(asset => (
-                    <AssetCard
-                      key={asset.id}
-                      imageUrl={asset.blob_url || ''}
-                      title={extractField(asset.content, "template", asset.platform)}
-                      subtitle={asset.format}
-                      badges={[
-                        { label: asset.platform, color: 'blue' },
-                        {
-                          label: `${((asset.evaluation_score || 0) * 100).toFixed(0)}%`,
-                          color: (asset.evaluation_score || 0) >= 0.85 ? 'green' : (asset.evaluation_score || 0) >= 0.70 ? 'yellow' : 'red',
-                        },
-                      ]}
-                      selected={selectedAssets.has(asset.id)}
-                      onSelect={() => toggleSelect(asset.id)}
-                      onDownload={() => { if (asset.blob_url) window.open(asset.blob_url, '_blank'); }}
-                      onRetry={() => handleRetry(asset)}
-                      onRefine={() => setRefineAsset(asset)}
-                    />
-                  ))}
-
-                  {activeAssetTab === 'mockups' && composed.map(asset => (
-                    <AssetCard
-                      key={`mock-${asset.id}`}
-                      imageUrl=""
-                      title={asset.platform}
-                      subtitle={asset.format}
-                      badges={[
-                        { label: asset.platform, color: 'blue' },
-                        {
-                          label: `${((asset.evaluation_score || 0) * 100).toFixed(0)}%`,
-                          color: (asset.evaluation_score || 0) >= 0.85 ? 'green' : (asset.evaluation_score || 0) >= 0.70 ? 'yellow' : 'red',
-                        },
-                      ]}
-                      selected={selectedAssets.has(asset.id)}
-                      onSelect={() => toggleSelect(asset.id)}
-                      onDownload={() => { if (asset.blob_url) window.open(asset.blob_url, '_blank'); }}
-                      onRetry={() => handleRetry(asset)}
-                      onRefine={() => setRefineAsset(asset)}
-                      customPreview={<MockupPreview asset={asset} />}
-                    />
-                  ))}
-                </div>
-
-                {/* Empty states */}
-                {activeAssetTab === 'characters' && characters.length === 0 && (
-                  <div className="text-center py-12 text-sm text-[var(--muted-foreground)]">
-                    No characters generated yet
-                  </div>
-                )}
-                {activeAssetTab === 'elements' && composed.length === 0 && (
-                  <div className="text-center py-12 text-sm text-[var(--muted-foreground)]">
-                    No design elements generated yet
-                  </div>
-                )}
-                {activeAssetTab === 'composed' && composed.length === 0 && (
-                  <div className="text-center py-12 text-sm text-[var(--muted-foreground)]">
-                    No composed creatives generated yet
-                  </div>
-                )}
-                {activeAssetTab === 'mockups' && composed.length === 0 && (
-                  <div className="text-center py-12 text-sm text-[var(--muted-foreground)]">
-                    No mockups generated yet
-                  </div>
-                )}
-
-                {selectedAssets.size > 0 && (
-                  <BulkActions
-                    selectedCount={selectedAssets.size}
-                    onDownloadSelected={handleBulkDownload}
-                    onRetrySelected={handleBulkRetry}
-                    onSelectAll={selectAllInCategory}
-                    onDeselectAll={() => setSelectedAssets(new Set())}
-                  />
-                )}
               </LiveSection>
             )}
 
