@@ -1,13 +1,14 @@
 import { auth } from '@clerk/nextjs/server';
+import { getAuthContext } from '@/lib/permissions';
 import { listIntakeRequests, createIntakeRequest } from '@/lib/db/intake';
 import { getSchemaByTaskType } from '@/lib/db/schemas';
 import { validateFormData } from '@/lib/validation';
 import type { Status } from '@/lib/types';
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
+  const ctx = await getAuthContext();
 
-  if (!userId) {
+  if (!ctx) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -16,9 +17,13 @@ export async function GET(request: Request) {
     const status = url.searchParams.get('status') as Status | null;
     const taskType = url.searchParams.get('task_type');
 
+    // Recruiters only see their own requests; admins and viewers see all
+    const createdByFilter = ctx.role === 'recruiter' ? ctx.userId : undefined;
+
     const requests = await listIntakeRequests({
       status: status ?? undefined,
       task_type: taskType ?? undefined,
+      created_by: createdByFilter,
     });
 
     return Response.json(requests);

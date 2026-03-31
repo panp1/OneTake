@@ -1,4 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
+import { getAuthContext, canAccessRequest } from '@/lib/permissions';
 import {
   getIntakeRequest,
   updateIntakeRequest,
@@ -9,9 +10,9 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
+  const ctx = await getAuthContext();
 
-  if (!userId) {
+  if (!ctx) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -24,6 +25,10 @@ export async function GET(
         { error: 'Intake request not found' },
         { status: 404 }
       );
+    }
+
+    if (!canAccessRequest(ctx, intakeRequest.created_by)) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     return Response.json(intakeRequest);

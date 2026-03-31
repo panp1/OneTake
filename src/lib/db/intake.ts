@@ -37,31 +37,75 @@ export async function createIntakeRequest(data: {
 export async function listIntakeRequests(filters?: {
   status?: Status;
   task_type?: string;
+  created_by?: string;
 }): Promise<IntakeRequest[]> {
   const sql = getDb();
 
-  if (filters?.status && filters?.task_type) {
+  // Build conditions array to compose WHERE clause dynamically
+  const hasStatus = !!filters?.status;
+  const hasTaskType = !!filters?.task_type;
+  const hasCreatedBy = !!filters?.created_by;
+
+  if (hasStatus && hasTaskType && hasCreatedBy) {
     const rows = await sql`
       SELECT * FROM intake_requests
-      WHERE status = ${filters.status} AND task_type = ${filters.task_type}
+      WHERE status = ${filters!.status!}
+        AND task_type = ${filters!.task_type!}
+        AND created_by = ${filters!.created_by!}
       ORDER BY created_at DESC
     `;
     return rows as IntakeRequest[];
   }
 
-  if (filters?.status) {
+  if (hasStatus && hasTaskType) {
     const rows = await sql`
       SELECT * FROM intake_requests
-      WHERE status = ${filters.status}
+      WHERE status = ${filters!.status!} AND task_type = ${filters!.task_type!}
       ORDER BY created_at DESC
     `;
     return rows as IntakeRequest[];
   }
 
-  if (filters?.task_type) {
+  if (hasStatus && hasCreatedBy) {
     const rows = await sql`
       SELECT * FROM intake_requests
-      WHERE task_type = ${filters.task_type}
+      WHERE status = ${filters!.status!} AND created_by = ${filters!.created_by!}
+      ORDER BY created_at DESC
+    `;
+    return rows as IntakeRequest[];
+  }
+
+  if (hasTaskType && hasCreatedBy) {
+    const rows = await sql`
+      SELECT * FROM intake_requests
+      WHERE task_type = ${filters!.task_type!} AND created_by = ${filters!.created_by!}
+      ORDER BY created_at DESC
+    `;
+    return rows as IntakeRequest[];
+  }
+
+  if (hasStatus) {
+    const rows = await sql`
+      SELECT * FROM intake_requests
+      WHERE status = ${filters!.status!}
+      ORDER BY created_at DESC
+    `;
+    return rows as IntakeRequest[];
+  }
+
+  if (hasTaskType) {
+    const rows = await sql`
+      SELECT * FROM intake_requests
+      WHERE task_type = ${filters!.task_type!}
+      ORDER BY created_at DESC
+    `;
+    return rows as IntakeRequest[];
+  }
+
+  if (hasCreatedBy) {
+    const rows = await sql`
+      SELECT * FROM intake_requests
+      WHERE created_by = ${filters!.created_by!}
       ORDER BY created_at DESC
     `;
     return rows as IntakeRequest[];
