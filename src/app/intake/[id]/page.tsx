@@ -35,6 +35,7 @@ import MockupPreview from "@/components/MockupPreview";
 import RecruiterDetailView from "@/components/RecruiterDetailView";
 import BriefExecutive from "@/components/BriefExecutive";
 import AssetReviewPanel from "@/components/AssetReviewPanel";
+import ResearchPanel from "@/components/ResearchPanel";
 import { extractField, formatLabel } from "@/lib/format";
 import PipelineNav from "@/components/PipelineNav";
 import type { PipelineStage } from "@/components/PipelineNav";
@@ -430,6 +431,7 @@ export default function IntakeDetailPage({
           {/* Sticky Pipeline Nav */}
           <PipelineNav
             stages={[
+              { key: "research", label: "Research", status: channelResearch ? "passed" : request.status === "generating" ? "running" : "pending" },
               { key: "brief", label: "Brief", status: brief ? "passed" : request.status === "generating" ? "running" : "pending" },
               { key: "images", label: "Images", status: assets.filter(a => a.asset_type === "base_image" || a.asset_type === "composed_creative").length > 0 ? "passed" : actors.length > 0 ? "running" : "pending" },
               { key: "videos", label: "Videos", status: assets.filter(a => (a.asset_type as string) === "video").length > 0 ? "passed" : assets.filter(a => a.asset_type === "composed_creative").length > 0 ? "running" : "pending" },
@@ -513,6 +515,23 @@ export default function IntakeDetailPage({
               </section>
             )}
 
+            {/* Research — raw intelligence per region */}
+            {channelResearch && (
+              <LiveSection
+                id="section-research"
+                title="Market Research"
+                subtitle="Cultural intelligence, platform data, and demographics"
+                accentColor="#0693E3"
+                visible={!!channelResearch}
+              >
+                <ResearchPanel
+                  channelResearch={channelResearch as Record<string, any>}
+                  culturalResearch={briefData?.cultural_research as Record<string, any> | undefined}
+                  regions={request.target_regions as string[]}
+                />
+              </LiveSection>
+            )}
+
             {/* Creative Brief — Executive Format */}
             {brief && briefData && (
               <LiveSection
@@ -537,48 +556,7 @@ export default function IntakeDetailPage({
             )}
 
             {/* Target Audience */}
-            {targetAudience && targetAudience.length > 0 && (
-              <section className="card p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Target size={16} className="text-[var(--muted-foreground)]" />
-                  <h2 className="text-sm font-semibold text-[var(--foreground)]">
-                    Target Audience
-                  </h2>
-                </div>
-                <ul className="space-y-2">
-                  {targetAudience.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-[var(--foreground)]">
-                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[var(--ring)] shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-
-            {/* Channel Strategy */}
-            {channels && channels.length > 0 && (
-              <section className="card p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Megaphone size={16} className="text-[var(--muted-foreground)]" />
-                  <h2 className="text-sm font-semibold text-[var(--foreground)]">
-                    Channel Strategy
-                  </h2>
-                </div>
-                <div className="space-y-3">
-                  {channels.map((ch) => (
-                    <ChannelCard
-                      key={ch.name}
-                      name={ch.name}
-                      effectiveness={ch.effectiveness}
-                      rationale={ch.rationale}
-                      sources={ch.sources}
-                      formats={ch.formats}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
+            {/* Target Audience & Channel Strategy moved to Research + Brief tabs */}
 
             {/* Actor Profiles — shown inside Assets > Actors tab now */}
 
