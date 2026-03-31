@@ -8,9 +8,6 @@ import {
   FileText,
   Mic,
   Users,
-  Laptop,
-  MapPin,
-  Tag,
   ExternalLink,
   Volume2,
   Shield,
@@ -32,64 +29,31 @@ interface RequestDetailsFormattedProps {
   onFieldSave?: (field: string, value: string) => void;
 }
 
-function DetailCard({
-  icon: Icon,
-  label,
-  children,
-  accentColor = "#6B21A8",
-}: {
-  icon: React.ComponentType<Record<string, unknown>>;
-  label: string;
-  children: React.ReactNode;
-  accentColor?: string;
-}) {
+function Tag({ children, color = "#6B21A8" }: { children: React.ReactNode; color?: string }) {
   return (
-    <div className="flex gap-3 items-start">
-      <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-        style={{ backgroundColor: `${accentColor}10`, color: accentColor }}
-      >
-        <Icon size={15} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)] block mb-0.5">
-          {label}
-        </span>
-        <div className="text-[13px] text-[var(--foreground)] leading-relaxed">
-          {children}
-        </div>
-      </div>
-    </div>
+    <span
+      className="inline-flex px-2.5 py-1 rounded-lg text-[11px] font-medium leading-none"
+      style={{
+        backgroundColor: `${color}0A`,
+        color,
+        border: `1px solid ${color}18`,
+      }}
+    >
+      {children}
+    </span>
   );
 }
 
-function TagList({ items, color = "#6B21A8" }: { items: string[]; color?: string }) {
-  return (
-    <div className="flex flex-wrap gap-1.5 mt-1">
-      {items.map((item, i) => (
-        <span
-          key={i}
-          className="px-2 py-0.5 rounded-md text-[11px] font-medium"
-          style={{
-            backgroundColor: `${color}08`,
-            color,
-            border: `1px solid ${color}20`,
-          }}
-        >
-          {item}
-        </span>
-      ))}
-    </div>
-  );
+function SectionDivider() {
+  return <div className="border-t border-[var(--border)] my-5" />;
 }
 
-function formatValue(val: unknown): string {
-  if (val === null || val === undefined) return "—";
-  if (typeof val === "string") return val;
-  if (typeof val === "number") return String(val);
-  if (typeof val === "boolean") return val ? "Yes" : "No";
-  if (Array.isArray(val)) return val.join(", ");
-  return "";
+function Label({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--muted-foreground)] block mb-1.5">
+      {children}
+    </span>
+  );
 }
 
 export default function RequestDetailsFormatted({
@@ -98,179 +62,203 @@ export default function RequestDetailsFormatted({
   editable = true,
   onFieldSave,
 }: RequestDetailsFormattedProps) {
-  const compensation = (formData.compensation || {}) as Record<string, string>;
-  const requirements = (formData.requirements || {}) as Record<string, string | boolean | string[]>;
-  const taskDetails = (formData.task_details || {}) as Record<string, string | boolean>;
+  const compensation = formData.compensation || {};
+  const requirements = formData.requirements || {};
+  const taskDetails = formData.task_details || {};
   const languagePairs = formData.language_pairs as string[] | undefined;
 
   return (
-    <div className="space-y-6">
-      {/* Hero row */}
-      <div className="grid grid-cols-2 gap-6">
-        <DetailCard icon={FileText} label="Campaign Goal" accentColor="#0693E3">
+    <div className="space-y-0">
+
+      {/* ── ROW 1: What is this campaign? ─────────────────── */}
+      <div className="grid grid-cols-[1fr_auto] gap-12 items-start">
+        <div>
+          <Label>Campaign Goal</Label>
           <EditableField
             value={String(formData.goal || formData.description || "")}
             editable={editable}
             onSave={(v) => onFieldSave?.("goal", v)}
-            textClassName="text-[13px] leading-relaxed"
+            textClassName="text-[14px] leading-relaxed text-[var(--foreground)]"
             multiline
           />
-        </DetailCard>
-
-        <DetailCard icon={Briefcase} label="Task Type" accentColor="#6B21A8">
-          <span className="font-medium">
-            {String(request.task_type || "").replace(/_/g, " ")}
-          </span>
-        </DetailCard>
-      </div>
-
-      {/* Languages & Regions */}
-      <div className="grid grid-cols-2 gap-6">
-        <DetailCard icon={Globe} label="Target Regions" accentColor="#0693E3">
-          <TagList
-            items={request.target_regions || []}
-            color="#0693E3"
-          />
-        </DetailCard>
-
-        <DetailCard icon={Volume2} label="Language Pairs" accentColor="#9B51E0">
-          {languagePairs ? (
-            <TagList items={languagePairs} color="#9B51E0" />
-          ) : (
-            <TagList
-              items={request.target_languages || []}
-              color="#9B51E0"
-            />
-          )}
-        </DetailCard>
-      </div>
-
-      {/* Compensation & Volume */}
-      <div className="grid grid-cols-3 gap-6">
-        <DetailCard icon={DollarSign} label="Compensation" accentColor="#22c55e">
-          <div>
-            <span className="font-medium">
-              {compensation.type ? String(compensation.type).replace(/_/g, " ") : "Not specified"}
+        </div>
+        <div className="text-right min-w-[200px]">
+          <Label>Task Type</Label>
+          <div className="flex items-center gap-2 justify-end">
+            <Briefcase size={14} className="text-[#6B21A8]" />
+            <span className="text-[14px] font-medium text-[var(--foreground)]">
+              {String(request.task_type || "").replace(/_/g, " ")}
             </span>
-            {compensation.description ? (
-              <span className="text-[var(--muted-foreground)] block text-[12px] mt-0.5">
-                {String(compensation.description)}
-              </span>
-            ) : null}
           </div>
-        </DetailCard>
+        </div>
+      </div>
 
-        <DetailCard icon={Target} label="Target Volume" accentColor="#E91E8C">
-          <span className="text-xl font-bold text-[var(--foreground)]">
-            {String(formData.target_volume || "—") || "—"}
-          </span>
-          <span className="text-[var(--muted-foreground)] text-[12px] ml-1">contributors</span>
-        </DetailCard>
+      <SectionDivider />
 
-        <DetailCard icon={Clock} label="Urgency" accentColor="#f59e0b">
+      {/* ── ROW 2: Where are we targeting? ─────────────────── */}
+      <div className="grid grid-cols-2 gap-12">
+        <div>
+          <Label>Target Regions</Label>
+          <div className="flex flex-wrap gap-1.5 mt-0.5">
+            {(request.target_regions || []).map((r, i) => (
+              <Tag key={i} color="#0693E3">{r}</Tag>
+            ))}
+          </div>
+        </div>
+        <div>
+          <Label>Language Pairs</Label>
+          <div className="flex flex-wrap gap-1.5 mt-0.5">
+            {(languagePairs || request.target_languages || []).map((l, i) => (
+              <Tag key={i} color="#9B51E0">{l}</Tag>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <SectionDivider />
+
+      {/* ── ROW 3: Compensation, Volume, Urgency ──────────── */}
+      <div className="grid grid-cols-3 gap-8">
+        <div>
+          <Label>Compensation</Label>
+          <p className="text-[14px] font-semibold text-[var(--foreground)]">
+            {compensation.type
+              ? String(compensation.type).replace(/_/g, " ")
+              : "Not specified"}
+          </p>
+          {compensation.description && (
+            <p className="text-[12px] text-[var(--muted-foreground)] mt-0.5">
+              {String(compensation.description)}
+            </p>
+          )}
+        </div>
+        <div>
+          <Label>Target Volume</Label>
+          <p className="text-[14px] text-[var(--foreground)]">
+            <span className="text-2xl font-bold tracking-tight">
+              {String(formData.target_volume || "—")}
+            </span>
+            <span className="text-[var(--muted-foreground)] text-[12px] ml-1.5">
+              contributors
+            </span>
+          </p>
+        </div>
+        <div>
+          <Label>Urgency</Label>
           <span
-            className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+            className={`inline-flex px-2.5 py-1 rounded-lg text-[11px] font-semibold leading-none mt-0.5 ${
               formData.urgency === "urgent"
-                ? "bg-red-50 text-red-600 border border-red-200"
-                : "bg-gray-50 text-gray-600 border border-gray-200"
+                ? "bg-red-50 text-red-600 border border-red-100"
+                : "bg-gray-50 text-gray-500 border border-gray-200"
             }`}
           >
-            {String(formData.urgency || "standard") || "standard"}
+            {String(formData.urgency || "standard")}
           </span>
-        </DetailCard>
+        </div>
       </div>
 
-      {/* Requirements */}
-      {requirements && (
-        <DetailCard icon={Shield} label="Requirements" accentColor="#6B21A8">
-          <div className="grid grid-cols-2 gap-x-8 gap-y-2 mt-1">
-            {requirements.bilingual && (
-              <div className="flex items-center gap-2 text-[12px]">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#6B21A8]" />
-                <span>Bilingual required ({String(requirements.l2_level || "")})</span>
-              </div>
-            )}
-            {requirements.native_speaker && (
-              <div className="flex items-center gap-2 text-[12px]">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#6B21A8]" />
-                <span>Native speaker required</span>
-              </div>
-            )}
-            {requirements.min_age && (
-              <div className="flex items-center gap-2 text-[12px]">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#6B21A8]" />
-                <span>Age {String(requirements.min_age || "")}+</span>
-              </div>
-            )}
-            {requirements.time_commitment && (
-              <div className="flex items-center gap-2 text-[12px]">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#0693E3]" />
-                <span>{String(requirements.time_commitment || "")}</span>
-              </div>
-            )}
-            {Array.isArray(requirements.equipment) && (
-              <div className="col-span-2">
-                <TagList
-                  items={requirements.equipment as string[]}
-                  color="#737373"
-                />
+      {/* ── ROW 4: Requirements (if present) ───────────────── */}
+      {requirements && Object.keys(requirements).length > 0 && (
+        <>
+          <SectionDivider />
+          <div>
+            <Label>Requirements</Label>
+            <div className="grid grid-cols-2 gap-x-12 gap-y-1.5 mt-1">
+              {requirements.bilingual && (
+                <div className="flex items-center gap-2 text-[13px] text-[var(--foreground)]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#6B21A8] flex-shrink-0" />
+                  Bilingual required ({String(requirements.l2_level || "proficient")})
+                </div>
+              )}
+              {requirements.native_speaker && (
+                <div className="flex items-center gap-2 text-[13px] text-[var(--foreground)]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#6B21A8] flex-shrink-0" />
+                  Native speaker required
+                </div>
+              )}
+              {requirements.min_age && (
+                <div className="flex items-center gap-2 text-[13px] text-[var(--foreground)]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#6B21A8] flex-shrink-0" />
+                  Age {String(requirements.min_age)}+
+                </div>
+              )}
+              {requirements.time_commitment && (
+                <div className="flex items-center gap-2 text-[13px] text-[var(--foreground)]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#0693E3] flex-shrink-0" />
+                  {String(requirements.time_commitment)}
+                </div>
+              )}
+            </div>
+            {Array.isArray(requirements.equipment) && requirements.equipment.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {(requirements.equipment as string[]).map((eq, i) => (
+                  <Tag key={i} color="#737373">{eq}</Tag>
+                ))}
               </div>
             )}
             {requirements.environment && (
-              <div className="flex items-center gap-2 text-[12px] col-span-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
-                <span>{String(requirements.environment || "")}</span>
+              <div className="flex items-center gap-2 text-[13px] text-[var(--foreground)] mt-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e] flex-shrink-0" />
+                {String(requirements.environment)}
               </div>
             )}
           </div>
-        </DetailCard>
+        </>
       )}
 
-      {/* Task Details */}
-      {taskDetails && (
-        <DetailCard icon={Mic} label="Task Details" accentColor="#E91E8C">
-          <div className="grid grid-cols-2 gap-x-8 gap-y-2 mt-1">
-            {taskDetails.dialogue_type && (
-              <div className="text-[12px]">
-                <span className="text-[var(--muted-foreground)]">Type: </span>
-                <span className="font-medium">{String(taskDetails.dialogue_type || "")}</span>
-              </div>
-            )}
-            {taskDetails.num_dialogue_sets && (
-              <div className="text-[12px]">
-                <span className="text-[var(--muted-foreground)]">Sets: </span>
-                <span className="font-medium">{String(taskDetails.num_dialogue_sets || "")}</span>
-              </div>
-            )}
-            {taskDetails.code_switching !== undefined && (
-              <div className="text-[12px]">
-                <span className="text-[var(--muted-foreground)]">Code-switching: </span>
-                <span className="font-medium">{taskDetails.code_switching ? "Yes" : "No"}</span>
-              </div>
-            )}
-            {taskDetails.recording_quality && (
-              <div className="text-[12px]">
-                <span className="text-[var(--muted-foreground)]">Quality: </span>
-                <span className="font-medium">{String(taskDetails.recording_quality || "")}</span>
-              </div>
-            )}
+      {/* ── ROW 5: Task Details (if present) ────────────────── */}
+      {taskDetails && Object.keys(taskDetails).length > 0 && (
+        <>
+          <SectionDivider />
+          <div>
+            <Label>Task Details</Label>
+            <div className="grid grid-cols-2 gap-x-12 gap-y-1.5 mt-1">
+              {taskDetails.dialogue_type && (
+                <div className="text-[13px]">
+                  <span className="text-[var(--muted-foreground)]">Type: </span>
+                  <span className="font-medium text-[var(--foreground)]">{String(taskDetails.dialogue_type)}</span>
+                </div>
+              )}
+              {taskDetails.num_dialogue_sets && (
+                <div className="text-[13px]">
+                  <span className="text-[var(--muted-foreground)]">Sets: </span>
+                  <span className="font-medium text-[var(--foreground)]">{String(taskDetails.num_dialogue_sets)}</span>
+                </div>
+              )}
+              {taskDetails.code_switching !== undefined && (
+                <div className="text-[13px]">
+                  <span className="text-[var(--muted-foreground)]">Code-switching: </span>
+                  <span className="font-medium text-[var(--foreground)]">{taskDetails.code_switching ? "Yes" : "No"}</span>
+                </div>
+              )}
+              {taskDetails.recording_quality && (
+                <div className="text-[13px]">
+                  <span className="text-[var(--muted-foreground)]">Quality: </span>
+                  <span className="font-medium text-[var(--foreground)]">{String(taskDetails.recording_quality)}</span>
+                </div>
+              )}
+            </div>
           </div>
-        </DetailCard>
+        </>
       )}
 
-      {/* Source URL */}
+      {/* ── ROW 6: Source URL (if present) ──────────────────── */}
       {formData.source_url && (
-        <DetailCard icon={ExternalLink} label="Source" accentColor="#737373">
-          <a
-            href={String(formData.source_url || "")}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#0693E3] hover:underline text-[12px] flex items-center gap-1"
-          >
-            {String(formData.source_url || "")}
-            <ExternalLink size={11} />
-          </a>
-        </DetailCard>
+        <>
+          <SectionDivider />
+          <div>
+            <Label>Source</Label>
+            <a
+              href={String(formData.source_url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#0693E3] hover:underline text-[13px] inline-flex items-center gap-1.5"
+            >
+              {String(formData.source_url)}
+              <ExternalLink size={12} />
+            </a>
+          </div>
+        </>
       )}
     </div>
   );
