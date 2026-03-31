@@ -77,3 +77,63 @@ export function extractField(
   const val = (obj as Record<string, unknown>)[field];
   return toReadable(val, fallback);
 }
+
+/**
+ * Map technical pipeline status to recruiter-friendly labels.
+ */
+export interface RecruiterStatusInfo {
+  label: string;
+  description: string;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+}
+
+const RECRUITER_STATUS_MAP: Record<string, RecruiterStatusInfo> = {
+  draft: {
+    label: "Submitted",
+    description: "Your request has been received",
+    color: "#52525b",
+    bgColor: "#f4f4f5",
+    borderColor: "#a1a1aa",
+  },
+  generating: {
+    label: "Creating Assets",
+    description: "Marketing is generating creative options",
+    color: "#1e40af",
+    bgColor: "#dbeafe",
+    borderColor: "#3b82f6",
+  },
+  review: {
+    label: "Marketing Review",
+    description: "Marketing team is reviewing creatives",
+    color: "#854d0e",
+    bgColor: "#fef9c3",
+    borderColor: "#f59e0b",
+  },
+  approved: {
+    label: "Ready for Download",
+    description: "Approved! Download your campaign package",
+    color: "#166534",
+    bgColor: "#dcfce7",
+    borderColor: "#22c55e",
+  },
+  sent: {
+    label: "Delivered",
+    description: "Package sent to ad agency",
+    color: "#155e75",
+    bgColor: "#cffafe",
+    borderColor: "#06b6d4",
+  },
+  rejected: {
+    label: "Changes Needed",
+    description: "Marketing requested changes to your request",
+    color: "#991b1b",
+    bgColor: "#fee2e2",
+    borderColor: "#ef4444",
+  },
+};
+
+export function getRecruiterStatus(status: string): RecruiterStatusInfo {
+  return RECRUITER_STATUS_MAP[status] ?? RECRUITER_STATUS_MAP.draft;
+}
