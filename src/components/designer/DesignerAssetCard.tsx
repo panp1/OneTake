@@ -148,7 +148,7 @@ export default function DesignerAssetCard({
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-3">
+      <div className="p-3 md:p-4 space-y-3">
         {/* Title row */}
         <div>
           <p className="text-sm font-medium text-[var(--foreground)]">
@@ -207,7 +207,7 @@ export default function DesignerAssetCard({
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-2 pt-2 border-t border-[var(--border)]">
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[var(--border)]">
           <button
             onClick={handleDownload}
             disabled={!asset.blob_url}

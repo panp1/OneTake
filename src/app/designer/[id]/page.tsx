@@ -205,7 +205,7 @@ function DesignerContent({ id }: { id: string }) {
   return (
     <div className="min-h-screen bg-white">
       {/* ── Header ──────────────────────────────────────────── */}
-      <header className="border-b border-[var(--border)] px-6 py-4">
+      <header className="border-b border-[var(--border)] px-4 pl-14 lg:pl-6 md:pr-6 py-4">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           <div className="flex-1" />
           <div className="text-center">
@@ -224,7 +224,7 @@ function DesignerContent({ id }: { id: string }) {
         </div>
       </header>
 
-      <div className="max-w-[1600px] mx-auto px-6 md:px-10 lg:px-12 xl:px-16 py-8 space-y-8">
+      <div className="max-w-[1600px] mx-auto px-4 md:px-10 lg:px-12 xl:px-16 py-4 md:py-8 space-y-6 md:space-y-8">
         {/* ── Campaign Context Card ───────────────────────── */}
         <CampaignContextCard request={request} brief={brief} />
 

@@ -457,7 +457,7 @@ export default function BriefExecutive({
               <div className="space-y-4">
                 {(messaging.primary_message || messaging.tone) ? (
                   <>
-                    <div className="grid grid-cols-[1fr_auto] gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-8">
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Primary Message</span>
                         <EditableField
@@ -559,7 +559,7 @@ export default function BriefExecutive({
                 {(contentLang.primary || contentLang.dialect_notes) && (
                   <div>
                     <SectionHeader icon={Languages} title="Language Configuration" color="#9B51E0" />
-                    <div className="grid grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                       {contentLang.primary && (
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Primary</span>
@@ -590,7 +590,7 @@ export default function BriefExecutive({
                 {(guardrails.things_to_avoid?.length > 0 || guardrails.things_to_lean_into?.length > 0) && (
                   <div>
                     <SectionHeader icon={Shield} title="Cultural Guardrails" color="#f59e0b" />
-                    <div className="grid grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                       {guardrails.things_to_lean_into?.length > 0 && (
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[#22c55e] block mb-2">Lean Into</span>

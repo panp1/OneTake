@@ -71,7 +71,7 @@ export default function RequestDetailsFormatted({
     <div className="space-y-0">
 
       {/* ── ROW 1: What is this campaign? ─────────────────── */}
-      <div className="grid grid-cols-[1fr_auto] gap-12 items-start">
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-12 items-start">
         <div>
           <Label>Campaign Goal</Label>
           <EditableField
@@ -82,7 +82,7 @@ export default function RequestDetailsFormatted({
             multiline
           />
         </div>
-        <div className="text-right min-w-[200px]">
+        <div className="sm:text-right sm:min-w-[200px]">
           <Label>Task Type</Label>
           <div className="flex items-center gap-2 justify-end">
             <Briefcase size={14} className="text-[#6B21A8]" />
@@ -96,7 +96,7 @@ export default function RequestDetailsFormatted({
       <SectionDivider />
 
       {/* ── ROW 2: Where are we targeting? ─────────────────── */}
-      <div className="grid grid-cols-2 gap-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-12">
         <div>
           <Label>Target Regions</Label>
           <div className="flex flex-wrap gap-1.5 mt-0.5">
@@ -118,7 +118,7 @@ export default function RequestDetailsFormatted({
       <SectionDivider />
 
       {/* ── ROW 3: Compensation, Volume, Urgency ──────────── */}
-      <div className="grid grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8">
         <div>
           <Label>Compensation</Label>
           <p className="text-[14px] font-semibold text-[var(--foreground)]">

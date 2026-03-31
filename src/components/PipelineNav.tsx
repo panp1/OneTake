@@ -91,13 +91,13 @@ export default function PipelineNav({
 }: PipelineNavProps) {
   return (
     <div className="sticky top-0 z-30 bg-white border-b border-[var(--border)]">
-      <div className="flex items-center gap-0 max-w-4xl mx-auto">
+      <div className="flex items-center gap-0 max-w-4xl mx-auto overflow-x-auto scrollbar-hide">
         {stages.map((stage, i) => {
           const isActive = activeSection === stage.key;
           const isReady = stage.status === "passed" || stage.status === "failed";
 
           return (
-            <div key={stage.key} className="flex items-center flex-1 last:flex-none">
+            <div key={stage.key} className="flex items-center flex-1 last:flex-none shrink-0">
               <button
                 onClick={() => onNavigate?.(stage.key)}
                 disabled={stage.status === "pending"}

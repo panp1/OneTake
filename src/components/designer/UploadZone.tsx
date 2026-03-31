@@ -91,12 +91,25 @@ export default function UploadZone({
   }
 
   async function handleSubmitFinals() {
+    if (uploads.length === 0) {
+      toast.error("Upload at least one file before submitting finals");
+      return;
+    }
     setSubmitting(true);
     try {
+      const res = await fetch(`/api/designer/${requestId}/submit-finals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to submit finals");
+      }
+      toast.success("Finals submitted successfully!");
       onSubmitFinals();
-      toast.success("Finals submitted successfully");
-    } catch {
-      toast.error("Failed to submit finals");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to submit finals");
     } finally {
       setSubmitting(false);
     }
@@ -213,22 +226,21 @@ export default function UploadZone({
       )}
 
       {/* Submit Finals */}
-      {uploads.length > 0 && (
-        <div className="flex justify-center pt-4">
-          <button
-            onClick={handleSubmitFinals}
-            disabled={submitting}
-            className="btn-success text-sm"
-          >
-            {submitting ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Send size={16} />
-            )}
-            Submit Finals to Steven
-          </button>
-        </div>
-      )}
+      <div className="flex justify-center pt-4">
+        <button
+          onClick={handleSubmitFinals}
+          disabled={submitting || uploads.length === 0}
+          className="btn-success text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          title={uploads.length === 0 ? "Upload at least one file first" : undefined}
+        >
+          {submitting ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <Send size={16} />
+          )}
+          {submitting ? "Submitting..." : "Submit Finals to Steven"}
+        </button>
+      </div>
     </div>
   );
 }

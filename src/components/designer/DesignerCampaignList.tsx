@@ -89,7 +89,7 @@ export default function DesignerCampaignList() {
   }
 
   return (
-    <div className="max-w-[1400px] mx-auto px-6 md:px-10 lg:px-12 xl:px-16 py-8 space-y-6">
+    <div className="max-w-[1400px] mx-auto px-4 pl-14 lg:pl-6 md:pr-8 lg:px-12 xl:px-16 py-4 md:py-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>

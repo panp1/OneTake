@@ -77,7 +77,7 @@ export default function PipelineProgress({ runs }: PipelineProgressProps) {
   });
 
   return (
-    <div className="flex items-center w-full">
+    <div className="flex items-center w-full overflow-x-auto scrollbar-hide">
       {stages.map((stage, idx) => (
         <div key={stage.stage} className="flex items-center flex-1 last:flex-none">
           <div className="flex flex-col items-center">
