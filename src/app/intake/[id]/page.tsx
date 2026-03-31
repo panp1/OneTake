@@ -33,6 +33,7 @@ import RefineModal from "@/components/RefineModal";
 import DesignElementPreview from "@/components/DesignElementPreview";
 import MockupPreview from "@/components/MockupPreview";
 import RecruiterDetailView from "@/components/RecruiterDetailView";
+import { extractField, formatLabel } from "@/lib/format";
 import PipelineNav from "@/components/PipelineNav";
 import type { PipelineStage } from "@/components/PipelineNav";
 import LiveSection from "@/components/LiveSection";
@@ -654,10 +655,10 @@ export default function IntakeDetailPage({
                     <AssetCard
                       key={asset.id}
                       imageUrl={asset.blob_url || ''}
-                      title={(asset.content as Record<string, unknown>)?.actor_name as string || 'Character'}
-                      subtitle={(asset.content as Record<string, unknown>)?.outfit_key as string || asset.format}
+                      title={extractField(asset.content, "actor_name", "Character")}
+                      subtitle={extractField(asset.content, "outfit_key", asset.format).replace(/_/g, " ")}
                       badges={[
-                        { label: (asset.content as Record<string, unknown>)?.composition as string || '', color: 'gray' },
+                        { label: extractField(asset.content, "composition", ""), color: 'gray' },
                         {
                           label: `${((asset.evaluation_score || 0) * 100).toFixed(0)}%`,
                           color: (asset.evaluation_score || 0) >= 0.85 ? 'green' : (asset.evaluation_score || 0) >= 0.70 ? 'yellow' : 'red',
@@ -675,8 +676,8 @@ export default function IntakeDetailPage({
                     <AssetCard
                       key={`elem-${asset.id}`}
                       imageUrl=""
-                      title={(asset.content as Record<string, unknown>)?.template as string || 'Template'}
-                      subtitle={(asset.copy_data as Record<string, unknown>)?.headline as string || (asset.content as Record<string, unknown>)?.headline as string || ''}
+                      title={extractField(asset.content, "template", "Template")}
+                      subtitle={extractField(asset.copy_data, "headline", extractField(asset.content, "headline", ""))}
                       badges={[
                         { label: asset.platform, color: 'blue' },
                         {
@@ -691,10 +692,10 @@ export default function IntakeDetailPage({
                       onRefine={() => setRefineAsset(asset)}
                       customPreview={
                         <DesignElementPreview
-                          template={(asset.content as Record<string, unknown>)?.template as string}
-                          headline={(asset.copy_data as Record<string, unknown>)?.headline as string || (asset.content as Record<string, unknown>)?.headline as string}
-                          subheadline={(asset.copy_data as Record<string, unknown>)?.subheadline as string || (asset.content as Record<string, unknown>)?.subheadline as string}
-                          ctaText={(asset.copy_data as Record<string, unknown>)?.cta_text as string || (asset.content as Record<string, unknown>)?.cta_text as string}
+                          template={extractField(asset.content, "template")}
+                          headline={extractField(asset.copy_data, "headline", extractField(asset.content, "headline"))}
+                          subheadline={extractField(asset.copy_data, "subheadline", extractField(asset.content, "subheadline"))}
+                          ctaText={extractField(asset.copy_data, "cta_text", extractField(asset.content, "cta_text"))}
                           platform={asset.platform}
                         />
                       }
@@ -705,7 +706,7 @@ export default function IntakeDetailPage({
                     <AssetCard
                       key={asset.id}
                       imageUrl={asset.blob_url || ''}
-                      title={(asset.content as Record<string, unknown>)?.template as string || asset.platform}
+                      title={extractField(asset.content, "template", asset.platform)}
                       subtitle={asset.format}
                       badges={[
                         { label: asset.platform, color: 'blue' },

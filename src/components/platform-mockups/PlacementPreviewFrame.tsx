@@ -67,9 +67,19 @@ function GenericPreview({ creative, className = '' }: PlacementPreviewFrameProps
         <p className="text-xs text-white/40 mb-2 font-medium uppercase tracking-wider">
           Creative Preview
         </p>
-        <pre className="text-xs text-white/60 bg-[#0A0A0A] rounded-[10px] p-3 overflow-auto max-h-[300px] font-mono leading-relaxed">
-          {JSON.stringify(creative, null, 2)}
-        </pre>
+        <div className="text-xs text-white/60 bg-[#0A0A0A] rounded-[10px] p-3 overflow-auto max-h-[300px] space-y-1">
+          {Object.entries(creative).map(([key, val]) => {
+            if (!val || key === "id") return null;
+            const display = typeof val === "object" ? null : String(val);
+            if (!display) return null;
+            return (
+              <div key={key}>
+                <span className="text-white/30 text-[10px] uppercase">{key.replace(/_/g, " ")}: </span>
+                <span className="text-white/70">{display}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
