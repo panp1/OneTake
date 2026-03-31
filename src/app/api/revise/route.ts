@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { getDb } from '@/lib/db';
+import { convertAndUploadAvif } from '@/lib/image-utils';
 
 /**
  * Smart Revision API — routes revision requests to the correct model:
@@ -151,11 +152,18 @@ Return ONLY the revised text, nothing else.`;
           });
         }
 
-        // If complete, get the output URL
-        const editedUrl = editData.outputs?.[0];
-        if (!editedUrl) {
+        // If complete, get the output URL and convert to AVIF
+        const rawEditedUrl = editData.outputs?.[0];
+        if (!rawEditedUrl) {
           return Response.json({ error: 'No output from Seedream' }, { status: 502 });
         }
+
+        // Convert to AVIF for storage optimization (50-70% smaller)
+        const editedUrl = await convertAndUploadAvif(
+          rawEditedUrl,
+          `revised_${asset_id}_${Date.now()}`,
+          { folder: `requests/${asset.request_id}/revised`, quality: 65 }
+        );
 
         // Update the asset blob_url in Neon
         await sql`

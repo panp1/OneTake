@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { getDb } from '@/lib/db';
+import { convertAndUploadAvif } from '@/lib/image-utils';
 
 export async function POST(request: Request) {
   const { userId } = await auth();
@@ -14,8 +15,15 @@ export async function POST(request: Request) {
   const sql = getDb();
 
   try {
+    // Convert to AVIF for storage optimization before saving
+    const avifUrl = await convertAndUploadAvif(
+      new_blob_url,
+      `designer_${asset_id}_${Date.now()}`,
+      { folder: `requests/revised`, quality: 65 }
+    );
+
     await sql`
-      UPDATE generated_assets SET blob_url = ${new_blob_url}
+      UPDATE generated_assets SET blob_url = ${avifUrl}
       WHERE id = ${asset_id}::uuid
     `;
 
