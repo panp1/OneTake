@@ -282,6 +282,99 @@ function ChannelMatrix({ channels, personas }: { channels: Record<string, any>; 
   );
 }
 
+const PLATFORM_TARGETING: Record<string, { label: string; hyper: string; hot: string; broad: string }> = {
+  Instagram: { label: "Meta (IG)", hyper: "Interest targeting", hot: "Stacked interests", broad: "Broad demographics" },
+  Facebook: { label: "Meta (FB)", hyper: "Interest targeting", hot: "Stacked interests", broad: "Broad demographics" },
+  TikTok: { label: "TikTok", hyper: "Interest targeting", hot: "Behavior + interest", broad: "Broad age/geo" },
+  LinkedIn: { label: "LinkedIn", hyper: "Job title + skill", hot: "Industry + seniority", broad: "Company size" },
+  Telegram: { label: "Telegram", hyper: "Channel targeting", hot: "Group interests", broad: "Broad geo" },
+  YouTube: { label: "YouTube", hyper: "In-market + affinity", hot: "Custom intent", broad: "Demographics" },
+  Twitter: { label: "X (Twitter)", hyper: "Keyword + follower LLA", hot: "Conversation topics", broad: "Interest categories" },
+  X: { label: "X (Twitter)", hyper: "Keyword + follower LLA", hot: "Conversation topics", broad: "Interest categories" },
+  Snapchat: { label: "Snapchat", hyper: "Lifestyle Categories", hot: "Stacked interests", broad: "Demographics + geo" },
+  WhatsApp: { label: "WhatsApp", hyper: "Via Meta Ads", hot: "Via Meta Ads", broad: "Via Meta Ads" },
+  WeChat: { label: "WeChat", hyper: "Interest + behavior", hot: "Stacked tags", broad: "Demographics" },
+  Pinterest: { label: "Pinterest", hyper: "Interest + keyword", hot: "Actalike targeting", broad: "Broad interests" },
+};
+
+function TargetingTable({ personas, channels }: { personas: any[]; channels: Record<string, any> }) {
+  const allChannels = [...new Set([...(channels.primary || []), ...(channels.secondary || [])])];
+  if (allChannels.length === 0 || personas.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      {personas.map((p: any, pi: number) => {
+        const tp = p.targeting_profile || {};
+        const interests = tp.interests || {};
+        const demo = tp.demographics || {};
+        const colors = ["#6B21A8", "#0693E3", "#E91E8C", "#22c55e"];
+        const color = colors[pi % colors.length];
+        const personaChannels = (channels.per_persona?.[p.archetype_key] || allChannels) as string[];
+
+        return (
+          <div key={pi} className="border border-[var(--border)] rounded-xl overflow-hidden">
+            {/* Persona header */}
+            <div className="px-4 py-2.5 bg-[var(--muted)] flex items-center justify-between" style={{ borderLeft: `3px solid ${color}` }}>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-semibold text-[var(--foreground)]">
+                  {p.persona_name || p.name || p.archetype_key?.replace(/_/g, " ")}
+                </span>
+                <span className="text-[11px] text-[var(--muted-foreground)]">
+                  {demo.age_min && demo.age_max ? `${demo.age_min}-${demo.age_max}` : p.age_range || ""}
+                  {demo.occupation ? ` · ${demo.occupation}` : ""}
+                </span>
+              </div>
+              <div className="flex gap-1">
+                {(interests.hyper || []).slice(0, 3).map((h: string, i: number) => (
+                  <span key={i} className="px-1.5 py-0.5 rounded text-[9px] font-medium" style={{ backgroundColor: `${color}08`, color, border: `1px solid ${color}15` }}>
+                    {h}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Platform routing table */}
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="border-b border-[var(--border)]">
+                  <th className="text-left py-1.5 px-4 text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Platform</th>
+                  <th className="text-left py-1.5 px-3 text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Hyper Targeting</th>
+                  <th className="text-left py-1.5 px-3 text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Hot Targeting</th>
+                  <th className="text-left py-1.5 px-3 text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Broad Targeting</th>
+                  <th className="text-left py-1.5 px-3 text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Interests Applied</th>
+                </tr>
+              </thead>
+              <tbody>
+                {personaChannels.map((ch: string) => {
+                  const platform = PLATFORM_TARGETING[ch] || { label: ch, hyper: "Interest targeting", hot: "Stacked interests", broad: "Broad" };
+                  return (
+                    <tr key={ch} className="border-b border-[var(--border)] last:border-0">
+                      <td className="py-2 px-4 font-medium text-[var(--foreground)]">{platform.label}</td>
+                      <td className="py-2 px-3 text-[var(--muted-foreground)]">{platform.hyper}</td>
+                      <td className="py-2 px-3 text-[var(--muted-foreground)]">{platform.hot}</td>
+                      <td className="py-2 px-3 text-[var(--muted-foreground)]">{platform.broad}</td>
+                      <td className="py-2 px-3">
+                        <div className="flex flex-wrap gap-0.5">
+                          {(interests.hyper || []).slice(0, 2).map((h: string, i: number) => (
+                            <span key={`h${i}`} className="px-1 py-0.5 bg-[#6B21A808] text-[#6B21A8] rounded text-[9px] border border-[#6B21A815]">{h}</span>
+                          ))}
+                          {(interests.hot || []).slice(0, 1).map((h: string, i: number) => (
+                            <span key={`o${i}`} className="px-1 py-0.5 bg-[#f59e0b08] text-[#f59e0b] rounded text-[9px] border border-[#f59e0b15]">{h}</span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function BriefExecutive({
   briefData,
   channelResearch,
@@ -409,6 +502,20 @@ export default function BriefExecutive({
                 {channels.rationale}
               </p>
             )}
+          </div>
+          <Divider />
+        </>
+      )}
+
+      {/* Platform Targeting & Routing — per persona, per platform */}
+      {personas.length > 0 && (channels.primary?.length > 0 || channels.secondary?.length > 0) && (
+        <>
+          <div>
+            <SectionHeader icon={Target} title="Platform Targeting & Routing" color="#f59e0b" />
+            <p className="text-[12px] text-[var(--muted-foreground)] mb-3">
+              How each persona&apos;s universal targeting profile translates to platform-specific ad targeting methods.
+            </p>
+            <TargetingTable personas={personas} channels={channels} />
           </div>
           <Divider />
         </>
