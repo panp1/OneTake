@@ -14,6 +14,7 @@ import {
   Languages,
 } from "lucide-react";
 import EditableField from "@/components/EditableField";
+import MiniTabs from "@/components/MiniTabs";
 import { toReadable } from "@/lib/format";
 
 interface BriefExecutiveProps {
@@ -394,12 +395,15 @@ export default function BriefExecutive({
   const painPointsByPersona = targetAudience.pain_points_by_persona || {};
   const psychologyByPersona = targetAudience.psychology_hooks_by_persona || {};
 
-  return (
-    <div className="space-y-0">
+  // Build tab content
+  const hasPersonas = personas.length > 0 || Object.keys(perPersonaHooks).length > 0;
+  const hasChannels = channels.primary?.length > 0 || channels.secondary?.length > 0;
+  const hasCulture = guardrails.things_to_avoid?.length > 0 || guardrails.things_to_lean_into?.length > 0 || contentLang.primary;
 
-      {/* Campaign Objective */}
-      <div>
-        <SectionHeader icon={Target} title="Campaign Objective" color="#0693E3" />
+  return (
+    <div>
+      {/* Campaign Objective — always visible above tabs */}
+      <div className="mb-4">
         <EditableField
           value={briefData.campaign_objective || briefData.summary || ""}
           editable={editable}
@@ -409,203 +413,182 @@ export default function BriefExecutive({
         />
       </div>
 
-      <Divider />
+      {/* Mini Tabs */}
+      <MiniTabs
+        defaultTab="messaging"
+        tabs={[
+          // Tab 1: Messaging
+          {
+            key: "messaging",
+            label: "Messaging",
+            content: (
+              <div className="space-y-4">
+                {(messaging.primary_message || messaging.tone) ? (
+                  <>
+                    <div className="grid grid-cols-[1fr_auto] gap-8">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Primary Message</span>
+                        <EditableField
+                          value={messaging.primary_message || ""}
+                          editable={editable}
+                          onSave={(v) => onFieldSave?.("messaging_strategy.primary_message", v)}
+                          textClassName="text-[14px] leading-relaxed text-[var(--foreground)] font-medium"
+                        />
+                      </div>
+                      {messaging.tone && (
+                        <div className="text-right min-w-[100px]">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Tone</span>
+                          <Tag color="#6B21A8">{messaging.tone}</Tag>
+                        </div>
+                      )}
+                    </div>
+                    {messaging.value_propositions?.length > 0 && (
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Value Propositions</span>
+                        <BulletList items={messaging.value_propositions} color="#22c55e" />
+                      </div>
+                    )}
+                  </>
+                ) : Array.isArray(briefData.messaging_strategy) ? (
+                  <BulletList items={briefData.messaging_strategy} color="#6B21A8" />
+                ) : null}
+                {briefData.value_props && !messaging.value_propositions && (
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Value Propositions</span>
+                    <BulletList items={briefData.value_props} color="#E91E8C" />
+                  </div>
+                )}
+              </div>
+            ),
+          },
 
-      {/* Messaging Strategy */}
-      {(messaging.primary_message || messaging.tone) && (
-        <>
-          <div>
-            <SectionHeader icon={Megaphone} title="Messaging Strategy" color="#6B21A8" />
-            <div className="grid grid-cols-[1fr_auto] gap-8">
+          // Tab 2: Personas
+          ...(hasPersonas ? [{
+            key: "personas",
+            label: "Personas",
+            count: personas.length || Object.keys(perPersonaHooks).length,
+            content: (
+              <div className="space-y-4">
+                {personas.length > 0 ? (
+                  <PersonaTable personas={personas} targetAudience={targetAudience} />
+                ) : Object.keys(perPersonaHooks).length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {Object.entries(perPersonaHooks).map(([key, hook]) => (
+                      <PersonaHookCard
+                        key={key}
+                        personaKey={key}
+                        hook={String(hook)}
+                        motivations={motivationsByPersona[key] as string[]}
+                        painPoints={painPointsByPersona[key] as string[]}
+                        psychologyHook={psychologyByPersona[key] as string}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ),
+          }] : []),
+
+          // Tab 3: Channels
+          ...(hasChannels ? [{
+            key: "channels",
+            label: "Channels",
+            count: (channels.primary?.length || 0) + (channels.secondary?.length || 0),
+            content: (
+              <div className="space-y-5">
+                <ChannelMatrix channels={channels} personas={personas} />
+                {channels.rationale && (
+                  <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed italic">{channels.rationale}</p>
+                )}
+              </div>
+            ),
+          }] : []),
+
+          // Tab 4: Targeting
+          ...(hasChannels && personas.length > 0 ? [{
+            key: "targeting",
+            label: "Targeting",
+            content: (
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Primary Message</span>
-                <EditableField
-                  value={messaging.primary_message || ""}
-                  editable={editable}
-                  onSave={(v) => onFieldSave?.("messaging_strategy.primary_message", v)}
-                  textClassName="text-[14px] leading-relaxed text-[var(--foreground)] font-medium"
-                />
+                <p className="text-[12px] text-[var(--muted-foreground)] mb-3">
+                  How each persona&apos;s targeting profile translates to platform-specific ad methods.
+                </p>
+                <TargetingTable personas={personas} channels={channels} />
               </div>
-              {messaging.tone && (
-                <div className="text-right min-w-[120px]">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Tone</span>
-                  <Tag color="#6B21A8">{messaging.tone}</Tag>
-                </div>
-              )}
-            </div>
-          </div>
+            ),
+          }] : []),
 
-          {/* Value Propositions */}
-          {messaging.value_propositions && messaging.value_propositions.length > 0 && (
-            <div className="mt-4">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Value Propositions</span>
-              <BulletList items={messaging.value_propositions} color="#22c55e" />
-            </div>
-          )}
-
-          <Divider />
-        </>
-      )}
-
-      {/* Fallback: simple messaging array */}
-      {!messaging.primary_message && Array.isArray(briefData.messaging_strategy) && (
-        <>
-          <div>
-            <SectionHeader icon={Megaphone} title="Messaging Strategy" color="#6B21A8" />
-            <BulletList items={briefData.messaging_strategy} color="#6B21A8" />
-          </div>
-          <Divider />
-        </>
-      )}
-
-      {/* Persona Demographics & Psychographics Table */}
-      {personas.length > 0 && (
-        <>
-          <div>
-            <SectionHeader icon={Users} title="Persona Overview" color="#E91E8C" />
-            <PersonaTable personas={personas} targetAudience={targetAudience} />
-          </div>
-          <Divider />
-        </>
-      )}
-
-      {/* Per-Persona Hooks (only if no persona table data) */}
-      {personas.length === 0 && Object.keys(perPersonaHooks).length > 0 && (
-        <>
-          <div>
-            <SectionHeader icon={Users} title="Persona Messaging Hooks" color="#E91E8C" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {Object.entries(perPersonaHooks).map(([key, hook]) => (
-                <PersonaHookCard
-                  key={key}
-                  personaKey={key}
-                  hook={String(hook)}
-                  motivations={motivationsByPersona[key] as string[]}
-                  painPoints={painPointsByPersona[key] as string[]}
-                  psychologyHook={psychologyByPersona[key] as string}
-                />
-              ))}
-            </div>
-          </div>
-          <Divider />
-        </>
-      )}
-
-      {/* Channel Strategy Matrix */}
-      {(channels.primary?.length > 0 || channels.secondary?.length > 0) && (
-        <>
-          <div>
-            <SectionHeader icon={Globe} title="Channel Strategy" color="#0693E3" />
-            <ChannelMatrix channels={channels} personas={personas} />
-            {channels.rationale && (
-              <p className="text-[12px] text-[var(--muted-foreground)] mt-3 leading-relaxed italic">
-                {channels.rationale}
-              </p>
-            )}
-          </div>
-          <Divider />
-        </>
-      )}
-
-      {/* Platform Targeting & Routing — per persona, per platform */}
-      {personas.length > 0 && (channels.primary?.length > 0 || channels.secondary?.length > 0) && (
-        <>
-          <div>
-            <SectionHeader icon={Target} title="Platform Targeting & Routing" color="#f59e0b" />
-            <p className="text-[12px] text-[var(--muted-foreground)] mb-3">
-              How each persona&apos;s universal targeting profile translates to platform-specific ad targeting methods.
-            </p>
-            <TargetingTable personas={personas} channels={channels} />
-          </div>
-          <Divider />
-        </>
-      )}
-
-      {/* Language Configuration */}
-      {(contentLang.primary || contentLang.dialect_notes) && (
-        <>
-          <div>
-            <SectionHeader icon={Languages} title="Language & Tone" color="#9B51E0" />
-            <div className="grid grid-cols-4 gap-4">
-              {contentLang.primary && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Primary</span>
-                  <span className="text-[13px] font-medium text-[var(--foreground)]">{contentLang.primary}</span>
-                </div>
-              )}
-              {contentLang.secondary && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Secondary</span>
-                  <span className="text-[13px] text-[var(--foreground)]">{contentLang.secondary}</span>
-                </div>
-              )}
-              {contentLang.formality && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Formality</span>
-                  <Tag color="#9B51E0">{contentLang.formality}</Tag>
-                </div>
-              )}
-              {contentLang.dialect_notes && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Dialect Notes</span>
-                  <span className="text-[12px] text-[var(--muted-foreground)]">{contentLang.dialect_notes}</span>
-                </div>
-              )}
-            </div>
-          </div>
-          <Divider />
-        </>
-      )}
-
-      {/* Cultural Guardrails */}
-      {(guardrails.things_to_avoid?.length > 0 || guardrails.things_to_lean_into?.length > 0) && (
-        <>
-          <div>
-            <SectionHeader icon={Shield} title="Cultural Guardrails" color="#f59e0b" />
-            <div className="grid grid-cols-2 gap-8">
-              {guardrails.things_to_lean_into?.length > 0 && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#22c55e] block mb-2">
-                    <Sparkles size={10} className="inline mr-1" />
-                    Lean Into
-                  </span>
-                  <BulletList items={guardrails.things_to_lean_into} color="#22c55e" />
-                </div>
-              )}
-              {guardrails.things_to_avoid?.length > 0 && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#ef4444] block mb-2">
-                    <AlertTriangle size={10} className="inline mr-1" />
-                    Avoid
-                  </span>
-                  <BulletList items={guardrails.things_to_avoid} color="#ef4444" />
-                </div>
-              )}
-            </div>
-            {guardrails.trust_signals?.length > 0 && (
-              <div className="mt-4">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1.5">Trust Signals</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {guardrails.trust_signals.map((s: string, i: number) => (
-                    <Tag key={i} color="#22c55e">{s}</Tag>
-                  ))}
-                </div>
+          // Tab 5: Culture & Language
+          ...(hasCulture ? [{
+            key: "culture",
+            label: "Culture & Language",
+            content: (
+              <div className="space-y-5">
+                {(contentLang.primary || contentLang.dialect_notes) && (
+                  <div>
+                    <SectionHeader icon={Languages} title="Language Configuration" color="#9B51E0" />
+                    <div className="grid grid-cols-4 gap-4">
+                      {contentLang.primary && (
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Primary</span>
+                          <span className="text-[13px] font-medium text-[var(--foreground)]">{contentLang.primary}</span>
+                        </div>
+                      )}
+                      {contentLang.secondary && (
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Secondary</span>
+                          <span className="text-[13px] text-[var(--foreground)]">{contentLang.secondary}</span>
+                        </div>
+                      )}
+                      {contentLang.formality && (
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Formality</span>
+                          <Tag color="#9B51E0">{contentLang.formality}</Tag>
+                        </div>
+                      )}
+                      {contentLang.dialect_notes && (
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Dialect</span>
+                          <span className="text-[12px] text-[var(--muted-foreground)]">{contentLang.dialect_notes}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {(guardrails.things_to_avoid?.length > 0 || guardrails.things_to_lean_into?.length > 0) && (
+                  <div>
+                    <SectionHeader icon={Shield} title="Cultural Guardrails" color="#f59e0b" />
+                    <div className="grid grid-cols-2 gap-8">
+                      {guardrails.things_to_lean_into?.length > 0 && (
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#22c55e] block mb-2">Lean Into</span>
+                          <BulletList items={guardrails.things_to_lean_into} color="#22c55e" />
+                        </div>
+                      )}
+                      {guardrails.things_to_avoid?.length > 0 && (
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#ef4444] block mb-2">Avoid</span>
+                          <BulletList items={guardrails.things_to_avoid} color="#ef4444" />
+                        </div>
+                      )}
+                    </div>
+                    {guardrails.trust_signals?.length > 0 && (
+                      <div className="mt-4">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1.5">Trust Signals</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {guardrails.trust_signals.map((s: string, i: number) => (
+                            <Tag key={i} color="#22c55e">{s}</Tag>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Fallback: value_props if no structured messaging */}
-      {briefData.value_props && !messaging.value_propositions && (
-        <>
-          <Divider />
-          <div>
-            <SectionHeader icon={Heart} title="Value Propositions" color="#E91E8C" />
-            <BulletList items={briefData.value_props} color="#E91E8C" />
-          </div>
-        </>
-      )}
+            ),
+          }] : []),
+        ]}
+      />
     </div>
   );
 }
