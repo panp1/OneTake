@@ -1,8 +1,9 @@
 import { auth } from '@clerk/nextjs/server';
-import { sql } from '@/lib/db';
+import { getDb } from '@/lib/db';
 
 export async function GET() {
   const { userId } = await auth();
+  const sql = getDb();
   if (!userId) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -29,6 +30,8 @@ export async function PATCH(request: Request) {
   if (!userId) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const sql = getDb();
 
   try {
     const body = await request.json();
