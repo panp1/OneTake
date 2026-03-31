@@ -51,6 +51,9 @@ export default function Dashboard() {
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data?.role) setRole(data.role as UserRole); })
       .catch(() => {});
+
+    // Auto-collapse sidebar on dashboard for more content space
+    localStorage.setItem("nova-sidebar-collapsed", "true");
   }, []);
 
   useEffect(() => {
@@ -65,6 +68,14 @@ export default function Dashboard() {
         if (!res.ok) throw new Error("Failed to load requests");
         const data = await res.json();
         setRequests(data);
+
+        // Auto-select the most recent generating or generated campaign
+        if (!selectedId && data.length > 0) {
+          const generating = data.find((r: IntakeRequest) => r.status === "generating");
+          const review = data.find((r: IntakeRequest) => r.status === "review");
+          const latest = generating || review || data[0];
+          if (latest) setSelectedId(latest.id);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
       } finally {

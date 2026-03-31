@@ -123,7 +123,7 @@ export default function CampaignList({
   }, [requests]);
 
   return (
-    <div className="flex flex-col h-full bg-white border-r border-[#e5e5e5]">
+    <div className="flex flex-col h-full bg-white border-r-2 border-[#e5e5e5] shadow-[2px_0_8px_rgba(0,0,0,0.04)]">
       {/* Header */}
       <div className="px-4 pt-5 pb-3 border-b border-[#e5e5e5]">
         <div className="flex items-center gap-2 mb-3">
