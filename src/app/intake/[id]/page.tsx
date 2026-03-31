@@ -30,6 +30,7 @@ import AssetCategoryTabs from "@/components/AssetCategoryTabs";
 import AssetCard from "@/components/AssetCard";
 import BulkActions from "@/components/BulkActions";
 import RefineModal from "@/components/RefineModal";
+import RevisionModal from "@/components/RevisionModal";
 import DesignElementPreview from "@/components/DesignElementPreview";
 import MockupPreview from "@/components/MockupPreview";
 import RecruiterDetailView from "@/components/RecruiterDetailView";
@@ -783,14 +784,12 @@ export default function IntakeDetailPage({
           </div>
         )}
 
-        {/* Refine Modal */}
+        {/* Smart Revision Modal — routes to Seedream (image) / Gemma (copy) / GLM-5 (creative) */}
         {refineAsset && (
-          <RefineModal
+          <RevisionModal
             asset={refineAsset}
-            requestId={request.id}
-            isOpen={!!refineAsset}
             onClose={() => setRefineAsset(null)}
-            onSubmitted={() => { setRefineAsset(null); loadData(); }}
+            onRevisionComplete={() => { setRefineAsset(null); loadData(); }}
           />
         )}
       </div>
