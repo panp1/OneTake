@@ -64,13 +64,32 @@ function Tag({ children, color = "#6B21A8" }: { children: React.ReactNode; color
   );
 }
 
-function BulletList({ items, color = "#6B21A8" }: { items: string[]; color?: string }) {
+function BulletList({
+  items,
+  color = "#6B21A8",
+  editable = false,
+  onItemSave,
+}: {
+  items: string[];
+  color?: string;
+  editable?: boolean;
+  onItemSave?: (index: number, value: string) => void;
+}) {
   return (
-    <ul className="space-y-1.5">
+    <ul className="space-y-1">
       {items.map((item, i) => (
-        <li key={i} className="flex items-start gap-2.5 text-[13px] text-[var(--foreground)] leading-relaxed">
+        <li key={i} className="flex items-start gap-2.5">
           <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[7px]" style={{ backgroundColor: color }} />
-          {item}
+          {editable ? (
+            <EditableField
+              value={item}
+              editable
+              onSave={(v) => onItemSave?.(i, v)}
+              textClassName="text-[13px] leading-relaxed text-[var(--foreground)]"
+            />
+          ) : (
+            <span className="text-[13px] text-[var(--foreground)] leading-relaxed">{item}</span>
+          )}
         </li>
       ))}
     </ul>
@@ -83,12 +102,16 @@ function PersonaHookCard({
   motivations,
   painPoints,
   psychologyHook,
+  editable = false,
+  onSave,
 }: {
   personaKey: string;
   hook?: string;
   motivations?: string[];
   painPoints?: string[];
   psychologyHook?: string;
+  editable?: boolean;
+  onSave?: (field: string, value: string) => void;
 }) {
   const colors: Record<string, string> = {
     0: "#6B21A8",
@@ -104,9 +127,18 @@ function PersonaHookCard({
         {personaKey.replace(/_/g, " ")}
       </h4>
       {hook && (
-        <p className="text-[13px] text-[var(--foreground)] font-medium leading-relaxed">
-          &ldquo;{hook}&rdquo;
-        </p>
+        editable ? (
+          <EditableField
+            value={hook}
+            editable
+            onSave={(v) => onSave?.(`${personaKey}_hook`, v)}
+            textClassName="text-[13px] text-[var(--foreground)] font-medium leading-relaxed italic"
+          />
+        ) : (
+          <p className="text-[13px] text-[var(--foreground)] font-medium leading-relaxed">
+            &ldquo;{hook}&rdquo;
+          </p>
+        )
       )}
       {motivations && motivations.length > 0 && (
         <div>
@@ -445,17 +477,17 @@ export default function BriefExecutive({
                     {messaging.value_propositions?.length > 0 && (
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Value Propositions</span>
-                        <BulletList items={messaging.value_propositions} color="#22c55e" />
+                        <BulletList items={messaging.value_propositions} color="#22c55e" editable={editable} onItemSave={(i, v) => onFieldSave?.(`value_proposition_${i}`, v)} />
                       </div>
                     )}
                   </>
                 ) : Array.isArray(briefData.messaging_strategy) ? (
-                  <BulletList items={briefData.messaging_strategy} color="#6B21A8" />
+                  <BulletList items={briefData.messaging_strategy} color="#6B21A8" editable={editable} onItemSave={(i, v) => onFieldSave?.(`messaging_${i}`, v)} />
                 ) : null}
                 {briefData.value_props && !messaging.value_propositions && (
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Value Propositions</span>
-                    <BulletList items={briefData.value_props} color="#E91E8C" />
+                    <BulletList items={briefData.value_props} color="#E91E8C" editable={editable} onItemSave={(i, v) => onFieldSave?.(`value_prop_${i}`, v)} />
                   </div>
                 )}
               </div>
@@ -562,13 +594,13 @@ export default function BriefExecutive({
                       {guardrails.things_to_lean_into?.length > 0 && (
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[#22c55e] block mb-2">Lean Into</span>
-                          <BulletList items={guardrails.things_to_lean_into} color="#22c55e" />
+                          <BulletList items={guardrails.things_to_lean_into} color="#22c55e" editable={editable} onItemSave={(i, v) => onFieldSave?.(`lean_into_${i}`, v)} />
                         </div>
                       )}
                       {guardrails.things_to_avoid?.length > 0 && (
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[#ef4444] block mb-2">Avoid</span>
-                          <BulletList items={guardrails.things_to_avoid} color="#ef4444" />
+                          <BulletList items={guardrails.things_to_avoid} color="#ef4444" editable={editable} onItemSave={(i, v) => onFieldSave?.(`avoid_${i}`, v)} />
                         </div>
                       )}
                     </div>

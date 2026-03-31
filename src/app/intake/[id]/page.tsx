@@ -528,6 +528,10 @@ export default function IntakeDetailPage({
                   channelResearch={channelResearch as Record<string, any>}
                   culturalResearch={briefData?.cultural_research as Record<string, any> | undefined}
                   regions={request.target_regions as string[]}
+                  editable={role === "admin"}
+                  onFieldSave={(path, value) => {
+                    toast.success(`Updated research: ${path}`);
+                  }}
                 />
               </LiveSection>
             )}

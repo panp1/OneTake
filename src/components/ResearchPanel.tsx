@@ -12,12 +12,15 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import MiniTabs from "@/components/MiniTabs";
+import EditableField from "@/components/EditableField";
 import { toReadable } from "@/lib/format";
 
 interface ResearchPanelProps {
   channelResearch: Record<string, any>;
   culturalResearch?: Record<string, any>;
   regions?: string[];
+  editable?: boolean;
+  onFieldSave?: (path: string, value: string) => void;
 }
 
 function ResearchDimension({
@@ -30,6 +33,8 @@ function ResearchDimension({
   title: string;
   data: any;
   color?: string;
+  editable?: boolean;
+  onSave?: (value: string) => void;
 }) {
   if (!data) return null;
 
@@ -43,7 +48,17 @@ function ResearchDimension({
           </div>
           <h4 className="text-[12px] font-bold uppercase tracking-wider text-[var(--foreground)]">{title}</h4>
         </div>
-        <p className="text-[13px] text-[var(--foreground)] leading-relaxed">{data}</p>
+        {editable ? (
+          <EditableField
+            value={data}
+            editable
+            onSave={(v) => onSave?.(v)}
+            textClassName="text-[13px] text-[var(--foreground)] leading-relaxed"
+            multiline
+          />
+        ) : (
+          <p className="text-[13px] text-[var(--foreground)] leading-relaxed">{data}</p>
+        )}
       </div>
     );
   }
@@ -171,6 +186,8 @@ export default function ResearchPanel({
   channelResearch,
   culturalResearch,
   regions = [],
+  editable = false,
+  onFieldSave,
 }: ResearchPanelProps) {
   // Merge cultural research from brief and progress data
   const research = culturalResearch || channelResearch || {};
