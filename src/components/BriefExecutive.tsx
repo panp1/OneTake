@@ -134,6 +134,154 @@ function PersonaHookCard({
   );
 }
 
+function PersonaTable({ personas, targetAudience }: { personas: any[]; targetAudience: Record<string, any> }) {
+  if (!personas || personas.length === 0) return null;
+
+  const motivations = targetAudience.motivations_by_persona || {};
+  const painPoints = targetAudience.pain_points_by_persona || {};
+  const psychology = targetAudience.psychology_hooks_by_persona || {};
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-[12px]">
+        <thead>
+          <tr className="border-b-2 border-[var(--border)]">
+            <th className="text-left py-2 pr-4 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Persona</th>
+            <th className="text-left py-2 pr-4 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Age</th>
+            <th className="text-left py-2 pr-4 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Region</th>
+            <th className="text-left py-2 pr-4 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Motivations</th>
+            <th className="text-left py-2 pr-4 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Pain Points</th>
+            <th className="text-left py-2 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Psychology Hook</th>
+          </tr>
+        </thead>
+        <tbody>
+          {personas.map((p: any, i: number) => {
+            const key = p.archetype_key || `persona_${i + 1}`;
+            const colors = ["#6B21A8", "#0693E3", "#E91E8C", "#22c55e"];
+            const color = colors[i % colors.length];
+            const tp = p.targeting_profile?.demographics || {};
+
+            return (
+              <tr key={key} className="border-b border-[var(--border)] last:border-0">
+                <td className="py-3 pr-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                    <div>
+                      <span className="font-semibold text-[var(--foreground)] block">{p.persona_name || p.name || key.replace(/_/g, " ")}</span>
+                      <span className="text-[10px] text-[var(--muted-foreground)]">{p.archetype || tp.occupation || ""}</span>
+                    </div>
+                  </div>
+                </td>
+                <td className="py-3 pr-4 text-[var(--foreground)] whitespace-nowrap">
+                  {p.age_range || (tp.age_min && tp.age_max ? `${tp.age_min}-${tp.age_max}` : p.age || "—")}
+                </td>
+                <td className="py-3 pr-4 text-[var(--foreground)]">
+                  {p.region || "—"}
+                </td>
+                <td className="py-3 pr-4">
+                  <div className="flex flex-wrap gap-1">
+                    {((motivations[key] || p.motivations || []) as string[]).slice(0, 2).map((m: string, j: number) => (
+                      <span key={j} className="px-1.5 py-0.5 bg-[#22c55e08] text-[#22c55e] rounded text-[10px] border border-[#22c55e15]">{m}</span>
+                    ))}
+                  </div>
+                </td>
+                <td className="py-3 pr-4">
+                  <div className="flex flex-wrap gap-1">
+                    {((painPoints[key] || p.pain_points || []) as string[]).slice(0, 2).map((pp: string, j: number) => (
+                      <span key={j} className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[10px] border border-red-100">{pp}</span>
+                    ))}
+                  </div>
+                </td>
+                <td className="py-3">
+                  <span className="text-[11px] text-[var(--muted-foreground)] italic">
+                    {(psychology[key] || p.psychology_profile?.primary_bias || "—") as string}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ChannelMatrix({ channels, personas }: { channels: Record<string, any>; personas: any[] }) {
+  const perPersona = channels.per_persona || {};
+  const allChannels = new Set<string>();
+
+  // Collect all unique channels
+  (channels.primary || []).forEach((c: string) => allChannels.add(c));
+  (channels.secondary || []).forEach((c: string) => allChannels.add(c));
+  Object.values(perPersona).forEach((chs: any) => {
+    if (Array.isArray(chs)) chs.forEach((c: string) => allChannels.add(c));
+  });
+
+  if (allChannels.size === 0) return null;
+
+  const channelList = Array.from(allChannels);
+  const primarySet = new Set(channels.primary || []);
+  const secondarySet = new Set(channels.secondary || []);
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-[12px]">
+        <thead>
+          <tr className="border-b-2 border-[var(--border)]">
+            <th className="text-left py-2 pr-4 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Channel</th>
+            <th className="text-left py-2 pr-4 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Priority</th>
+            {personas.map((p: any, i: number) => (
+              <th key={i} className="text-center py-2 px-2 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                {p.persona_name || p.name || `P${i + 1}`}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {channelList.map((ch) => {
+            const isPrimary = primarySet.has(ch);
+            const isSecondary = secondarySet.has(ch);
+
+            return (
+              <tr key={ch} className="border-b border-[var(--border)] last:border-0">
+                <td className="py-2.5 pr-4 font-medium text-[var(--foreground)]">{ch}</td>
+                <td className="py-2.5 pr-4">
+                  {isPrimary ? (
+                    <span className="px-2 py-0.5 bg-[#0693E308] text-[#0693E3] rounded-md text-[10px] font-semibold border border-[#0693E315]">Primary</span>
+                  ) : isSecondary ? (
+                    <span className="px-2 py-0.5 bg-gray-50 text-gray-500 rounded-md text-[10px] font-semibold border border-gray-200">Secondary</span>
+                  ) : (
+                    <span className="text-[var(--muted-foreground)] text-[10px]">—</span>
+                  )}
+                </td>
+                {personas.map((p: any, i: number) => {
+                  const key = p.archetype_key || `persona_${i + 1}`;
+                  const personaChannels = perPersona[key] || [];
+                  const isActive = Array.isArray(personaChannels) && personaChannels.includes(ch);
+
+                  return (
+                    <td key={i} className="py-2.5 px-2 text-center">
+                      {isActive ? (
+                        <div className="w-5 h-5 rounded-full bg-[#0693E310] flex items-center justify-center mx-auto">
+                          <div className="w-2 h-2 rounded-full bg-[#0693E3]" />
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-[var(--muted)] flex items-center justify-center mx-auto">
+                          <div className="w-1 h-1 rounded-full bg-[var(--border)]" />
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function BriefExecutive({
   briefData,
   channelResearch,
@@ -217,13 +365,24 @@ export default function BriefExecutive({
         </>
       )}
 
-      {/* Per-Persona Hooks */}
-      {Object.keys(perPersonaHooks).length > 0 && (
+      {/* Persona Demographics & Psychographics Table */}
+      {personas.length > 0 && (
+        <>
+          <div>
+            <SectionHeader icon={Users} title="Persona Overview" color="#E91E8C" />
+            <PersonaTable personas={personas} targetAudience={targetAudience} />
+          </div>
+          <Divider />
+        </>
+      )}
+
+      {/* Per-Persona Hooks (only if no persona table data) */}
+      {personas.length === 0 && Object.keys(perPersonaHooks).length > 0 && (
         <>
           <div>
             <SectionHeader icon={Users} title="Persona Messaging Hooks" color="#E91E8C" />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {Object.entries(perPersonaHooks).map(([key, hook], i) => (
+              {Object.entries(perPersonaHooks).map(([key, hook]) => (
                 <PersonaHookCard
                   key={key}
                   personaKey={key}
@@ -239,33 +398,12 @@ export default function BriefExecutive({
         </>
       )}
 
-      {/* Channel Strategy */}
+      {/* Channel Strategy Matrix */}
       {(channels.primary?.length > 0 || channels.secondary?.length > 0) && (
         <>
           <div>
             <SectionHeader icon={Globe} title="Channel Strategy" color="#0693E3" />
-            <div className="grid grid-cols-2 gap-8">
-              {channels.primary?.length > 0 && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1.5">Primary Channels</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {channels.primary.map((ch: string, i: number) => (
-                      <Tag key={i} color="#0693E3">{ch}</Tag>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {channels.secondary?.length > 0 && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1.5">Secondary Channels</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {channels.secondary.map((ch: string, i: number) => (
-                      <Tag key={i} color="#737373">{ch}</Tag>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <ChannelMatrix channels={channels} personas={personas} />
             {channels.rationale && (
               <p className="text-[12px] text-[var(--muted-foreground)] mt-3 leading-relaxed italic">
                 {channels.rationale}
