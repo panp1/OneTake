@@ -1,5 +1,6 @@
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
+import NotificationFeed from "./NotificationFeed";
 
 export default function Header() {
   return (
@@ -18,7 +19,10 @@ export default function Header() {
           Recruitment Intake
         </span>
       </Link>
-      <UserButton />
+      <div className="flex items-center gap-2">
+        <NotificationFeed />
+        <UserButton />
+      </div>
     </header>
   );
 }
