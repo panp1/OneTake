@@ -213,21 +213,18 @@ export default function CampaignPreviewPanel({ requestId }: CampaignPreviewPanel
               Latest Creatives
             </span>
             <div className="grid grid-cols-3 gap-2">
-              {composedAssets.slice(0, 6).map((asset: any, i: number) => (
+              {composedAssets.slice(0, 6).map((asset: Record<string, any>, i: number) => (
                 <div
                   key={asset.id || i}
-                  className="rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--muted)]"
+                  className="rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--muted)] relative"
                   style={{ aspectRatio: "1" }}
                 >
                   {asset.blob_url ? (
-                    <ImageLoader
+                    <img
                       src={asset.blob_url}
                       alt={asset.content?.overlay_headline || "Creative"}
-                      width={200}
-                      height={200}
-                      gridSize={8}
-                      cellGap={1}
-                      loadingDelay={300}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -252,21 +249,18 @@ export default function CampaignPreviewPanel({ requestId }: CampaignPreviewPanel
               Generated Characters
             </span>
             <div className="grid grid-cols-4 gap-2">
-              {characters.slice(0, 8).map((asset: any, i: number) => (
+              {characters.slice(0, 8).map((asset: Record<string, any>, i: number) => (
                 <div
                   key={asset.id || i}
-                  className="rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--muted)]"
+                  className="rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--muted)] relative"
                   style={{ aspectRatio: "1" }}
                 >
                   {asset.blob_url ? (
-                    <ImageLoader
+                    <img
                       src={asset.blob_url}
                       alt="Character"
-                      width={120}
-                      height={120}
-                      gridSize={6}
-                      cellGap={1}
-                      loadingDelay={200}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
