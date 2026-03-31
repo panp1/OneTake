@@ -32,6 +32,7 @@ import BulkActions from "@/components/BulkActions";
 import RefineModal from "@/components/RefineModal";
 import DesignElementPreview from "@/components/DesignElementPreview";
 import MockupPreview from "@/components/MockupPreview";
+import RecruiterDetailView from "@/components/RecruiterDetailView";
 import type {
   IntakeRequest,
   PipelineRun,
@@ -39,6 +40,7 @@ import type {
   ActorProfile,
   GeneratedAsset,
   ComputeJob,
+  UserRole,
 } from "@/lib/types";
 
 interface DetailData {
@@ -66,6 +68,7 @@ export default function IntakeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const [role, setRole] = useState<UserRole | null>(null);
   const [data, setData] = useState<DetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +86,17 @@ export default function IntakeDetailPage({
     try {
       setLoading(true);
       setError(null);
+
+      // Fetch current user role (once — safe to re-fetch on reload)
+      try {
+        const meRes = await fetch("/api/auth/me");
+        if (meRes.ok) {
+          const me = await meRes.json();
+          setRole(me.role ?? null);
+        }
+      } catch {
+        // Role defaults to null → full view renders as fallback
+      }
 
       // Fetch request details
       const reqRes = await fetch(`/api/intake/${id}`);
@@ -277,6 +291,20 @@ export default function IntakeDetailPage({
   }
 
   const { request, brief, actors, assets, pipelineRuns } = data;
+
+  // Recruiter sees a simplified read-only view
+  if (role === "recruiter") {
+    return (
+      <AppShell>
+        <RecruiterDetailView
+          request={request}
+          assets={assets}
+          pipelineRuns={pipelineRuns}
+        />
+      </AppShell>
+    );
+  }
+
   const hasOutputs = assets.length > 0;
 
   // Split assets into categories
