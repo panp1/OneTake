@@ -16,7 +16,9 @@ import {
 } from "lucide-react";
 import MiniTabs from "@/components/MiniTabs";
 import MockupPreview from "@/components/MockupPreview";
+import EditableField from "@/components/EditableField";
 import { extractField } from "@/lib/format";
+import { toast } from "sonner";
 import type { GeneratedAsset } from "@/lib/types";
 
 interface AssetReviewPanelProps {
@@ -368,40 +370,67 @@ export default function AssetReviewPanel({
                                 </button>
                               )}
                             </div>
-                            {/* Ad Copy */}
-                            <div className="p-3 space-y-1.5">
-                              <div className="flex items-center gap-2">
+                            {/* Ad Copy — editable */}
+                            <div className="p-4 space-y-2.5">
+                              <div className="flex items-center gap-2 mb-1">
                                 <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-[#0693E308] text-[#0693E3] border border-[#0693E315]">
                                   {asset.platform?.replace(/_/g, " ")}
                                 </span>
                                 <span className="text-[10px] text-[var(--muted-foreground)]">
                                   {asset.format}
                                 </span>
+                                {asset.evaluation_score && (
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ml-auto ${
+                                    asset.evaluation_score >= 0.85 ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"
+                                  }`}>
+                                    {(asset.evaluation_score * 100).toFixed(0)}%
+                                  </span>
+                                )}
                               </div>
-                              {(content.overlay_headline || copyData.headline) && (
+                              {/* Headline */}
+                              <div>
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-0.5">Headline</span>
+                                <EditableField
+                                  value={content.overlay_headline || copyData.headline || ""}
+                                  editable
+                                  onSave={(v) => toast.success(`Headline updated: ${v.slice(0, 30)}...`)}
+                                  textClassName="text-[13px] font-semibold text-[var(--foreground)]"
+                                />
+                              </div>
+                              {/* Primary Text / Description */}
+                              <div>
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-0.5">Description</span>
+                                <EditableField
+                                  value={copyData.primary_text || copyData.description || content.overlay_sub || "No description yet"}
+                                  editable
+                                  onSave={(v) => toast.success("Description updated")}
+                                  textClassName="text-[12px] text-[var(--muted-foreground)] leading-relaxed"
+                                  multiline
+                                />
+                              </div>
+                              {/* Caption */}
+                              {(copyData.caption || copyData.primary_text) && (
                                 <div>
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Headline</span>
-                                  <p className="text-[12px] font-semibold text-[var(--foreground)]">
-                                    {content.overlay_headline || copyData.headline}
-                                  </p>
+                                  <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-0.5">Caption</span>
+                                  <EditableField
+                                    value={copyData.caption || copyData.primary_text || ""}
+                                    editable
+                                    onSave={(v) => toast.success("Caption updated")}
+                                    textClassName="text-[11px] text-[var(--muted-foreground)] leading-relaxed"
+                                    multiline
+                                  />
                                 </div>
                               )}
-                              {(copyData.primary_text || copyData.description) && (
-                                <div>
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Copy</span>
-                                  <p className="text-[11px] text-[var(--muted-foreground)] line-clamp-2">
-                                    {copyData.primary_text || copyData.description}
-                                  </p>
-                                </div>
-                              )}
-                              {(content.overlay_cta || copyData.cta) && (
-                                <div>
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">CTA</span>
-                                  <p className="text-[12px] font-medium text-[#6B21A8]">
-                                    {content.overlay_cta || copyData.cta}
-                                  </p>
-                                </div>
-                              )}
+                              {/* CTA */}
+                              <div>
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-0.5">CTA</span>
+                                <EditableField
+                                  value={content.overlay_cta || copyData.cta || "Apply Now"}
+                                  editable
+                                  onSave={(v) => toast.success(`CTA updated: ${v}`)}
+                                  textClassName="text-[12px] font-medium text-[#6B21A8]"
+                                />
+                              </div>
                             </div>
                           </div>
                         );

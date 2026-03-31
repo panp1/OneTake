@@ -206,7 +206,7 @@ export default function RevisionModal({
       <div className="fixed inset-0 bg-black/30 z-50" onClick={onClose} />
 
       {/* Modal */}
-      <div className="fixed right-0 top-0 bottom-0 w-[480px] bg-white z-50 shadow-2xl flex flex-col">
+      <div className="fixed right-0 top-0 bottom-0 w-[80vw] max-w-[1200px] bg-white z-50 shadow-2xl flex flex-col">
         {/* Header */}
         <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -222,10 +222,10 @@ export default function RevisionModal({
         </div>
 
         {/* Asset Preview */}
-        <div className="px-5 py-3 border-b border-[var(--border)] bg-[var(--muted)]">
-          <div className="flex gap-3">
+        <div className="px-5 py-4 border-b border-[var(--border)] bg-[var(--muted)]">
+          <div className="flex gap-4">
             {asset.blob_url && (
-              <div className="w-16 h-16 rounded-lg overflow-hidden bg-white flex-shrink-0">
+              <div className="w-48 h-48 rounded-xl overflow-hidden bg-white flex-shrink-0 border border-[var(--border)]">
                 <img
                   src={asset.blob_url}
                   alt="Asset"
@@ -233,17 +233,39 @@ export default function RevisionModal({
                 />
               </div>
             )}
-            <div className="min-w-0">
-              <p className="text-[12px] font-medium text-[var(--foreground)] truncate">
-                {extractField(asset.content, "actor_name", "") || extractField(asset.content, "overlay_headline", "") || asset.platform || "Asset"}
+            <div className="min-w-0 flex-1 py-1">
+              <p className="text-[14px] font-semibold text-[var(--foreground)]">
+                {extractField(asset.content, "actor_name", "") || extractField(asset.content, "overlay_headline", "") || asset.platform?.replace(/_/g, " ") || "Asset"}
               </p>
-              <p className="text-[10px] text-[var(--muted-foreground)]">
+              <p className="text-[12px] text-[var(--muted-foreground)] mt-0.5">
                 {asset.asset_type?.replace(/_/g, " ")} · {asset.platform?.replace(/_/g, " ")} · {asset.format}
               </p>
               {content.overlay_headline && (
-                <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5 italic truncate">
-                  &ldquo;{content.overlay_headline}&rdquo;
-                </p>
+                <div className="mt-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Headline</span>
+                  <p className="text-[13px] text-[var(--foreground)] font-medium">{content.overlay_headline}</p>
+                </div>
+              )}
+              {(content.overlay_sub || copyData.description || copyData.primary_text) && (
+                <div className="mt-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Description</span>
+                  <p className="text-[12px] text-[var(--muted-foreground)] line-clamp-2">{content.overlay_sub || copyData.description || copyData.primary_text}</p>
+                </div>
+              )}
+              {(content.overlay_cta || copyData.cta) && (
+                <div className="mt-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">CTA</span>
+                  <p className="text-[12px] font-medium text-[#6B21A8]">{content.overlay_cta || copyData.cta}</p>
+                </div>
+              )}
+              {asset.evaluation_score && (
+                <div className="mt-2">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                    asset.evaluation_score >= 0.85 ? "bg-green-50 text-green-700" : asset.evaluation_score >= 0.7 ? "bg-yellow-50 text-yellow-700" : "bg-red-50 text-red-700"
+                  }`}>
+                    {(asset.evaluation_score * 100).toFixed(0)}% quality score
+                  </span>
+                </div>
               )}
             </div>
           </div>
