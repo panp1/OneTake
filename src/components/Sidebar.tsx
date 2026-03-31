@@ -11,9 +11,11 @@ import {
   Users,
   Activity,
   FileCode,
+  Palette,
+  Wand2,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface NavItem {
   href: string;
@@ -21,20 +23,56 @@ interface NavItem {
   Icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
-const pipelineLinks: NavItem[] = [
-  { href: "/", label: "Dashboard", Icon: LayoutDashboard },
-  { href: "/intake/new", label: "New Request", Icon: PlusCircle },
-];
+const ROLE_NAV: Record<string, { title: string; links: NavItem[] }[]> = {
+  admin: [
+    {
+      title: "Pipeline",
+      links: [
+        { href: "/", label: "Dashboard", Icon: LayoutDashboard },
+        { href: "/intake/new", label: "New Request", Icon: PlusCircle },
+      ],
+    },
+    {
+      title: "Admin",
+      links: [
+        { href: "/admin", label: "Dashboard", Icon: Settings },
+        { href: "/admin/users", label: "Users", Icon: Users },
+        { href: "/admin/schemas", label: "Schemas", Icon: FileCode },
+        { href: "/admin/pipeline", label: "Workers", Icon: Activity },
+      ],
+    },
+  ],
+  recruiter: [
+    {
+      title: "Pipeline",
+      links: [
+        { href: "/", label: "Dashboard", Icon: LayoutDashboard },
+        { href: "/intake/new", label: "New Request", Icon: PlusCircle },
+      ],
+    },
+  ],
+  designer: [
+    {
+      title: "Design",
+      links: [
+        { href: "/designer", label: "My Campaigns", Icon: Palette },
+        { href: "/designer/editor", label: "Seedream Editor", Icon: Wand2 },
+      ],
+    },
+  ],
+  viewer: [
+    {
+      title: "Pipeline",
+      links: [{ href: "/", label: "Dashboard", Icon: LayoutDashboard }],
+    },
+  ],
+};
 
-const toolsLinks: NavItem[] = [
-  // Asset Library removed — page doesn't exist yet
-];
-
-const adminLinks: NavItem[] = [
-  { href: "/admin", label: "Dashboard", Icon: Settings },
-  { href: "/admin/users", label: "Users", Icon: Users },
-  { href: "/admin/schemas", label: "Schemas", Icon: FileCode },
-  { href: "/admin/pipeline", label: "Worker Monitor", Icon: Activity },
+const DEFAULT_NAV: { title: string; links: NavItem[] }[] = [
+  {
+    title: "Pipeline",
+    links: [{ href: "/", label: "Dashboard", Icon: LayoutDashboard }],
+  },
 ];
 
 function NavSection({
@@ -76,6 +114,20 @@ function NavSection({
 export default function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.role) setRole(data.role);
+      })
+      .catch(() => {
+        // leave role null — DEFAULT_NAV will be used
+      });
+  }, []);
+
+  const navSections = role ? (ROLE_NAV[role] ?? DEFAULT_NAV) : DEFAULT_NAV;
 
   return (
     <>
@@ -129,11 +181,14 @@ export default function Sidebar() {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 pt-5" onClick={() => setMobileOpen(false)}>
-          <NavSection title="Pipeline" links={pipelineLinks} pathname={pathname} />
-          {toolsLinks.length > 0 && (
-            <NavSection title="Tools" links={toolsLinks} pathname={pathname} />
-          )}
-          <NavSection title="Admin" links={adminLinks} pathname={pathname} />
+          {navSections.map((section) => (
+            <NavSection
+              key={section.title}
+              title={section.title}
+              links={section.links}
+              pathname={pathname}
+            />
+          ))}
         </nav>
 
         {/* Account */}
