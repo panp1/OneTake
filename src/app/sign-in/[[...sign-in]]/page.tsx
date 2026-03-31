@@ -9,60 +9,128 @@ const DarkVeil = dynamic(() => import("@/components/DarkVeil"), {
 
 export default function SignInPage() {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
-      {/* Cinematic WebGL background — OneForma purple/pink palette */}
-      <DarkVeil
-        hueShift={270}
-        noiseIntensity={0.015}
-        speed={0.25}
-        warpAmount={0.25}
-        resolutionScale={0.6}
-      />
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        width: "100vw",
+        height: "100vh",
+        overflow: "hidden",
+        background: "#09090b",
+      }}
+    >
+      {/* Full-screen WebGL aurora — OneForma purple */}
+      <div style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+        <DarkVeil
+          hueShift={270}
+          noiseIntensity={0.015}
+          speed={0.25}
+          warpAmount={0.25}
+          resolutionScale={0.6}
+        />
+      </div>
 
-      {/* Dark overlay for text readability */}
+      {/* Subtle dark overlay for depth */}
       <div
-        className="absolute inset-0 z-[1]"
         style={{
-          background:
-            "radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)",
+          position: "absolute",
+          inset: 0,
+          background: "radial-gradient(ellipse at center, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.55) 100%)",
+          zIndex: 1,
         }}
       />
 
-      {/* Content */}
-      <div className="relative z-[2] flex flex-col items-center gap-8">
-        {/* Logo + tagline */}
-        <div className="text-center">
+      {/* Centered content */}
+      <div
+        style={{
+          position: "relative",
+          zIndex: 2,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          height: "100%",
+          gap: "24px",
+        }}
+      >
+        {/* Logo */}
+        <div style={{ textAlign: "center" }}>
           <h1
-            className="text-4xl font-bold tracking-tight text-white"
-            style={{ fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif" }}
+            style={{
+              fontSize: "36px",
+              fontWeight: 700,
+              color: "white",
+              letterSpacing: "-0.5px",
+              fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
+              margin: 0,
+            }}
           >
             OneForma
           </h1>
-          <p className="mt-2 text-sm text-white/60">
+          <p
+            style={{
+              fontSize: "14px",
+              color: "rgba(255,255,255,0.5)",
+              marginTop: "6px",
+              fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
+            }}
+          >
             Creative OS — Recruitment Marketing Intelligence
           </p>
         </div>
 
-        {/* Clerk Sign-In card */}
+        {/* Clerk Sign-In — integrated with frosted glass */}
         <SignIn
           appearance={{
+            layout: {
+              socialButtonsPlacement: "top",
+              socialButtonsVariant: "blockButton",
+            },
             elements: {
-              rootBox: "w-full max-w-md",
-              card: "bg-white/95 backdrop-blur-xl shadow-2xl border border-white/20 rounded-2xl",
-              headerTitle: "text-[#1A1A1A] text-xl font-bold",
-              headerSubtitle: "text-[#737373]",
-              formButtonPrimary:
-                "bg-[#32373C] hover:bg-[#1A1A1A] text-white rounded-full font-semibold",
+              rootBox: "w-full max-w-[420px]",
+              cardBox: "shadow-none border-none",
+              card: "bg-white/[0.08] backdrop-blur-2xl border border-white/[0.12] rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.3)]",
+              headerTitle: "text-white text-lg font-semibold",
+              headerSubtitle: "text-white/50 text-sm",
+              socialButtonsBlockButton:
+                "bg-white/10 border border-white/15 text-white hover:bg-white/20 rounded-xl transition-all",
+              socialButtonsBlockButtonText: "text-white/90 font-medium text-sm",
+              socialButtonsProviderIcon: "brightness-0 invert opacity-80",
+              dividerLine: "bg-white/10",
+              dividerText: "text-white/30 text-xs",
+              formFieldLabel: "text-white/70 text-sm font-medium",
               formFieldInput:
-                "border-[#E5E5E5] rounded-[10px] focus:border-[#6B21A8] focus:ring-[#6B21A8]/20",
-              footerAction: "text-[#737373]",
-              footerActionLink: "text-[#6B21A8] hover:text-[#9B51E0]",
+                "bg-white/[0.06] border-white/[0.12] text-white placeholder:text-white/30 rounded-xl focus:border-purple-400/50 focus:ring-purple-400/20 transition-all",
+              formButtonPrimary:
+                "bg-gradient-to-r from-[#6B21A8] to-[#E91E8C] hover:from-[#7C3AED] hover:to-[#F472B6] text-white rounded-xl font-semibold shadow-lg shadow-purple-500/20 transition-all",
+              footerAction: "text-white/40",
+              footerActionLink: "text-purple-300 hover:text-purple-200 font-medium",
+              formFieldAction: "text-purple-300 hover:text-purple-200",
+              identityPreviewEditButton: "text-purple-300 hover:text-purple-200",
+              alertText: "text-white/70",
+              footer: "bg-transparent",
+              footerPagesLink: "text-white/30 hover:text-white/50",
+            },
+            variables: {
+              colorBackground: "transparent",
+              colorText: "white",
+              colorTextSecondary: "rgba(255,255,255,0.5)",
+              colorInputBackground: "rgba(255,255,255,0.06)",
+              colorInputText: "white",
+              borderRadius: "12px",
             },
           }}
         />
 
         {/* Footer */}
-        <p className="text-xs text-white/30">
+        <p
+          style={{
+            fontSize: "11px",
+            color: "rgba(255,255,255,0.2)",
+            fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
+          }}
+        >
           Powered by Centific
         </p>
       </div>
