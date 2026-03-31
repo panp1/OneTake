@@ -33,6 +33,11 @@ import RefineModal from "@/components/RefineModal";
 import DesignElementPreview from "@/components/DesignElementPreview";
 import MockupPreview from "@/components/MockupPreview";
 import RecruiterDetailView from "@/components/RecruiterDetailView";
+import PipelineNav from "@/components/PipelineNav";
+import type { PipelineStage } from "@/components/PipelineNav";
+import LiveSection from "@/components/LiveSection";
+import RequestDetailsFormatted from "@/components/RequestDetailsFormatted";
+import EditableField from "@/components/EditableField";
 import type {
   IntakeRequest,
   PipelineRun,
@@ -419,60 +424,61 @@ export default function IntakeDetailPage({
             </div>
           </div>
 
-          <div className="px-6 md:px-10 lg:px-12 xl:px-16 py-6 max-w-[1600px] mx-auto space-y-6">
-            {/* Pipeline Progress / Compute Job Status */}
-            {(request.status === "generating" || pipelineRuns.length > 0) && (
-              <section className="card p-6">
-                <h2 className="text-sm font-semibold text-[var(--foreground)] mb-4">
-                  Pipeline Progress
-                </h2>
+          {/* Sticky Pipeline Nav */}
+          <PipelineNav
+            stages={[
+              { key: "brief", label: "Brief", status: brief ? "passed" : request.status === "generating" ? "running" : "pending" },
+              { key: "research", label: "Research", status: brief?.brief_data?.cultural_research ? "passed" : brief ? "running" : "pending" },
+              { key: "actors", label: "Actors", status: actors.length > 0 ? "passed" : brief ? "running" : "pending" },
+              { key: "images", label: "Images", status: assets.filter(a => a.asset_type === "base_image").length > 0 ? "passed" : actors.length > 0 ? "running" : "pending" },
+              { key: "creatives", label: "Creatives", status: assets.filter(a => a.asset_type === "composed_creative").length > 0 ? "passed" : assets.filter(a => a.asset_type === "base_image").length > 0 ? "running" : "pending" },
+            ]}
+            onNavigate={(key) => document.getElementById(`section-${key}`)?.scrollIntoView({ behavior: "smooth" })}
+          />
 
-                {/* Compute job status banner */}
-                {request.status === "generating" && (
-                  <div className="mb-4">
-                    {(!computeJob || computeJob.status === "pending") && (
-                      <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 rounded-[var(--radius-sm)] px-4 py-3">
-                        <Loader2 size={16} className="animate-spin" />
-                        <span>Queued &mdash; waiting for local worker to pick up...</span>
-                      </div>
-                    )}
-                    {computeJob?.status === "processing" && (
-                      <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 rounded-[var(--radius-sm)] px-4 py-3">
-                        <Loader2 size={16} className="animate-spin" />
-                        <span>Generating creatives on local machine...</span>
-                      </div>
-                    )}
-                    {computeJob?.status === "complete" && (
-                      <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-[var(--radius-sm)] px-4 py-3">
-                        <CheckCircle2 size={16} />
-                        <span>Generation complete!</span>
-                      </div>
-                    )}
-                    {computeJob?.status === "failed" && (
-                      <div className="flex items-center justify-between text-sm text-red-700 bg-red-50 rounded-[var(--radius-sm)] px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <XCircle size={16} />
-                          <span>Generation failed: {computeJob.error_message || "Unknown error"}</span>
-                        </div>
-                        <button
-                          onClick={handleStartPipeline}
-                          disabled={actionLoading === "pipeline"}
-                          className="btn-secondary text-xs px-3 py-1.5 cursor-pointer ml-3 shrink-0"
-                        >
-                          {actionLoading === "pipeline" ? (
-                            <Loader2 size={12} className="animate-spin" />
-                          ) : (
-                            <RefreshCw size={12} />
-                          )}
-                          Retry
-                        </button>
-                      </div>
-                    )}
+          <div className="px-6 md:px-10 lg:px-12 xl:px-16 py-6 max-w-[1600px] mx-auto space-y-6">
+            {/* Compute Job Status Banner */}
+            {request.status === "generating" && (
+              <div>
+                {(!computeJob || computeJob.status === "pending") && (
+                  <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 rounded-[var(--radius-sm)] px-4 py-3">
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Queued &mdash; waiting for local worker to pick up...</span>
                   </div>
                 )}
-
-                <PipelineProgress runs={pipelineRuns} />
-              </section>
+                {computeJob?.status === "processing" && (
+                  <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 rounded-[var(--radius-sm)] px-4 py-3">
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Generating creatives on local machine...</span>
+                  </div>
+                )}
+                {computeJob?.status === "complete" && (
+                  <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-[var(--radius-sm)] px-4 py-3">
+                    <CheckCircle2 size={16} />
+                    <span>Generation complete!</span>
+                  </div>
+                )}
+                {computeJob?.status === "failed" && (
+                  <div className="flex items-center justify-between text-sm text-red-700 bg-red-50 rounded-[var(--radius-sm)] px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <XCircle size={16} />
+                      <span>Generation failed: {computeJob.error_message || "Unknown error"}</span>
+                    </div>
+                    <button
+                      onClick={handleStartPipeline}
+                      disabled={actionLoading === "pipeline"}
+                      className="btn-secondary text-xs px-3 py-1.5 cursor-pointer ml-3 shrink-0"
+                    >
+                      {actionLoading === "pipeline" ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <RefreshCw size={12} />
+                      )}
+                      Retry
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Start Pipeline CTA for drafts */}
@@ -507,49 +513,51 @@ export default function IntakeDetailPage({
 
             {/* Creative Brief */}
             {(summary || messagingStrategy) && (
-              <section ref={briefSectionRef} className="card p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <MessageSquare size={16} className="text-[var(--muted-foreground)]" />
-                  <h2 className="text-sm font-semibold text-[var(--foreground)]">
-                    Creative Brief
-                  </h2>
-                </div>
-                {summary && (
-                  <p className="text-sm text-[var(--foreground)] leading-relaxed mb-4">
-                    {summary}
-                  </p>
-                )}
-                {messagingStrategy && messagingStrategy.length > 0 && (
-                  <div className="mb-4">
-                    <h3 className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-2">
-                      Messaging Strategy
-                    </h3>
-                    <ul className="space-y-2">
-                      {messagingStrategy.map((item, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-[var(--foreground)]">
-                          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[var(--ring)] shrink-0" />
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {valueProps && valueProps.length > 0 && (
-                  <div>
-                    <h3 className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-2">
-                      Value Propositions
-                    </h3>
-                    <ul className="space-y-2">
-                      {valueProps.map((item, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-[var(--foreground)]">
-                          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[var(--oneforma-gradient-end)] shrink-0" />
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </section>
+              <LiveSection
+                id="section-brief"
+                title="Creative Brief"
+                subtitle="Campaign strategy and messaging"
+                accentColor="#6B21A8"
+                visible={!!brief}
+              >
+                <section ref={briefSectionRef}>
+                  {summary && (
+                    <p className="text-sm text-[var(--foreground)] leading-relaxed mb-4">
+                      {summary}
+                    </p>
+                  )}
+                  {messagingStrategy && messagingStrategy.length > 0 && (
+                    <div className="mb-4">
+                      <h3 className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-2">
+                        Messaging Strategy
+                      </h3>
+                      <ul className="space-y-2">
+                        {messagingStrategy.map((item, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-[var(--foreground)]">
+                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[var(--ring)] shrink-0" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {valueProps && valueProps.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-2">
+                        Value Propositions
+                      </h3>
+                      <ul className="space-y-2">
+                        {valueProps.map((item, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-[var(--foreground)]">
+                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[var(--oneforma-gradient-end)] shrink-0" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </section>
+              </LiveSection>
             )}
 
             {/* Target Audience */}
@@ -598,19 +606,19 @@ export default function IntakeDetailPage({
 
             {/* Actor Profiles */}
             {actors.length > 0 && (
-              <section className="card p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <UserCircle size={16} className="text-[var(--muted-foreground)]" />
-                  <h2 className="text-sm font-semibold text-[var(--foreground)]">
-                    Actor Profiles
-                  </h2>
-                </div>
+              <LiveSection
+                id="section-actors"
+                title="Actor Profiles"
+                subtitle={`${actors.length} character identities generated`}
+                accentColor="#E91E8C"
+                visible={actors.length > 0}
+              >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {actors.map((actor) => (
                     <ActorCard key={actor.id} actor={actor} />
                   ))}
                 </div>
-              </section>
+              </LiveSection>
             )}
 
             {/* Evaluation Scores */}
@@ -628,12 +636,13 @@ export default function IntakeDetailPage({
 
             {/* Creative Assets — 4 Category View */}
             {hasOutputs && (
-              <section className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-[var(--foreground)]">Creative Assets</h2>
-                  <span className="text-sm text-[var(--muted-foreground)]">{assets.length} total</span>
-                </div>
-
+              <LiveSection
+                id="section-images"
+                title="Generated Assets"
+                subtitle={`${assets.length} assets across all stages`}
+                accentColor="#22c55e"
+                visible={assets.length > 0}
+              >
                 <AssetCategoryTabs
                   activeTab={activeAssetTab}
                   onTabChange={setActiveAssetTab}
@@ -767,44 +776,27 @@ export default function IntakeDetailPage({
                     onDeselectAll={() => setSelectedAssets(new Set())}
                   />
                 )}
-              </section>
+              </LiveSection>
             )}
 
-            {/* Form Data Summary */}
+            {/* Request Details */}
             {request.form_data && Object.keys(request.form_data).length > 0 && (
-              <section className="card p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold text-[var(--foreground)]">
-                    Request Details
-                  </h2>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(JSON.stringify(request.form_data, null, 2));
-                      toast.success("Copied to clipboard");
-                    }}
-                    className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer transition-colors flex items-center gap-1"
-                  >
-                    <Copy size={12} />
-                    Copy JSON
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {Object.entries(request.form_data).map(([key, value]) => (
-                    <div key={key} className="text-sm">
-                      <span className="font-medium text-[var(--muted-foreground)] capitalize block text-xs mb-0.5">
-                        {key.replace(/_/g, " ")}
-                      </span>
-                      <span className="text-[var(--foreground)]">
-                        {Array.isArray(value)
-                          ? value.join(", ")
-                          : typeof value === "object" && value !== null
-                            ? JSON.stringify(value)
-                            : String(value ?? "—")}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              <LiveSection
+                id="section-details"
+                title="Request Details"
+                subtitle="Campaign configuration and targeting"
+                accentColor="#0693E3"
+                visible={true}
+              >
+                <RequestDetailsFormatted
+                  formData={request.form_data}
+                  request={request}
+                  editable={role === "admin"}
+                  onFieldSave={(field, value) => {
+                    toast.success(`Updated ${field}`);
+                  }}
+                />
+              </LiveSection>
             )}
 
             {/* Action bar */}
