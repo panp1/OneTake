@@ -2,18 +2,34 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, Eye } from "lucide-react";
+import {
+  ArrowRight,
+  Eye,
+  Globe,
+  Users,
+  Image as ImageIcon,
+  Layers,
+  Target,
+  Clock,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  Bell,
+} from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
-import PipelineProgress from "@/components/PipelineProgress";
-import type { IntakeRequest, PipelineRun } from "@/lib/types";
+import PipelineNav from "@/components/PipelineNav";
+import type { PipelineStage } from "@/components/PipelineNav";
+import ImageLoader from "@/components/ui/image-loading";
+import type { IntakeRequest, PipelineRun, GeneratedAsset } from "@/lib/types";
 
 interface ProgressData {
   request: IntakeRequest;
-  actors: unknown[];
-  assets: unknown[];
-  composed: unknown[];
-  characters: unknown[];
-  copy_assets: unknown[];
+  actors: any[];
+  assets: any[];
+  composed: any[];
+  characters: any[];
+  copy_assets: any[];
+  brief?: any;
   job: { status: string } | null;
   sections: Record<string, string>;
 }
@@ -22,28 +38,17 @@ interface CampaignPreviewPanelProps {
   requestId: string;
 }
 
-function StatPill({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className="flex flex-col items-center px-5 py-3 rounded-xl bg-[#f5f5f5] border border-[#e5e5e5] min-w-[80px]">
-      <span className="text-lg font-semibold text-[#1a1a1a] leading-none">{value}</span>
-      <span className="text-[11px] text-[#737373] mt-1 whitespace-nowrap">{label}</span>
-    </div>
-  );
-}
-
 export default function CampaignPreviewPanel({ requestId }: CampaignPreviewPanelProps) {
   const [request, setRequest] = useState<IntakeRequest | null>(null);
   const [progress, setProgress] = useState<ProgressData | null>(null);
-  const [runs, setRuns] = useState<PipelineRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    let interval: ReturnType<typeof setInterval>;
 
     async function load() {
-      setLoading(true);
-      setError(null);
       try {
         const [reqRes, progRes] = await Promise.all([
           fetch(`/api/intake/${requestId}`),
@@ -52,43 +57,44 @@ export default function CampaignPreviewPanel({ requestId }: CampaignPreviewPanel
 
         if (!reqRes.ok) throw new Error("Failed to load campaign");
         const reqData: IntakeRequest = await reqRes.json();
-
         let progData: ProgressData | null = null;
-        if (progRes.ok) {
-          progData = await progRes.json();
-        }
+        if (progRes.ok) progData = await progRes.json();
 
         if (!cancelled) {
           setRequest(reqData);
           setProgress(progData);
-          // Extract pipeline_runs if available on the progress response
-          if (progData && (progData as unknown as { pipeline_runs?: PipelineRun[] }).pipeline_runs) {
-            setRuns((progData as unknown as { pipeline_runs: PipelineRun[] }).pipeline_runs);
-          }
+          setLoading(false);
         }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Something went wrong");
+          setLoading(false);
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     }
 
     load();
-    return () => { cancelled = true; };
+    // Poll every 5s for generating campaigns
+    interval = setInterval(load, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, [requestId]);
 
   if (loading) {
     return (
-      <div className="p-8 space-y-6">
-        <div className="skeleton h-7 w-2/3 rounded-lg" />
-        <div className="skeleton h-5 w-24 rounded-full" />
-        <div className="skeleton h-12 w-full rounded-xl" />
-        <div className="flex gap-3">
-          <div className="skeleton h-16 w-20 rounded-xl" />
-          <div className="skeleton h-16 w-20 rounded-xl" />
-          <div className="skeleton h-16 w-20 rounded-xl" />
+      <div className="p-6 space-y-4 animate-pulse">
+        <div className="skeleton h-6 w-2/3 rounded" />
+        <div className="skeleton h-4 w-1/3 rounded" />
+        <div className="skeleton h-24 w-full rounded-xl" />
+        <div className="grid grid-cols-4 gap-3">
+          <div className="skeleton h-16 rounded-xl" />
+          <div className="skeleton h-16 rounded-xl" />
+          <div className="skeleton h-16 rounded-xl" />
+          <div className="skeleton h-16 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="skeleton h-32 rounded-xl" />
+          <div className="skeleton h-32 rounded-xl" />
+          <div className="skeleton h-32 rounded-xl" />
         </div>
       </div>
     );
@@ -96,69 +102,220 @@ export default function CampaignPreviewPanel({ requestId }: CampaignPreviewPanel
 
   if (error || !request) {
     return (
-      <div className="flex items-center justify-center h-full text-[#737373] text-sm">
+      <div className="flex items-center justify-center h-full text-[#737373] text-sm p-8">
+        <AlertCircle size={16} className="mr-2" />
         {error ?? "Campaign not found"}
       </div>
     );
   }
 
-  const totalCreatives = progress
-    ? (progress.composed?.length ?? 0) + (progress.characters?.length ?? 0)
-    : 0;
-  const actorCount = progress?.actors?.length ?? 0;
-  const assetCount = progress?.assets?.length ?? 0;
+  const composedAssets = (progress?.composed || []) as any[];
+  const characters = (progress?.characters || []) as any[];
+  const actors = progress?.actors || [];
+  const allAssets = (progress?.assets || []) as any[];
+  const hasBrief = !!progress?.brief;
+  const isGenerating = request.status === "generating";
+
+  // Build pipeline stages from actual data
+  const stages: PipelineStage[] = [
+    { key: "brief", label: "Brief", status: hasBrief ? "passed" : isGenerating ? "running" : "pending" },
+    { key: "actors", label: "Actors", status: actors.length > 0 ? "passed" : hasBrief ? (isGenerating ? "running" : "pending") : "pending" },
+    { key: "images", label: "Images", status: characters.length > 0 ? "passed" : actors.length > 0 ? (isGenerating ? "running" : "pending") : "pending" },
+    { key: "creatives", label: "Creatives", status: composedAssets.length > 0 ? "passed" : characters.length > 0 ? (isGenerating ? "running" : "pending") : "pending" },
+  ];
+
+  const formData = request.form_data || {};
+  const regions = request.target_regions || [];
+  const languages = request.target_languages || [];
 
   return (
-    <div className="p-8 max-w-2xl">
-      {/* Title + status */}
-      <div className="flex items-start gap-3 mb-1">
-        <h2 className="text-xl font-semibold text-[#1a1a1a] leading-snug flex-1 min-w-0">
-          {request.title}
-        </h2>
-        <StatusBadge status={request.status} />
-      </div>
-      <p className="text-sm text-[#737373] mb-6">
-        {request.task_type
-          .split("_")
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join(" ")}
-        {request.target_regions.length > 0 && (
-          <span> &middot; {request.target_regions.slice(0, 3).join(", ")}
-            {request.target_regions.length > 3 && ` +${request.target_regions.length - 3}`}
-          </span>
-        )}
-      </p>
+    <div className="h-full overflow-y-auto">
+      {/* Header */}
+      <div className="px-6 pt-6 pb-4 border-b border-[var(--border)]">
+        <div className="flex items-start justify-between gap-4 mb-2">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-semibold text-[var(--foreground)] tracking-tight truncate">
+              {request.title}
+            </h2>
+            <p className="text-[12px] text-[var(--muted-foreground)] mt-0.5">
+              {String(request.task_type || "").replace(/_/g, " ")}
+              {regions.length > 0 && (
+                <span>
+                  {" "}&middot;{" "}
+                  {regions.slice(0, 3).join(", ")}
+                  {regions.length > 3 && ` +${regions.length - 3}`}
+                </span>
+              )}
+            </p>
+          </div>
+          <StatusBadge status={request.status} />
+        </div>
 
-      {/* Pipeline progress */}
-      <div className="card p-5 mb-6">
-        <p className="text-xs font-semibold text-[#737373] uppercase tracking-wide mb-4">
-          Pipeline Progress
-        </p>
-        <PipelineProgress runs={runs} />
-      </div>
-
-      {/* Quick stats */}
-      <div className="flex flex-wrap gap-3 mb-8">
-        <StatPill label="Creatives" value={totalCreatives} />
-        <StatPill label="Actors" value={actorCount} />
-        <StatPill label="Assets" value={assetCount} />
-        {request.target_languages.length > 0 && (
-          <StatPill label="Languages" value={request.target_languages.length} />
-        )}
-        {request.volume_needed != null && (
-          <StatPill label="Volume" value={request.volume_needed.toLocaleString()} />
-        )}
+        {/* Compact pipeline nav */}
+        <div className="mt-3">
+          <PipelineNav stages={stages} />
+        </div>
       </div>
 
-      {/* CTA */}
-      <div className="flex items-center gap-3">
+      {/* Stats grid */}
+      <div className="grid grid-cols-4 gap-px bg-[var(--border)]">
+        {[
+          { label: "Creatives", value: composedAssets.length, icon: Layers, color: "#6B21A8" },
+          { label: "Characters", value: characters.length, icon: Users, color: "#E91E8C" },
+          { label: "Actors", value: actors.length, icon: Target, color: "#0693E3" },
+          { label: "Languages", value: languages.length, icon: Globe, color: "#22c55e" },
+        ].map((stat) => (
+          <div key={stat.label} className="bg-white px-4 py-3 text-center">
+            <div className="text-xl font-bold text-[var(--foreground)] tracking-tight">
+              {stat.value}
+            </div>
+            <div className="text-[10px] text-[var(--muted-foreground)] mt-0.5 flex items-center justify-center gap-1">
+              <stat.icon size={10} style={{ color: stat.color }} />
+              {stat.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Content area */}
+      <div className="p-6 space-y-5">
+
+        {/* Quick info */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">
+              Regions
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {regions.map((r: string, i: number) => (
+                <span key={i} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#0693E3]/5 text-[#0693E3] border border-[#0693E3]/10">
+                  {r}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">
+              Languages
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {languages.map((l: string, i: number) => (
+                <span key={i} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#9B51E0]/5 text-[#9B51E0] border border-[#9B51E0]/10">
+                  {l}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Live creative thumbnails */}
+        {composedAssets.length > 0 && (
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">
+              Latest Creatives
+            </span>
+            <div className="grid grid-cols-3 gap-2">
+              {composedAssets.slice(0, 6).map((asset: any, i: number) => (
+                <div
+                  key={asset.id || i}
+                  className="rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--muted)]"
+                  style={{ aspectRatio: "1" }}
+                >
+                  {asset.blob_url ? (
+                    <ImageLoader
+                      src={asset.blob_url}
+                      alt={asset.content?.overlay_headline || "Creative"}
+                      width={200}
+                      height={200}
+                      gridSize={8}
+                      cellGap={1}
+                      loadingDelay={300}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Loader2 size={16} className="text-[var(--muted-foreground)] animate-spin" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {composedAssets.length > 6 && (
+              <p className="text-[11px] text-[var(--muted-foreground)] mt-1.5 text-center">
+                +{composedAssets.length - 6} more creatives
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Character thumbnails */}
+        {characters.length > 0 && composedAssets.length === 0 && (
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">
+              Generated Characters
+            </span>
+            <div className="grid grid-cols-4 gap-2">
+              {characters.slice(0, 8).map((asset: any, i: number) => (
+                <div
+                  key={asset.id || i}
+                  className="rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--muted)]"
+                  style={{ aspectRatio: "1" }}
+                >
+                  {asset.blob_url ? (
+                    <ImageLoader
+                      src={asset.blob_url}
+                      alt="Character"
+                      width={120}
+                      height={120}
+                      gridSize={6}
+                      cellGap={1}
+                      loadingDelay={200}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Loader2 size={14} className="text-[var(--muted-foreground)] animate-spin" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Generating state — show what's happening */}
+        {isGenerating && composedAssets.length === 0 && characters.length === 0 && (
+          <div className="bg-[#0693E3]/5 border border-[#0693E3]/10 rounded-xl px-4 py-3 flex items-center gap-3">
+            <Loader2 size={16} className="text-[#0693E3] animate-spin flex-shrink-0" />
+            <div>
+              <p className="text-[13px] font-medium text-[var(--foreground)]">
+                Pipeline is running...
+              </p>
+              <p className="text-[11px] text-[var(--muted-foreground)]">
+                Assets will appear here as they're generated. Auto-refreshing every 5s.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Goal snippet */}
+        {(formData.goal || formData.description) && (
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">
+              Goal
+            </span>
+            <p className="text-[13px] text-[var(--foreground)] leading-relaxed line-clamp-3">
+              {String(formData.goal || formData.description)}
+            </p>
+          </div>
+        )}
+
+        {/* CTA */}
         <Link
           href={`/intake/${request.id}`}
-          className="btn-primary cursor-pointer"
+          className="btn-primary cursor-pointer inline-flex items-center gap-2 text-sm"
         >
-          <Eye size={15} />
+          <Eye size={14} />
           View Full Details
-          <ArrowRight size={15} />
+          <ArrowRight size={14} />
         </Link>
       </div>
     </div>
