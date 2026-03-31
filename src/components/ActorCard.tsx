@@ -5,15 +5,64 @@ interface ActorCardProps {
   actor: ActorProfile;
 }
 
-export default function ActorCard({ actor }: ActorCardProps) {
-  const faceDesc =
-    typeof actor.face_lock === "object" && actor.face_lock !== null
-      ? (actor.face_lock as Record<string, string>).description || JSON.stringify(actor.face_lock)
-      : String(actor.face_lock);
+function parseFaceLock(faceLock: unknown): string {
+  if (!faceLock || typeof faceLock !== "object") return String(faceLock || "");
 
-  const outfits = actor.outfit_variations
-    ? Object.entries(actor.outfit_variations as Record<string, string>)
-    : [];
+  const fl = faceLock as Record<string, unknown>;
+
+  // If there's a description field, use it
+  if (fl.description) return String(fl.description);
+
+  // If there's a prompt_seed on the actor, that's the best description
+  // Otherwise, build a human-readable description from the fields
+  const parts: string[] = [];
+
+  if (fl.age_range) parts.push(`Age ${fl.age_range}`);
+  if (fl.skin_tone_hex) parts.push(`skin tone ${fl.skin_tone_hex}`);
+  if (fl.eye_color) parts.push(`${fl.eye_color} eyes`);
+  if (fl.hair) parts.push(`${fl.hair}`);
+  if (fl.jawline) parts.push(`${fl.jawline} jawline`);
+  if (fl.nose_shape) parts.push(`${fl.nose_shape} nose`);
+  if (fl.distinguishing_marks) parts.push(`${fl.distinguishing_marks}`);
+
+  return parts.length > 0 ? parts.join(" · ") : "No description available";
+}
+
+function parseOutfits(outfitData: unknown): [string, string][] {
+  if (!outfitData || typeof outfitData !== "object") return [];
+
+  const data = outfitData as Record<string, unknown>;
+
+  // Handle dynamic scenes format (new)
+  // scenes: { "morning_desk": { name, setting, outfit, pose_and_action, emotion } }
+  const entries: [string, string][] = [];
+
+  for (const [key, val] of Object.entries(data)) {
+    if (typeof val === "string") {
+      // Legacy outfit_variations format
+      entries.push([key, val]);
+    } else if (typeof val === "object" && val !== null) {
+      // Dynamic scenes format
+      const scene = val as Record<string, unknown>;
+      const name = scene.name ? String(scene.name) : key.replace(/_/g, " ");
+      const desc = scene.outfit
+        ? String(scene.outfit)
+        : scene.setting
+          ? String(scene.setting)
+          : JSON.stringify(val);
+      entries.push([name, desc]);
+    }
+  }
+
+  return entries;
+}
+
+export default function ActorCard({ actor }: ActorCardProps) {
+  const faceDesc = actor.prompt_seed
+    ? String(actor.prompt_seed)
+    : parseFaceLock(actor.face_lock);
+
+  const outfits = parseOutfits(actor.outfit_variations);
 
   return (
     <div className="border border-[var(--border)] rounded-[var(--radius-md)] p-4 space-y-3">
@@ -38,7 +87,7 @@ export default function ActorCard({ actor }: ActorCardProps) {
       {outfits.length > 0 && (
         <div>
           <p className="text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-1.5">
-            Outfit Variations
+            Scenes
           </p>
           <div className="space-y-1">
             {outfits.map(([key, val]) => (
@@ -46,18 +95,23 @@ export default function ActorCard({ actor }: ActorCardProps) {
                 <span className="font-medium text-[var(--foreground)] capitalize whitespace-nowrap">
                   {key.replace(/_/g, " ")}:
                 </span>
-                <span className="text-[var(--muted-foreground)]">{val}</span>
+                <span className="text-[var(--muted-foreground)] line-clamp-1">{val}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {actor.backdrops.length > 0 && (
+      {Array.isArray(actor.backdrops) && actor.backdrops.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {actor.backdrops.map((b) => (
-            <span key={b} className="tag-pill">{b}</span>
+          {actor.backdrops.slice(0, 3).map((b: string) => (
+            <span key={b} className="tag-pill line-clamp-1 text-[10px]">
+              {typeof b === "string" ? (b.length > 40 ? b.slice(0, 40) + "..." : b) : ""}
+            </span>
           ))}
+          {actor.backdrops.length > 3 && (
+            <span className="tag-pill text-[10px]">+{actor.backdrops.length - 3}</span>
+          )}
         </div>
       )}
     </div>
