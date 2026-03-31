@@ -79,7 +79,7 @@ export default function RevisionModal({
   };
 
   async function handleSubmit() {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || !asset) return;
 
     setLoading(true);
     setError(null);
