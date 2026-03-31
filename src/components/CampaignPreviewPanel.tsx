@@ -24,12 +24,12 @@ import type { IntakeRequest, PipelineRun, GeneratedAsset } from "@/lib/types";
 
 interface ProgressData {
   request: IntakeRequest;
-  actors: any[];
-  assets: any[];
-  composed: any[];
-  characters: any[];
-  copy_assets: any[];
-  brief?: any;
+  actors: Record<string, any>[];
+  assets: Record<string, any>[];
+  composed: Record<string, any>[];
+  characters: Record<string, any>[];
+  copy_assets: Record<string, any>[];
+  brief?: Record<string, any>;
   job: { status: string } | null;
   sections: Record<string, string>;
 }
@@ -109,10 +109,10 @@ export default function CampaignPreviewPanel({ requestId }: CampaignPreviewPanel
     );
   }
 
-  const composedAssets = (progress?.composed || []) as any[];
-  const characters = (progress?.characters || []) as any[];
-  const actors = progress?.actors || [];
-  const allAssets = (progress?.assets || []) as any[];
+  const composedAssets: Record<string, any>[] = (progress?.composed || []) as Record<string, any>[];
+  const characters: Record<string, any>[] = (progress?.characters || []) as Record<string, any>[];
+  const actors: Record<string, any>[] = (progress?.actors || []) as Record<string, any>[];
+  const allAssets: Record<string, any>[] = (progress?.assets || []) as Record<string, any>[];
   const hasBrief = !!progress?.brief;
   const isGenerating = request.status === "generating";
 
@@ -124,9 +124,9 @@ export default function CampaignPreviewPanel({ requestId }: CampaignPreviewPanel
     { key: "creatives", label: "Creatives", status: composedAssets.length > 0 ? "passed" : characters.length > 0 ? (isGenerating ? "running" : "pending") : "pending" },
   ];
 
-  const formData = request.form_data || {};
-  const regions = request.target_regions || [];
-  const languages = request.target_languages || [];
+  const formData = (request.form_data || {}) as Record<string, any>;
+  const regions = (request.target_regions || []) as string[];
+  const languages = (request.target_languages || []) as string[];
 
   return (
     <div className="h-full overflow-y-auto">
