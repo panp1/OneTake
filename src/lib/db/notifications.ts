@@ -10,7 +10,7 @@ export async function createNotification(data: {
 }): Promise<Notification> {
   const sql = getDb();
   const rows = await sql`
-    INSERT INTO notifications (request_id, channel, recipient, status, payload)
+    INSERT INTO notification_deliveries (request_id, channel, recipient, status, payload)
     VALUES (
       ${data.request_id},
       ${data.channel},
@@ -26,7 +26,7 @@ export async function createNotification(data: {
 export async function getNotificationsByRequestId(requestId: string): Promise<Notification[]> {
   const sql = getDb();
   const rows = await sql`
-    SELECT * FROM notifications
+    SELECT * FROM notification_deliveries
     WHERE request_id = ${requestId}
     ORDER BY created_at DESC
   `;

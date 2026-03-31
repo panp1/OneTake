@@ -179,9 +179,9 @@ export async function createTables(): Promise<void> {
     )
   `;
 
-  // 12. notifications — FK to intake_requests
+  // 12. notification_deliveries — outbound delivery log (renamed from notifications)
   await sql`
-    CREATE TABLE IF NOT EXISTS notifications (
+    CREATE TABLE IF NOT EXISTS notification_deliveries (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       request_id UUID NOT NULL REFERENCES intake_requests(id) ON DELETE CASCADE,
       channel TEXT NOT NULL CHECK (channel IN ('slack', 'outlook')),
@@ -191,6 +191,21 @@ export async function createTables(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+
+  // 12b. notifications — user-facing event feed
+  await sql`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id     TEXT NOT NULL,
+      request_id  UUID REFERENCES intake_requests(id) ON DELETE CASCADE,
+      type        TEXT NOT NULL CHECK (type IN ('stage_complete', 'designer_update', 'eval_complete', 'status_change', 'asset_approved')),
+      title       TEXT NOT NULL,
+      body        TEXT,
+      read        BOOLEAN DEFAULT false,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read)`;
 
   // 13. pipeline_runs — FK to intake_requests
   await sql`
