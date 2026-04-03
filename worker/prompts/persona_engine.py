@@ -750,7 +750,13 @@ def build_persona_actor_prompt(
     """
     hints = persona.get("actor_seed_hints", {})
     psychology = persona.get("psychology_profile", {})
-    jtbd = persona.get("jobs_to_be_done", {})
+    raw_jtbd = persona.get("jobs_to_be_done", {})
+    # jtbd can be a list (from LLM) or a dict (hardcoded archetypes) — normalize
+    if isinstance(raw_jtbd, list):
+        jtbd = {"functional": raw_jtbd[0] if raw_jtbd else "Earn money remotely",
+                "emotional": raw_jtbd[1] if len(raw_jtbd) > 1 else "Feel productive"}
+    else:
+        jtbd = raw_jtbd if isinstance(raw_jtbd, dict) else {}
 
     return f"""Create an AI UGC actor identity card for a OneForma recruitment ad campaign.
 

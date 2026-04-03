@@ -53,6 +53,9 @@ async def run_stage2(context: dict) -> dict:
     regions: list[str] = context.get("target_regions", [])
     languages: list[str] = context.get("target_languages", [])
     raw_personas = context.get("personas", brief.get("personas", []))
+    logger.info("Stage 2 raw_personas: type=%s, len=%s, first_type=%s",
+                type(raw_personas).__name__, len(raw_personas) if raw_personas else 0,
+                type(raw_personas[0]).__name__ if raw_personas else "empty")
     # Defensive: handle nested arrays or non-dict items from LLM output
     personas: list[dict] = []
     for p in (raw_personas or []):
@@ -122,7 +125,8 @@ async def run_stage2(context: dict) -> dict:
     actor_cards = []
     for r in card_results:
         if isinstance(r, Exception):
-            logger.error("Actor card failed: %s", r)
+            import traceback
+            logger.error("Actor card failed: %s\n%s", r, ''.join(traceback.format_exception(type(r), r, r.__traceback__)))
         elif r:
             actor_cards.append(r)
 
