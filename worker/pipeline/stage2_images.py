@@ -52,7 +52,19 @@ async def run_stage2(context: dict) -> dict:
     design: dict = context.get("design_direction", {})
     regions: list[str] = context.get("target_regions", [])
     languages: list[str] = context.get("target_languages", [])
-    personas: list[dict] = context.get("personas", brief.get("personas", []))
+    raw_personas = context.get("personas", brief.get("personas", []))
+    # Defensive: handle nested arrays or non-dict items from LLM output
+    personas: list[dict] = []
+    for p in (raw_personas or []):
+        if isinstance(p, dict):
+            personas.append(p)
+        elif isinstance(p, list):
+            # Nested array — flatten
+            for inner in p:
+                if isinstance(inner, dict):
+                    personas.append(inner)
+    if not personas and raw_personas:
+        logger.warning("Could not extract persona dicts from %s (type=%s)", type(raw_personas).__name__, type(raw_personas[0]).__name__ if raw_personas else "empty")
 
     all_actors: list[dict] = []
     total_images = 0
