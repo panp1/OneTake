@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import os
 
 import httpx
 
@@ -183,3 +184,103 @@ async def generate_image(
                 return base64.b64decode(img)
 
         raise ValueError(f"Unexpected image format: {type(img)}, keys: {list(img.keys()) if isinstance(img, dict) else 'N/A'}")
+
+
+async def edit_image(
+    image_bytes: bytes,
+    edit_prompt: str,
+    image_url: str | None = None,
+) -> bytes:
+    """Edit an existing image using Seedream 4.5 Edit via AtlasCloud API.
+
+    Sends the image + edit instruction to Seedream Edit which modifies
+    the image in-place (remove watermarks, fix artifacts, adjust style, etc.).
+    Much faster and cheaper than full regeneration.
+
+    Parameters
+    ----------
+    image_bytes:
+        The source image bytes to edit.
+    edit_prompt:
+        What to change (e.g. "Remove the watermark text and Chinese characters").
+    image_url:
+        Optional blob URL for the image. If not provided, sends base64.
+
+    Returns
+    -------
+    bytes
+        Edited image bytes.
+    """
+    from config import OPENROUTER_API_KEY
+
+    # AtlasCloud API (same key as OpenRouter in our setup)
+    api_key = os.environ.get("ATLASCLOUD_API_KEY", OPENROUTER_API_KEY)
+
+    # If we have a URL, use it directly. Otherwise encode as base64 data URI.
+    if image_url:
+        image_input = image_url
+    else:
+        b64 = base64.b64encode(image_bytes).decode("utf-8")
+        image_input = f"data:image/png;base64,{b64}"
+
+    logger.info("Seedream Edit: %s (image=%d bytes)", edit_prompt[:80], len(image_bytes))
+
+    async with httpx.AsyncClient(timeout=httpx.Timeout(
+        connect=30.0, read=300.0, write=30.0, pool=30.0
+    )) as client:
+        resp = await client.post(
+            "https://api.atlascloud.ai/api/v1/model/generateImage",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "bytedance/seedream-v4.5/edit",
+                "prompt": edit_prompt,
+                "images": [image_input],
+                "size": "2048*2048",
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+    # Handle async response (poll for completion)
+    if data.get("status") in ("processing", "created"):
+        prediction_id = data.get("id")
+        logger.info("Seedream Edit async — polling prediction %s...", prediction_id)
+        import asyncio
+        for poll in range(30):  # Max 5 minutes
+            await asyncio.sleep(10)
+            async with httpx.AsyncClient(timeout=60) as client:
+                poll_resp = await client.get(
+                    f"https://api.atlascloud.ai/api/v1/model/prediction/{prediction_id}",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                )
+                poll_data = poll_resp.json()
+                if poll_data.get("status") == "succeeded":
+                    data = poll_data
+                    break
+                elif poll_data.get("status") == "failed":
+                    raise ValueError(f"Seedream Edit failed: {poll_data.get('error', 'unknown')}")
+        else:
+            raise TimeoutError("Seedream Edit timed out after 5 minutes")
+
+    # Extract output URL
+    output_url = None
+    outputs = data.get("outputs") or data.get("output") or []
+    if isinstance(outputs, list) and outputs:
+        output_url = outputs[0]
+    elif isinstance(outputs, str):
+        output_url = outputs
+
+    if not output_url:
+        raise ValueError(f"No output from Seedream Edit. Response keys: {list(data.keys())}")
+
+    # Download the edited image
+    async with httpx.AsyncClient(timeout=60) as client:
+        img_resp = await client.get(output_url)
+        img_resp.raise_for_status()
+        edited_bytes = img_resp.content
+
+    logger.info("Seedream Edit complete: %d bytes", len(edited_bytes))
+    return edited_bytes

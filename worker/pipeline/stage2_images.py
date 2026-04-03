@@ -398,7 +398,15 @@ async def _generate_validated_image(
                         "poor quality", "should reject", "distorted", "extra fingers", "hex code", "glitchy",
                         "uncanny valley", "oversaturated", "too smooth", "mannequin",
                         "cartoon", "anime", "illustration", "illustrated", "digital painting",
-                        "rendered", "painted", "brush strokes", "stylized", "comic", "manga"]
+                        "rendered", "painted", "brush strokes", "stylized", "comic", "manga",
+                        # Watermark / text artifact detection
+                        "watermark", "logo overlay", "text overlay", "iphone", "shot on",
+                        "stock photo", "getty", "shutterstock", "alamy", "istock",
+                        "chinese text", "chinese character", "xiaohongshu", "小红书",
+                        "hashtag", "social media ui", "instagram ui", "tiktok ui",
+                        "gibberish text", "nonsensical text", "fake brand", "scrambled letter",
+                        "brand name", "camera brand", "visible text", "baked-in text",
+                        "overlay text", "foreign text", "unreadable text"]
 
             pos_count = sum(1 for w in strong_positive if w in raw)
             mild_count = sum(1 for w in mild_positive if w in raw)
@@ -429,10 +437,26 @@ async def _generate_validated_image(
             logger.info("Image passed VQA (score=%.2f, attempt=%d)", qa_score, attempt + 1)
             break
 
-        logger.info("VQA score %.2f < %.2f — regenerating.", qa_score, vqa_threshold)
+        logger.info("VQA score %.2f < %.2f — retrying.", qa_score, vqa_threshold)
         issues = qa_data.get("issues", [])
+        issues_text = "; ".join(issues) if issues else "improve realism and remove any artifacts"
+
+        # On retry: use Seedream Edit to fix specific issues (faster + cheaper than full regen)
+        if attempt > 0 and image_bytes and len(image_bytes) > 10000:
+            try:
+                from ai.seedream import edit_image
+                edit_prompt = f"Fix these issues: {issues_text}. Remove any watermarks, text overlays, gibberish text, brand names, or social media UI elements. Make the image look like a natural iPhone photo."
+                edited_bytes = await edit_image(image_bytes, edit_prompt)
+                if edited_bytes and len(edited_bytes) > 10000:
+                    image_bytes = edited_bytes
+                    logger.info("Seedream Edit applied for retry %d (fixing: %s)", attempt + 1, issues_text[:80])
+                    continue  # Re-run VQA on the edited image
+            except Exception as e:
+                logger.warning("Seedream Edit failed: %s — falling back to full regen", e)
+
+        # Fallback: append feedback to prompt for full regeneration
         if issues:
-            image_prompt_text += "\n\nFix these issues from previous attempt: " + "; ".join(issues)
+            image_prompt_text += "\n\nFix these issues from previous attempt: " + issues_text
 
     # Convert to AVIF for storage optimization (91% smaller than PNG)
     avif_bytes = _convert_to_avif(image_bytes)

@@ -403,6 +403,12 @@ Check EACH of these and score 0.0-1.0:
      fake money/currency rendered on screens, fake app UIs with placeholder data,
      any text that looks like code or technical output visible in the scene
    - AUTO-REJECT (score 0.0): cartoon/illustration/anime/digital painting appearance (see REALISM CHECK above)
+   - AUTO-REJECT (score 0.0): ANY visible watermark, logo overlay, or social media branding in the image
+     (e.g. "iPhone 15", "Shot on iPhone", stock photo IDs like "#C8842", Chinese text like 小红书/Xiaohongshu,
+     Getty/Shutterstock/iStock/Alamy watermarks, Instagram/TikTok/YouTube UI elements baked into the image,
+     any hashtag overlays, any camera brand text overlays, any social media handle text)
+   - AUTO-REJECT (score 0.0): gibberish or nonsensical text on clothing, accessories, lanyards, phone cases,
+     or any object in the scene (AI models often generate fake brand names or scrambled letters)
 
 3. CULTURAL AUTHENTICITY: Does this person look like they belong in {region}?
    - Check for: appropriate ethnicity, realistic clothing for the region, authentic setting
@@ -421,7 +427,10 @@ Check EACH of these and score 0.0-1.0:
 
 6. TECHNICAL QUALITY: Is the image usable for an ad?
    - Check for: proper framing, no artifacts, face clearly visible, good resolution
-   - Red flags: distorted features, extra fingers, blurry face, watermarks
+   - Red flags: distorted features, extra fingers, blurry face
+   - AUTO-REJECT (score 0.0): ANY text overlay, watermark, logo, social media UI, brand name,
+     hashtag, camera model text, stock ID, or Chinese/Japanese/Korean characters baked into the image.
+     This is a HARD FAIL — watermarked images cannot be used in paid advertising.
 
 Return ONLY valid JSON:
 {{
