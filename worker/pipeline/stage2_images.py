@@ -437,25 +437,47 @@ async def _generate_validated_image(
             logger.info("Image passed VQA (score=%.2f, attempt=%d)", qa_score, attempt + 1)
             break
 
-        logger.info("VQA score %.2f < %.2f — retrying.", qa_score, vqa_threshold)
+        logger.info("VQA score %.2f < %.2f — retrying (attempt %d/%d).", qa_score, vqa_threshold, attempt + 1, max_retries)
         issues = qa_data.get("issues", [])
         issues_text = "; ".join(issues) if issues else "improve realism and remove any artifacts"
 
-        # On retry: use Seedream Edit to fix specific issues (faster + cheaper than full regen)
-        if attempt > 0 and image_bytes and len(image_bytes) > 10000:
+        # Try Seedream Edit first (fix in-place, faster + cheaper than full regen)
+        edit_succeeded = False
+        if image_bytes and len(image_bytes) > 10000:
             try:
                 from ai.seedream import edit_image
                 edit_prompt = f"Fix these issues: {issues_text}. Remove any watermarks, text overlays, gibberish text, brand names, or social media UI elements. Make the image look like a natural iPhone photo."
                 edited_bytes = await edit_image(image_bytes, edit_prompt)
                 if edited_bytes and len(edited_bytes) > 10000:
-                    image_bytes = edited_bytes
-                    logger.info("Seedream Edit applied for retry %d (fixing: %s)", attempt + 1, issues_text[:80])
-                    continue  # Re-run VQA on the edited image
+                    # Re-run VQA on the edited image immediately
+                    tmp_edit = os.path.join(tempfile.gettempdir(), f"centric_edit_{uuid.uuid4().hex}.png")
+                    with open(tmp_edit, "wb") as f:
+                        f.write(edited_bytes)
+                    edit_qa = await analyze_image(tmp_edit, qa_prompt)
+                    edit_qa_data = _parse_json(edit_qa)
+                    edit_score = float(edit_qa_data.get("overall_score", edit_qa_data.get("score", 0)))
+                    try:
+                        os.unlink(tmp_edit)
+                    except OSError:
+                        pass
+                    if edit_score >= vqa_threshold:
+                        image_bytes = edited_bytes
+                        qa_score = edit_score
+                        qa_data = edit_qa_data
+                        logger.info("Seedream Edit PASSED VQA (score=%.2f, fixing: %s)", edit_score, issues_text[:60])
+                        edit_succeeded = True
+                        break  # VQA passed — done
+                    elif edit_score > qa_score:
+                        image_bytes = edited_bytes
+                        qa_score = edit_score
+                        logger.info("Seedream Edit improved score %.2f → %.2f but still below threshold", qa_score, edit_score)
+                    else:
+                        logger.info("Seedream Edit didn't improve score (%.2f) — will regen", edit_score)
             except Exception as e:
                 logger.warning("Seedream Edit failed: %s — falling back to full regen", e)
 
-        # Fallback: append feedback to prompt for full regeneration
-        if issues:
+        # Full regeneration with feedback appended
+        if not edit_succeeded and issues:
             image_prompt_text += "\n\nFix these issues from previous attempt: " + issues_text
 
     # Convert to AVIF for storage optimization (91% smaller than PNG)
