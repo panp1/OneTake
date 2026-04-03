@@ -42,7 +42,7 @@ async def generate_text(
         {"role": "user", "content": user_prompt},
     ]
 
-    # Try NIM Qwen 397B first (FREE, handles 60K+ prompts easily)
+    # Try NIM Qwen 397B first (FREE, 128K context, handles massive prompts)
     if NVIDIA_NIM_API_KEY:
         try:
             payload = {
@@ -52,9 +52,11 @@ async def generate_text(
                 "temperature": temperature,
                 "stream": False,
             }
-            # Note: thinking mode disabled for NIM — returns empty content on some models
+            # Enable thinking for reasoning models (Qwen 397B supports it)
+            if thinking:
+                payload["chat_template_kwargs"] = {"enable_thinking": True}
 
-            async with httpx.AsyncClient(timeout=180) as client:
+            async with httpx.AsyncClient(timeout=300) as client:
                 resp = await client.post(
                     f"{NVIDIA_NIM_BASE_URL}/chat/completions",
                     headers={
@@ -67,11 +69,25 @@ async def generate_text(
                 data = resp.json()
 
             msg = data["choices"][0]["message"]
-            content = msg.get("content") or msg.get("reasoning_content") or msg.get("reasoning") or ""
-            if not content.strip():
-                raise ValueError("NIM returned empty content")
-            logger.info("generate_text via NIM Qwen-397B (%d chars)", len(content))
-            return content
+            # NIM returns content in "content" field, reasoning in "reasoning_content"
+            # With thinking enabled, the actual answer is in "content" (may start with \n\n)
+            # The thinking trace is in "reasoning_content"
+            content = (msg.get("content") or "").strip()
+            reasoning = (msg.get("reasoning_content") or msg.get("reasoning") or "").strip()
+
+            # Prefer content (the actual answer), fall back to reasoning if content is empty
+            result = content if content else reasoning
+            if not result:
+                raise ValueError("NIM returned empty content and reasoning")
+
+            finish_reason = data["choices"][0].get("finish_reason", "unknown")
+            usage = data.get("usage", {})
+            logger.info(
+                "generate_text via NIM Qwen-397B (%d chars, finish=%s, tokens=%d/%d)",
+                len(result), finish_reason,
+                usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0),
+            )
+            return result
 
         except Exception as nim_error:
             logger.warning("NIM Qwen-397B failed: %s — trying MLX fallback", nim_error)
@@ -140,11 +156,11 @@ async def generate_copy(
 
     for provider_name, url, key, model in providers:
         try:
-            async with httpx.AsyncClient(timeout=180) as client:
+            async with httpx.AsyncClient(timeout=300) as client:
                 payload = {
                     "model": model,
                     "messages": messages,
-                    "max_tokens": kwargs.get("max_tokens", 4096),
+                    "max_tokens": kwargs.get("max_tokens", 8192),
                     "temperature": kwargs.get("temperature", 0.7),
                     "stream": False,
                 }
