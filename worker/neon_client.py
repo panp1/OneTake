@@ -356,7 +356,7 @@ async def save_asset(request_id: str, data: dict[str, Any]) -> str:
             data.get("blob_url", ""),
             json.dumps(metadata, default=str),
             metadata.get("vqa_score"),
-            json.dumps(metadata.get("vqa_dimensions", {}), default=str,
+            json.dumps(metadata.get("vqa_dimensions", {}), default=str),
             metadata.get("vqa_score", 0) >= 0.75 if metadata.get("vqa_score") else None,
             data.get("stage", 2),
         )
