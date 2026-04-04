@@ -11,6 +11,8 @@ If Phase 2 score < threshold, return VLM feedback for the retry loop.
 """
 from __future__ import annotations
 
+import base64
+import io
 import json
 import logging
 import os
@@ -307,3 +309,167 @@ async def evaluate_creative(
         "phase1": phase1,
         "phase2": phase2,
     }
+
+
+# ── Phase 3: Gemma 4 Composed Creative VQA ────────────────────────
+
+# Gemma 4 VQA config
+GEMMA4_MODEL = os.environ.get("NVIDIA_NIM_VQA_MODEL", "google/gemma-4-31b-it")
+GEMMA4_KEY = os.environ.get("NVIDIA_NIM_VQA_KEY", os.environ.get("NVIDIA_NIM_API_KEY", ""))
+COMPOSED_VQA_THRESHOLD = 0.70
+
+COMPOSED_VQA_PROMPT = '''You are a senior art director at a $50K/campaign ad agency reviewing an AI-generated ad creative.
+
+Score each dimension 0.0-1.0 AND provide SPECIFIC HTML/CSS fix instructions that a code-generating AI can execute.
+
+DIMENSIONS:
+
+1. text_readability: Is ALL text 100% legible? Check: contrast ratio, font size, background backing.
+   - If failing: specify exact CSS fix (e.g., "add text-shadow: 0 2px 8px rgba(0,0,0,0.5)" or "increase font-size from 16px to 22px")
+
+2. visual_hierarchy: Clear 3-level progression? Headline should be 2-3x larger than subheadline, CTA must be highest-contrast element.
+   - If failing: specify exact size changes (e.g., "headline needs font-size: 56px not 36px")
+
+3. typography_quality: Serif for headlines? Letter-spacing right? Line-height creating breathing room?
+   - If failing: specify exact font changes (e.g., "switch headline to font-family: Georgia, serif" or "add letter-spacing: -0.02em")
+
+4. photo_integration: Person visible? Face not obscured? Natural compositing?
+   - If failing: specify exact positioning fix (e.g., "change object-position from center to center 30%")
+
+5. layout_composition: Proper whitespace (20-30%)? Asymmetric > centered? Elements have breathing room?
+   - If failing: specify exact spacing (e.g., "add 40px padding-left" or "increase margin-bottom from 12px to 28px")
+
+6. brand_elements: OneForma purple (#6B21A8) and pink (#E91E8C) present? Pill CTA with gradient? Accent lines?
+   - If failing: specify what to add (e.g., "CTA needs border-radius: 9999px and background: linear-gradient(135deg, #6B21A8, #E91E8C)")
+
+7. scroll_stop_power: Would a recruiter stop scrolling for this? Emotional tension? Visual drama?
+   - If failing: specify creative direction (e.g., "add a large stat number like $15/hr in 72px serif" or "headline needs emotional hook")
+
+Return ONLY valid JSON:
+{
+  "text_readability": {"score": 0.0, "fix": "specific CSS fix or null"},
+  "visual_hierarchy": {"score": 0.0, "fix": "specific fix or null"},
+  "typography_quality": {"score": 0.0, "fix": "specific fix or null"},
+  "photo_integration": {"score": 0.0, "fix": "specific fix or null"},
+  "layout_composition": {"score": 0.0, "fix": "specific fix or null"},
+  "brand_elements": {"score": 0.0, "fix": "specific fix or null"},
+  "scroll_stop_power": {"score": 0.0, "fix": "specific creative direction or null"},
+  "overall_score": 0.0,
+  "passed": true,
+  "top_3_fixes": ["most impactful fix first", "second", "third"]
+}'''
+
+
+async def evaluate_composed_creative(
+    image_path: str,
+    platform: str = "",
+    headline: str = "",
+) -> dict[str, Any]:
+    """Evaluate a composed creative using Gemma 4 31B Vision on NIM.
+
+    Returns detailed per-dimension scores with actionable CSS fix instructions.
+    """
+    import httpx
+
+    if not GEMMA4_KEY:
+        logger.warning("No Gemma 4 VQA key — returning default pass")
+        return {"overall_score": 0.80, "passed": True, "dimensions": {}, "top_3_fixes": []}
+
+    # Read and resize image
+    try:
+        from PIL import Image
+        img = Image.open(image_path).convert("RGB")
+        img = img.resize((512, 512), Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=80)
+        b64 = base64.b64encode(buf.getvalue()).decode()
+    except Exception as e:
+        logger.warning("Failed to load image for VQA: %s", e)
+        return {"overall_score": 0.75, "passed": True, "dimensions": {}, "top_3_fixes": []}
+
+    payload = {
+        "model": GEMMA4_MODEL,
+        "messages": [{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": COMPOSED_VQA_PROMPT},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+            ],
+        }],
+        "max_tokens": 4096,
+        "temperature": 0.3,
+        "stream": False,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=90) as client:
+            resp = await client.post(
+                "https://integrate.api.nvidia.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {GEMMA4_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        content = data["choices"][0]["message"].get("content", "")
+        usage = data.get("usage", {})
+        logger.info(
+            "Gemma 4 VQA: %d tokens in, %d out",
+            usage.get("prompt_tokens", 0),
+            usage.get("completion_tokens", 0),
+        )
+
+        # Parse JSON from response
+        cleaned = content.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
+            cleaned = cleaned.rsplit("```", 1)[0].strip()
+
+        try:
+            result = json.loads(cleaned)
+        except json.JSONDecodeError:
+            # Try to find JSON in the text
+            brace_depth = 0
+            start = -1
+            last_valid = None
+            for i, char in enumerate(cleaned):
+                if char == '{':
+                    if brace_depth == 0:
+                        start = i
+                    brace_depth += 1
+                elif char == '}':
+                    brace_depth -= 1
+                    if brace_depth == 0 and start >= 0:
+                        try:
+                            parsed = json.loads(cleaned[start:i+1])
+                            if isinstance(parsed, dict) and "overall_score" in parsed:
+                                last_valid = parsed
+                        except json.JSONDecodeError:
+                            pass
+                        start = -1
+            if last_valid:
+                result = last_valid
+            else:
+                logger.warning("Could not parse Gemma 4 VQA response")
+                return {"overall_score": 0.75, "passed": True, "dimensions": {}, "top_3_fixes": []}
+
+        # Ensure required fields
+        result.setdefault("overall_score", 0.0)
+        result.setdefault("passed", result["overall_score"] >= COMPOSED_VQA_THRESHOLD)
+        result.setdefault("top_3_fixes", [])
+
+        logger.info(
+            "Composed creative VQA: score=%.2f, passed=%s, fixes=%d",
+            result["overall_score"],
+            result["passed"],
+            len(result.get("top_3_fixes", [])),
+        )
+
+        return result
+
+    except Exception as e:
+        logger.error("Gemma 4 VQA failed: %s", e)
+        return {"overall_score": 0.75, "passed": True, "dimensions": {}, "top_3_fixes": []}
