@@ -473,19 +473,30 @@ def _build_carousel_prompt(
         ),
     }
 
+    num_slides = len(structure)
+
     return (
         f"\n\n=== CAROUSEL MODE ===\n"
-        f"You are generating a MULTI-SLIDE CAROUSEL, not a single creative.\n"
+        f"You are generating a MULTI-SLIDE CAROUSEL with EXACTLY {num_slides} slides.\n"
         f"Platform: {platform_key} ({w}x{h}px per slide)\n"
         f"Content style: {content_style}\n\n"
         f"{safe_zones}\n\n"
         f"{platform_rules.get(platform_key, '')}\n"
-        f"SLIDE STRUCTURE (generate HTML for EACH slide):\n"
+        f"SLIDE STRUCTURE — YOU MUST GENERATE ALL {num_slides} SLIDES:\n"
         f"{slides_text}\n\n"
-        f"Return a JSON array with one object PER SLIDE. Each must have:\n"
-        f"  role, overlay_headline, overlay_sub, overlay_cta (if applicable),\n"
-        f"  has_photo (bool), actor_name (if photo used), html.\n\n"
-        f"CRITICAL: Each slide is a SEPARATE self-contained HTML document.\n"
-        f"Canvas size per slide: EXACTLY {w}x{h}px.\n"
-        f"The slides must tell a coherent story when swiped in order.\n"
+        f"MANDATORY: Return a JSON array with EXACTLY {num_slides} objects.\n"
+        f"Each object MUST have these fields:\n"
+        f"  - role: string (matches the slide role above)\n"
+        f"  - overlay_headline: string (the main text for this slide)\n"
+        f"  - overlay_sub: string (supporting text, can be empty)\n"
+        f"  - overlay_cta: string (CTA text, only on CTA slide)\n"
+        f"  - has_photo: boolean (true if this slide uses an actor photo)\n"
+        f"  - actor_name: string (actor name if photo used, empty otherwise)\n"
+        f"  - html: string (complete HTML document for this slide)\n\n"
+        f"CRITICAL RULES:\n"
+        f"- You MUST return EXACTLY {num_slides} slide objects in the JSON array.\n"
+        f"- Each slide is a SEPARATE self-contained HTML document ({w}x{h}px).\n"
+        f"- The slides tell a coherent story: {' → '.join(s['role'] for s in structure)}.\n"
+        f"- DO NOT return fewer slides. DO NOT skip any slide.\n"
+        f"- DO NOT return just 1 slide. You MUST return all {num_slides}.\n"
     )
