@@ -36,6 +36,7 @@ import MockupPreview from "@/components/MockupPreview";
 import RecruiterDetailView from "@/components/RecruiterDetailView";
 import BriefExecutive from "@/components/BriefExecutive";
 import AssetReviewPanel from "@/components/AssetReviewPanel";
+import CampaignWorkspace from "@/components/CampaignWorkspace";
 import ResearchPanel from "@/components/ResearchPanel";
 import { extractField, formatLabel } from "@/lib/format";
 import PipelineNav from "@/components/PipelineNav";
@@ -53,12 +54,22 @@ import type {
   UserRole,
 } from "@/lib/types";
 
+interface CampaignStrategy {
+  id: string;
+  country: string;
+  tier: number;
+  monthly_budget: number;
+  budget_mode: string;
+  strategy_data: Record<string, any>;
+}
+
 interface DetailData {
   request: IntakeRequest;
   brief: CreativeBrief | null;
   actors: ActorProfile[];
   assets: GeneratedAsset[];
   pipelineRuns: PipelineRun[];
+  campaignStrategies: CampaignStrategy[];
 }
 
 function SkeletonSection() {
@@ -164,12 +175,24 @@ export default function IntakeDetailPage({
         // Assets may not exist yet
       }
 
+      let campaignStrategies: CampaignStrategy[] = [];
+      try {
+        const stratRes = await fetch(`/api/generate/${id}/strategy`);
+        if (stratRes.ok) {
+          const stratData = await stratRes.json();
+          campaignStrategies = stratData.strategies || [];
+        }
+      } catch {
+        // Strategies may not exist yet
+      }
+
       setData({
         request,
         brief,
         actors,
         assets,
         pipelineRuns,
+        campaignStrategies,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load request");
@@ -353,6 +376,28 @@ export default function IntakeDetailPage({
 
   function handleRetry(asset: GeneratedAsset) {
     toast.info(`Retry queued for ${asset.platform} ${asset.format}`);
+  }
+
+  async function handleDeleteAsset(asset: GeneratedAsset) {
+    if (!confirm(`Delete this ${asset.asset_type.replace(/_/g, " ")}? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/assets/${asset.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Failed to delete asset");
+        return;
+      }
+      toast.success("Asset deleted");
+      // Remove from local state
+      if (data) {
+        setData({
+          ...data,
+          assets: data.assets.filter(a => a.id !== asset.id),
+        });
+      }
+    } catch {
+      toast.error("Failed to delete asset");
+    }
   }
 
   function handleBulkDownload() {
@@ -542,8 +587,35 @@ export default function IntakeDetailPage({
               </LiveSection>
             )}
 
-            {/* Creative Brief — Executive Format */}
-            {brief && briefData && (
+            {/* ═══ Campaign Workspace — Unified persona-centric view ═══ */}
+            {/* Marketing/Admin: merged brief + personas + creatives */}
+            {brief && briefData && (role === "admin" || role === "designer" || role === null) && (
+              <LiveSection
+                id="section-workspace"
+                title="Campaign Workspace"
+                subtitle="Strategy, personas, targeting, and creatives in one view"
+                accentColor="#6B21A8"
+                visible={!!brief}
+              >
+                <section ref={briefSectionRef}>
+                  <CampaignWorkspace
+                    briefData={briefData}
+                    channelResearch={brief.channel_research as Record<string, any> | null}
+                    designDirection={brief.design_direction as Record<string, any> | null}
+                    campaignStrategies={data.campaignStrategies}
+                    actors={data.actors}
+                    assets={assets}
+                    editable={role === "admin"}
+                    onRefine={(asset) => setRefineAsset(asset)}
+                    onRetry={(asset) => handleRetry(asset)}
+                    onDelete={handleDeleteAsset}
+                  />
+                </section>
+              </LiveSection>
+            )}
+
+            {/* Fallback: Original Brief + Assets for non-marketing roles */}
+            {brief && briefData && role !== "admin" && role !== "designer" && role !== null && (
               <LiveSection
                 id="section-brief"
                 title="Creative Brief"
@@ -551,24 +623,15 @@ export default function IntakeDetailPage({
                 accentColor="#6B21A8"
                 visible={!!brief}
               >
-                <section ref={briefSectionRef}>
-                  <BriefExecutive
-                    briefData={briefData}
-                    channelResearch={brief.channel_research as Record<string, any> | null}
-                    designDirection={brief.design_direction as Record<string, any> | null}
-                    editable={role === "admin"}
-                    onFieldSave={(path, value) => {
-                      toast.success(`Updated ${path.split(".").pop()}`);
-                    }}
-                  />
-                </section>
+                <BriefExecutive
+                  briefData={briefData}
+                  channelResearch={brief.channel_research as Record<string, any> | null}
+                  designDirection={brief.design_direction as Record<string, any> | null}
+                  campaignStrategies={data.campaignStrategies}
+                  editable={false}
+                />
               </LiveSection>
             )}
-
-            {/* Target Audience */}
-            {/* Target Audience & Channel Strategy moved to Research + Brief tabs */}
-
-            {/* Actor Profiles — shown inside Assets > Actors tab now */}
 
             {/* Evaluation Scores */}
             {evaluationData && Object.keys(evaluationData).length > 0 && (
@@ -583,8 +646,8 @@ export default function IntakeDetailPage({
               </section>
             )}
 
-            {/* Generated Assets — Tabbed Review Panel */}
-            {hasOutputs && (
+            {/* Separate Assets panel only for recruiter role (marketing uses CampaignWorkspace) */}
+            {hasOutputs && role !== "admin" && role !== "designer" && role !== null && (
               <LiveSection
                 id="section-images"
                 title="Generated Assets"

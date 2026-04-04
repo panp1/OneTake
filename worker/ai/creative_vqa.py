@@ -318,46 +318,95 @@ GEMMA4_MODEL = os.environ.get("NVIDIA_NIM_VQA_MODEL", "google/gemma-4-31b-it")
 GEMMA4_KEY = os.environ.get("NVIDIA_NIM_VQA_KEY", os.environ.get("NVIDIA_NIM_API_KEY", ""))
 COMPOSED_VQA_THRESHOLD = 0.70
 
-COMPOSED_VQA_PROMPT = '''You are a senior art director at a $50K/campaign ad agency reviewing an AI-generated ad creative.
+COMPOSED_VQA_PROMPT = '''You are a senior creative director scoring a OneForma recruitment ad creative.
+Use the 8-category weighted matrix below. Score each category 1-10, then compute the weighted total (max 100).
 
-Score each dimension 0.0-1.0 AND provide SPECIFIC HTML/CSS fix instructions that a code-generating AI can execute.
+## SCORING MATRIX (8 categories, weighted to 100):
 
-DIMENSIONS:
+### Cat 1: SCROLL-STOP POWER (weight: 20%)
+Score 1-10 on: visual disruption (bold color/contrast vs feed), first-glance clarity (<1s to understand), photo impact (large face, expressive, authentic), image-to-canvas ratio (50-80% is ideal).
+- 1-3: Blends into feed, small/stock photo, too much whitespace
+- 7-8: Strong photo, clear message, would slow scrolling
+- 9-10: Impossible to scroll past — bold, face-forward, immediate hook
 
-1. text_readability: Is ALL text 100% legible? Check: contrast ratio, font size, background backing.
-   - If failing: specify exact CSS fix (e.g., "add text-shadow: 0 2px 8px rgba(0,0,0,0.5)" or "increase font-size from 16px to 22px")
+### Cat 2: HEADLINE & HOOK (weight: 20%)
+Score 1-10 on: specificity (has dollar amount OR timeframe OR geography?), differentiation (could a competitor use this verbatim?), emotional trigger (hits a real nerve?), readability at thumb size (bold, high-contrast, ≤8 words?).
+- 1-3: Vague ("Earn money"), no number, generic gig copy
+- 7-8: Has a number or question, somewhat specific
+- 9-10: Specific $ + audience + task. "Speak Portuguese? Earn $12/hr."
 
-2. visual_hierarchy: Clear 3-level progression? Headline should be 2-3x larger than subheadline, CTA must be highest-contrast element.
-   - If failing: specify exact size changes (e.g., "headline needs font-size: 56px not 36px")
+### Cat 3: VALUE PROP CLARITY (weight: 15%)
+Score 1-10 on: WIIFM clarity (concrete personal benefit?), objection handling (addresses #1 hesitation?), supporting copy quality (subheadline adds new reason?).
+- 1-3: Talks about platform not person, no objection handling
+- 7-8: Clear benefit, mentions ease of entry
+- 9-10: "Review AI translations from home. No experience needed."
 
-3. typography_quality: Serif for headlines? Letter-spacing right? Line-height creating breathing room?
-   - If failing: specify exact font changes (e.g., "switch headline to font-family: Georgia, serif" or "add letter-spacing: -0.02em")
+### Cat 4: SOCIAL PROOF & TRUST (weight: 10%)
+Score 1-10 on: proof elements (contributor count? ratings? testimonial?), credibility signals (payment method? brand logo?).
+- 1-3: ZERO social proof — no numbers, no testimonials
+- 7-8: Avatar-stack or star rating with count
+- 9-10: Multiple proof layers — count + payment badge + named testimonial
 
-4. photo_integration: Person visible? Face not obscured? Natural compositing?
-   - If failing: specify exact positioning fix (e.g., "change object-position from center to center 30%")
+### Cat 5: CTA & CONVERSION (weight: 10%)
+Score 1-10 on: button visibility (high contrast, ≥44px tap target?), copy strength (specific action, not "Learn More"), urgency (reason to act now?).
+- 1-3: Small, blends in, generic "Sign Up"
+- 7-8: Visible pill button, action-oriented copy
+- 9-10: "Apply in 2 Minutes →" — specific, friction-reducing, impossible to miss
 
-5. layout_composition: Proper whitespace (20-30%)? Asymmetric > centered? Elements have breathing room?
-   - If failing: specify exact spacing (e.g., "add 40px padding-left" or "increase margin-bottom from 12px to 28px")
+### Cat 6: VISUAL DESIGN (weight: 10%)
+Score 1-10 on: eye flow (Z/F-pattern?), color contrast (text legible?), layout balance (asymmetric > centered?), brand consistency (OneForma purple/pink?).
+- 1-3: Cramped, low contrast, everything centered
+- 7-8: Clean split layout, clear hierarchy
+- 9-10: Professional editorial quality, intentional asymmetry
 
-6. brand_elements: OneForma purple (#6B21A8) and pink (#E91E8C) present? Pill CTA with gradient? Accent lines?
-   - If failing: specify what to add (e.g., "CTA needs border-radius: 9999px and background: linear-gradient(135deg, #6B21A8, #E91E8C)")
+### Cat 7: AUDIENCE & PLATFORM FIT (weight: 10%)
+Score 1-10 on: audience resonance (speaks to specific person?), photo representation (matches target demographic?), platform-native feel (looks like organic content?), geo/language signals (local currency, local payment?).
+- 1-3: Generic, no localization, stock-looking
+- 7-8: Right demographic, mentions local payment
+- 9-10: Deeply localized — Pix badge, R$ currency, culturally relevant imagery
 
-7. scroll_stop_power: Would a recruiter stop scrolling for this? Emotional tension? Visual drama?
-   - If failing: specify creative direction (e.g., "add a large stat number like $15/hr in 72px serif" or "headline needs emotional hook")
+### Cat 8: TECHNICAL & COMPLIANCE (weight: 5%)
+Score 1-10 on: spec compliance (right dimensions, safe zones?), text legibility on mobile (readable at 375px?), file quality (sharp, no artifacts?).
+- 1-3: Wrong dims, text unreadable on mobile
+- 7-8: Meets specs, readable
+- 9-10: Pixel-perfect, tested at actual mobile size
+
+## AUTO-FAIL TRIGGERS (cap at grade C regardless of total):
+- No specificity in headline (missing dollar amount AND timeframe AND geography)
+- Unreadable on mobile (text too small or low contrast)
+- Generic gig copy (Upwork/Fiverr could use it verbatim)
+- 60%+ empty white space
+- No CTA button visible
+- Stock-looking photo
+- Internal jargon in copy ("human review", "secure platform")
+
+## GRADE THRESHOLDS:
+- 85-100: A — Ship It (launch immediately)
+- 70-84: B — Ship with Notes (fix 1-2 things)
+- 55-69: C — Iterate (redesign weakest categories)
+- 40-54: D — Rethink (go back to brief)
+- Below 40: F — Kill It (delete, start over)
 
 Return ONLY valid JSON:
 {
-  "text_readability": {"score": 0.0, "fix": "specific CSS fix or null"},
-  "visual_hierarchy": {"score": 0.0, "fix": "specific fix or null"},
-  "typography_quality": {"score": 0.0, "fix": "specific fix or null"},
-  "photo_integration": {"score": 0.0, "fix": "specific fix or null"},
-  "layout_composition": {"score": 0.0, "fix": "specific fix or null"},
-  "brand_elements": {"score": 0.0, "fix": "specific fix or null"},
-  "scroll_stop_power": {"score": 0.0, "fix": "specific creative direction or null"},
+  "scroll_stop_power": {"score": 0, "fix": "specific CSS/design fix or null"},
+  "headline_hook": {"score": 0, "fix": "specific copy fix or null"},
+  "value_prop_clarity": {"score": 0, "fix": "specific copy fix or null"},
+  "social_proof": {"score": 0, "fix": "what proof element to add or null"},
+  "cta_conversion": {"score": 0, "fix": "specific CTA fix or null"},
+  "visual_design": {"score": 0, "fix": "specific layout/CSS fix or null"},
+  "audience_fit": {"score": 0, "fix": "specific localization fix or null"},
+  "technical": {"score": 0, "fix": "specific technical fix or null"},
+  "weighted_total": 0,
+  "grade": "A|B|C|D|F",
+  "auto_fail_triggers": ["list of triggered auto-fails or empty"],
   "overall_score": 0.0,
   "passed": true,
-  "top_3_fixes": ["most impactful fix first", "second", "third"]
-}'''
+  "top_3_fixes": ["most impactful fix first with exact CSS/copy", "second", "third"]
+}
+
+IMPORTANT: overall_score = weighted_total / 100 (so 85/100 = 0.85).
+passed = true if grade is A or B (weighted_total >= 70 AND no auto-fail triggers).'''
 
 
 async def evaluate_composed_creative(

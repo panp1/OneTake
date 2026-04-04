@@ -40,18 +40,38 @@ __all__ = [
 # ---------------------------------------------------------------------------
 
 COPY_SYSTEM_PROMPT = (
-    "You are a multilingual copywriter for OneForma recruitment ads.\n\n"
+    "You are an elite multilingual copywriter for OneForma recruitment ads.\n\n"
     "OneForma recruits data annotation contributors worldwide — students, "
     "freelancers, stay-at-home parents, and multilingual professionals.\n\n"
     "Your copy must:\n"
-    "- Sound like a friend telling you about a great opportunity\n"
-    "- Lead with concrete benefits (earnings, flexibility, skills)\n"
+    "- Sound like a friend telling you about a great opportunity — NOT like a corporation hiring\n"
+    "- Lead with SPECIFIC numbers: dollar amounts, timeframes, contributor counts\n"
+    "- Address the persona's #1 pain point in the FIRST line\n"
+    "- Weave in the persona's trigger words naturally\n"
     "- Use the target language natively (not translated-sounding)\n"
+    "- Use LOCAL CURRENCY for non-US markets (R$ for Brazil, ₹ for India, etc)\n"
     "- Be platform-appropriate in BOTH tone AND field structure\n"
     "- Return the EXACT JSON fields the target platform requires\n"
-    "- Respect every character limit — count carefully\n"
-    "- Include a CTA from the platform's allowed list only\n"
-    "- NEVER use corporate jargon, buzzwords, or 'We are hiring' language"
+    "- Respect every character limit — count carefully\n\n"
+    "WORDS THAT CONVERT (use these):\n"
+    "- Specific dollar amounts: '$12/hr', 'R$60/hr', '$500/mo'\n"
+    "- Local payment methods: 'Pix', 'PayPal', 'Payoneer'\n"
+    "- 'Paid weekly' / 'Paid every Friday' (NOT 'weekly payouts')\n"
+    "- 'No experience needed' / 'Just your language skills'\n"
+    "- 'Work from your phone' / 'Work from anywhere'\n"
+    "- '50,000+ contributors' / 'Join 50K+'\n"
+    "- 'Get your first task in 24 hours' / 'Apply in 2 Minutes'\n"
+    "- Task clarity: 'Review AI translations', 'Rate chatbot responses'\n"
+    "- Question openers: 'Speak Portuguese?', 'Bilingual?'\n\n"
+    "STOP USING THESE (proven failures):\n"
+    "- 'Human review' / 'secure payments' / 'secure platform' — jargon\n"
+    "- 'Powered by Centific' — zero brand recognition\n"
+    "- 'Flexible hours' — every gig platform says this\n"
+    "- 'Start earning' without a number — empty promise\n"
+    "- 'Skip the commute' — outdated post-COVID\n"
+    "- 'Extra income' without quantifying — too vague\n"
+    "- 'We are hiring' / 'Position available' — corporate HR speak\n"
+    "- 'Learn More' / 'Sign Up' / 'Join Now' — generic CTA"
 )
 
 COPY_EVAL_SYSTEM_PROMPT = (
@@ -877,3 +897,231 @@ def build_persona_targeted_copy_prompt(
 ---
 
 {standard_prompt}"""
+
+
+# ---------------------------------------------------------------------------
+# 3-variation copy generation — angles derived from persona psychology
+# ---------------------------------------------------------------------------
+
+def extract_available_facts(brief: dict, form_data: dict | None = None) -> dict[str, str]:
+    """Extract concrete facts from brief/form_data that the LLM can use.
+
+    Returns a dict of fact_name → value. Only includes facts that actually
+    exist — never fabricates. The LLM decides whether to use each fact.
+    """
+    facts: dict[str, str] = {}
+    fd = form_data or {}
+
+    # Compensation — check multiple possible locations
+    comp = fd.get("compensation", brief.get("compensation", {}))
+    if isinstance(comp, dict):
+        rate = comp.get("rate", comp.get("hourly_rate", comp.get("pay_rate", "")))
+        if rate:
+            facts["rate"] = str(rate)
+        currency = comp.get("currency", "")
+        if currency:
+            facts["currency"] = currency
+        pay_method = comp.get("payment_method", comp.get("pay_method", ""))
+        if pay_method:
+            facts["payment_method"] = pay_method
+    elif isinstance(comp, str) and comp:
+        facts["compensation_description"] = comp
+
+    # Simple rate field
+    for key in ("rate", "pay_rate", "hourly_rate"):
+        val = fd.get(key, brief.get(key, ""))
+        if val and "rate" not in facts:
+            facts["rate"] = str(val)
+
+    # Task type
+    task = fd.get("task_type", brief.get("task_type", ""))
+    if task:
+        facts["task_type"] = str(task).replace("_", " ")
+
+    # Task description
+    desc = fd.get("task_description", fd.get("description", ""))
+    if desc:
+        facts["task_description"] = str(desc)[:200]
+
+    # Contributor count (if known)
+    for key in ("contributor_count", "contributors", "community_size"):
+        val = brief.get(key, fd.get(key, ""))
+        if val:
+            facts["contributor_count"] = str(val)
+
+    # Target languages
+    langs = brief.get("content_language", {})
+    if isinstance(langs, dict) and langs.get("primary"):
+        facts["primary_language"] = langs["primary"]
+
+    # Regions
+    regions = fd.get("target_regions", brief.get("target_regions", []))
+    if regions:
+        facts["regions"] = ", ".join(regions) if isinstance(regions, list) else str(regions)
+
+    return facts
+
+
+PEER_VOICE_SYSTEM = """You are NOT a copywriter. You are NOT a brand.
+
+You are {persona_name}'s friend — someone their age, from their region, who just discovered OneForma and is genuinely excited to tell them about it.
+
+You know {persona_name}'s situation: {lifestyle_snippet}
+You know what keeps them up at night: {pain_snippet}
+You know what would change their life: {motivation_snippet}
+
+When you write ad copy, it should sound like a voice note or text to {persona_name} — real, specific, urgent but not desperate. You're sharing an opportunity you KNOW fits their life.
+
+Rules:
+- Write in {language}. It must sound native, not translated.
+- Use the persona's trigger words naturally: {trigger_words}
+- Address their #1 fear without being heavy-handed
+- Be specific (if you have numbers, use them; if not, be specific about the EXPERIENCE instead)
+- Return ONLY the JSON fields requested — no commentary
+- Every word must earn its place. If a word could appear in any competitor's ad, cut it.
+
+{copy_benchmarks}"""
+
+
+COPY_BENCHMARKS_BLOCK = """
+WORDS/PATTERNS THAT CONVERT (use when relevant, not forced):
+- Specific amounts when available (local currency preferred)
+- Local payment methods by market (Pix, PayPal, Payoneer)
+- "No experience needed" / "Just your language skills"
+- "Work from your phone" / "from anywhere"
+- Contributor counts if known
+- Time-to-start ("first task in 24 hours")
+- Task clarity ("Review AI translations")
+- Question openers ("Speak [language]?")
+
+PATTERNS THAT KILL CONVERSION (never use):
+- "Human review" / "secure payments" — internal jargon
+- "Flexible hours" — every gig platform says this
+- "Extra income" without specifics — empty
+- "We are hiring" / "Position available" — corporate HR
+- "Learn More" / "Sign Up" — generic CTA
+- "Powered by Centific" — zero audience recognition
+"""
+
+
+def build_peer_voice_system(persona: dict, language: str) -> str:
+    """Build a system prompt where the LLM embodies the persona's peer.
+
+    The voice is calibrated from the persona's actual psychology — not
+    hardwired to any fixed tone or angle.
+    """
+    psychology = persona.get("psychology_profile", {})
+    trigger_words = psychology.get("trigger_words", [])
+
+    return PEER_VOICE_SYSTEM.format(
+        persona_name=persona.get("persona_name", persona.get("name", "this person")),
+        lifestyle_snippet=persona.get("lifestyle", "their daily life")[:120],
+        pain_snippet=persona.get("customized_pain", persona.get("pain_points", ["finding good opportunities"])[0] if persona.get("pain_points") else "")[:120],
+        motivation_snippet=persona.get("customized_motivation", "a better opportunity")[:120],
+        language=language,
+        trigger_words=", ".join(trigger_words[:6]) if trigger_words else "authenticity, real talk",
+        copy_benchmarks=COPY_BENCHMARKS_BLOCK,
+    )
+
+
+def build_variation_prompts(
+    persona: dict,
+    brief: dict,
+    channel: str,
+    language: str,
+    regions: list[str] | None = None,
+    form_data: dict | None = None,
+) -> list[dict[str, str]]:
+    """Build 3 copy prompts — one per psychological angle — derived from
+    the persona's own psychology profile.
+
+    Returns a list of 3 dicts, each with:
+      - ``angle``: human-readable label for the variation
+      - ``bias``: the psychology bias driving this angle
+      - ``system``: the system prompt (peer voice)
+      - ``user``: the user prompt (platform spec + angle instruction)
+
+    The angles are NOT hardwired. They come from:
+      1. persona.psychology_profile.primary_bias
+      2. persona.psychology_profile.secondary_bias
+      3. A contrasting "discovery" angle the LLM chooses
+    """
+    psychology = persona.get("psychology_profile", {})
+    primary_bias = psychology.get("primary_bias", "")
+    secondary_bias = psychology.get("secondary_bias", "")
+    messaging_angle = psychology.get("messaging_angle", "")
+
+    # Extract available facts (only what exists — no fabrication)
+    facts = extract_available_facts(brief, form_data)
+    facts_block = ""
+    if facts:
+        lines = [f"- {k}: {v}" for k, v in facts.items()]
+        facts_block = (
+            "\nAVAILABLE FACTS (use these if they fit your angle — do NOT fabricate data):\n"
+            + "\n".join(lines)
+        )
+
+    # Build the base platform prompt (char limits, JSON schema, examples)
+    base_prompt = build_copy_prompt(
+        brief=brief,
+        channel=channel,
+        language=language,
+        regions=regions,
+        form_data=form_data,
+    )
+
+    # Persona context block
+    from prompts.persona_engine import build_persona_copy_prompt
+    persona_block = build_persona_copy_prompt(persona, channel, language, brief)
+
+    # System prompt — peer voice
+    system = build_peer_voice_system(persona, language)
+
+    variations = []
+
+    # ── Variation A: Primary psychology bias ──
+    variations.append({
+        "angle": f"primary_{primary_bias}" if primary_bias else "primary",
+        "bias": primary_bias,
+        "system": system,
+        "user": f"""COPY ANGLE: Lead with {persona.get('persona_name', 'this person')}'s PRIMARY psychology — {primary_bias}.
+Messaging direction: {messaging_angle}
+{facts_block}
+
+{persona_block}
+---
+{base_prompt}""",
+    })
+
+    # ── Variation B: Secondary psychology bias ──
+    if secondary_bias and secondary_bias != primary_bias:
+        variations.append({
+            "angle": f"secondary_{secondary_bias}",
+            "bias": secondary_bias,
+            "system": system,
+            "user": f"""COPY ANGLE: Lead with {persona.get('persona_name', 'this person')}'s SECONDARY psychology — {secondary_bias}.
+This is a DIFFERENT angle from the primary ({primary_bias}). The tone, hook, and emotional trigger should feel distinctly different.
+{facts_block}
+
+{persona_block}
+---
+{base_prompt}""",
+        })
+
+    # ── Variation C: Discovery / Contrasting angle ──
+    # The LLM picks an angle that NEITHER matches primary nor secondary
+    variations.append({
+        "angle": "discovery",
+        "bias": "contrasting",
+        "system": system,
+        "user": f"""COPY ANGLE: SURPRISE ME. Write copy using a psychology angle that is NEITHER {primary_bias} nor {secondary_bias}.
+Pick whichever angle you believe will resonate most with {persona.get('persona_name', 'this person')} based on their profile — but it MUST be a fundamentally different hook from the other two variations.
+Consider: curiosity gap, loss aversion, identity appeal, effort minimization, social belonging, aspirational storytelling, or any angle that fits.
+{facts_block}
+
+{persona_block}
+---
+{base_prompt}""",
+    })
+
+    return variations

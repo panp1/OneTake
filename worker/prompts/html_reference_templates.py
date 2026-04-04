@@ -337,6 +337,114 @@ TEMPLATE_TESTIMONIAL = '''<!DOCTYPE html>
 </html>'''
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# PROVEN BEFORE→AFTER REDESIGN TEMPLATES (F→A scores, 22→87 to 59→91)
+# These 6 templates are extracted from real creative audits. Each uses
+# specific CSS techniques that were PROVEN to increase scores.
+# ═══════════════════════════════════════════════════════════════════════
+
+# ── 11. Conversion Split (photo 55% left, text 45% right) ───────────
+TEMPLATE_CONVERSION_SPLIT = '''<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;width:{width}px;height:{height}px;overflow:hidden;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;">
+<div style="display:flex;width:100%;height:100%;">
+<div style="width:55%;position:relative;overflow:hidden;"><img src="{image_url}" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;"/></div>
+<div style="width:45%;background:#FFF;display:flex;flex-direction:column;justify-content:center;padding:8%;">
+<div style="font-size:13px;font-weight:800;color:#5B21B6;margin-bottom:4%;">OneForma</div>
+<div style="font-family:Georgia,serif;font-size:28px;font-weight:700;line-height:1.1;letter-spacing:-0.03em;color:#111827;margin-bottom:3%;">{headline}</div>
+<div style="font-size:13px;line-height:1.5;color:#6B7280;margin-bottom:5%;">{subheadline}</div>
+<div style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:#16A34A;background:#F0FDF4;padding:4px 10px;border-radius:20px;margin-bottom:4%;width:fit-content;"><span style="width:12px;height:12px;background:#32BCAD;border-radius:3px;transform:rotate(45deg);display:inline-block;"></span>Paid via Pix every Friday</div>
+<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#6B7280;margin-bottom:5%;padding:6px 0;border-top:1px solid #E5E7EB;">
+<div style="display:flex;"><div style="width:22px;height:22px;border-radius:50%;border:2px solid white;background:#EDE9FE;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#5B21B6;">M</div><div style="width:22px;height:22px;border-radius:50%;border:2px solid white;margin-left:-6px;background:#EDE9FE;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#5B21B6;">L</div><div style="width:22px;height:22px;border-radius:50%;border:2px solid white;margin-left:-6px;background:#7C3AED;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;color:white;">+50K</div></div>
+<span>50,000+ contributors worldwide</span></div>
+<div style="display:inline-flex;align-items:center;gap:6px;padding:12px 24px;border-radius:50px;font-size:14px;font-weight:700;color:white;background:#7C3AED;width:fit-content;box-shadow:0 4px 14px rgba(124,58,237,0.4);">{cta} →</div>
+</div></div></body></html>'''
+
+# ── 12. Dark Purple Split (score: 22→87) ─────────────────────────────
+TEMPLATE_DARK_PURPLE_SPLIT = '''<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;width:{width}px;height:{height}px;overflow:hidden;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;">
+<div style="display:flex;width:100%;height:100%;background:#5B21B6;">
+<div style="width:50%;position:relative;overflow:hidden;"><img src="{image_url}" style="width:100%;height:100%;object-fit:cover;object-position:50% 30%;"/></div>
+<div style="width:50%;background:#5B21B6;display:flex;flex-direction:column;justify-content:center;padding:8%;">
+<div style="font-size:13px;font-weight:800;color:#C4B5FD;margin-bottom:4%;">OneForma</div>
+<div style="font-family:Georgia,serif;font-size:26px;font-weight:700;line-height:1.1;color:#FFF;margin-bottom:3%;">{headline}</div>
+<div style="font-size:13px;line-height:1.5;color:#C4B5FD;margin-bottom:5%;">{subheadline}</div>
+<div style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:#86EFAC;background:rgba(255,255,255,0.1);padding:4px 10px;border-radius:20px;margin-bottom:4%;width:fit-content;"><span style="width:12px;height:12px;background:#32BCAD;border-radius:3px;transform:rotate(45deg);display:inline-block;"></span>Paid weekly via Pix</div>
+<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#C4B5FD;margin-bottom:5%;padding:6px 0;border-top:1px solid rgba(255,255,255,0.15);">
+<div style="display:flex;"><div style="width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);background:#7C3AED;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:white;">J</div><div style="width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);margin-left:-6px;background:#9333EA;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:white;">P</div></div>
+<span>50,000+ already earning</span></div>
+<div style="display:inline-flex;align-items:center;gap:6px;padding:12px 24px;border-radius:50px;font-size:14px;font-weight:700;color:white;background:#16A34A;width:fit-content;box-shadow:0 4px 14px rgba(22,163,74,0.4);">{cta} →</div>
+</div></div></body></html>'''
+
+# ── 13. Full-Bleed Testimonial (score: 31���90) ────────────────────────
+TEMPLATE_FULLBLEED_TESTIMONIAL = '''<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;width:{width}px;height:{height}px;overflow:hidden;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;">
+<div style="position:absolute;inset:0;"><img src="{image_url}" style="width:100%;height:100%;object-fit:cover;object-position:50% 40%;filter:brightness(0.95);"/></div>
+<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.15) 0%,rgba(0,0,0,0.3) 30%,rgba(0,0,0,0.75) 70%,rgba(0,0,0,0.9) 100%);"></div>
+<div style="position:absolute;bottom:0;left:0;right:0;padding:8%;">
+<div style="font-size:48px;color:#D946EF;font-family:Georgia,serif;line-height:1;margin-bottom:2%;opacity:0.8;">"</div>
+<div style="font-family:Georgia,serif;font-size:22px;font-weight:700;line-height:1.35;color:white;margin-bottom:4%;">{headline}</div>
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:5%;">
+<div style="width:40px;height:40px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,0.3);flex-shrink:0;"><img src="{image_url}" style="width:100%;height:100%;object-fit:cover;object-position:50% 40%;"/></div>
+<div><div style="font-size:14px;font-weight:700;color:white;">{subheadline}</div><div style="font-size:11px;color:#A78BFA;">OneForma Contributor</div></div>
+<div style="margin-left:auto;background:rgba(255,255,255,0.15);padding:3px 10px;border-radius:20px;font-size:10px;color:#C4B5FD;font-weight:600;">✓ Verified</div></div>
+<div style="width:100%;text-align:center;padding:14px 24px;border-radius:50px;font-size:15px;font-weight:700;color:white;background:#7C3AED;box-shadow:0 4px 14px rgba(124,58,237,0.4);">{cta} →</div>
+</div></body></html>'''
+
+# ── 14. Wavy Mask Split (score: 41→89) ───────────────────────────────
+TEMPLATE_WAVY_MASK_SPLIT = '''<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;width:{width}px;height:{height}px;overflow:hidden;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;">
+<div style="display:flex;width:100%;height:100%;">
+<div style="width:55%;position:relative;overflow:hidden;-webkit-mask-image:url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 600 1080' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,0 L520,0 Q560,180 540,270 Q510,400 550,540 Q580,650 530,760 Q500,870 540,1000 L560,1080 L0,1080 Z' fill='black'/%3E%3C/svg%3E&quot;);mask-image:url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 600 1080' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,0 L520,0 Q560,180 540,270 Q510,400 550,540 Q580,650 530,760 Q500,870 540,1000 L560,1080 L0,1080 Z' fill='black'/%3E%3C/svg%3E&quot;);-webkit-mask-size:cover;mask-size:cover;">
+<img src="{image_url}" style="width:100%;height:100%;object-fit:cover;object-position:25% 55%;filter:brightness(1.08) saturate(1.1);"/></div>
+<div style="width:45%;background:#FFF;display:flex;flex-direction:column;justify-content:center;padding-left:4%;padding-right:8%;padding-top:8%;padding-bottom:8%;">
+<div style="font-size:13px;font-weight:800;color:#5B21B6;margin-bottom:4%;">OneForma</div>
+<div style="font-family:Georgia,serif;font-size:24px;font-weight:700;line-height:1.1;color:#111827;margin-bottom:3%;">{headline}</div>
+<div style="font-size:13px;line-height:1.5;color:#6B7280;margin-bottom:5%;">{subheadline}</div>
+<div style="color:#F59E0B;font-size:16px;letter-spacing:2px;margin-bottom:2%;">★★★★½</div>
+<div style="font-size:10px;font-weight:600;color:#6B7280;margin-bottom:5%;padding:6px 0;border-top:1px solid #E5E7EB;">★ Rated 4.5/5 by 50,000+ contributors</div>
+<div style="display:inline-flex;align-items:center;gap:6px;padding:12px 24px;border-radius:50px;font-size:14px;font-weight:700;color:white;background:#7C3AED;width:fit-content;box-shadow:0 4px 14px rgba(124,58,237,0.4);">{cta} →</div>
+</div></div></body></html>'''
+
+# ── 15. Hero Polish (score: 59→91) ───────────────────────────────────
+TEMPLATE_HERO_POLISH = '''<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;width:{width}px;height:{height}px;overflow:hidden;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;">
+<div style="display:flex;width:100%;height:100%;">
+<div style="width:52%;position:relative;overflow:hidden;"><img src="{image_url}" style="width:100%;height:100%;object-fit:cover;object-position:25% 30%;"/></div>
+<div style="width:48%;background:#FAFAFA;display:flex;flex-direction:column;justify-content:center;padding:8%;">
+<div style="font-size:13px;font-weight:800;color:#5B21B6;margin-bottom:4%;">OneForma</div>
+<div style="font-family:Georgia,serif;font-size:36px;font-weight:700;line-height:1.1;letter-spacing:-0.03em;color:#111827;margin-bottom:3%;">{headline}</div>
+<div style="font-size:13px;line-height:1.5;color:#6B7280;margin-bottom:5%;">{subheadline}</div>
+<div style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:#16A34A;background:#F0FDF4;padding:4px 10px;border-radius:20px;margin-bottom:4%;width:fit-content;"><span style="width:14px;height:14px;background:#32BCAD;border-radius:3px;transform:rotate(45deg);display:inline-block;"></span>Weekly Pix payments confirmed</div>
+<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#6B7280;margin-bottom:5%;padding:6px 0;border-top:1px solid #E5E7EB;">
+<div style="display:flex;"><div style="width:22px;height:22px;border-radius:50%;border:2px solid white;background:#EDE9FE;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#5B21B6;">R</div><div style="width:22px;height:22px;border-radius:50%;border:2px solid white;margin-left:-6px;background:#EDE9FE;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#5B21B6;">F</div><div style="width:22px;height:22px;border-radius:50%;border:2px solid white;margin-left:-6px;background:#7C3AED;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;color:white;">+50K</div></div>
+<span>50,000+ contributors earning</span></div>
+<div style="display:inline-flex;align-items:center;gap:6px;padding:14px 28px;border-radius:50px;font-size:15px;font-weight:700;color:white;background:#7C3AED;width:fit-content;box-shadow:0 6px 20px rgba(124,58,237,0.45);">{cta} →</div>
+</div></div></body></html>'''
+
+# ── 16. Conversion Split Reverse (text left, photo right) ────────────
+TEMPLATE_CONVERSION_SPLIT_REVERSE = '''<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;width:{width}px;height:{height}px;overflow:hidden;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;">
+<div style="display:flex;width:100%;height:100%;">
+<div style="width:45%;background:#FFF;display:flex;flex-direction:column;justify-content:center;padding:8%;z-index:2;">
+<div style="font-size:13px;font-weight:800;color:#5B21B6;margin-bottom:4%;">OneForma</div>
+<div style="width:32px;height:3px;background:#5B21B6;margin-bottom:5%;border-radius:2px;"></div>
+<div style="font-family:Georgia,serif;font-size:32px;font-weight:700;line-height:1.1;letter-spacing:-0.03em;color:#111827;margin-bottom:3%;">{headline}</div>
+<div style="font-size:13px;line-height:1.5;color:#6B7280;margin-bottom:5%;">{subheadline}</div>
+<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#6B7280;margin-bottom:5%;padding:6px 0;border-top:1px solid #E5E7EB;">
+<div style="display:flex;"><div style="width:22px;height:22px;border-radius:50%;border:2px solid white;background:#EDE9FE;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#5B21B6;">A</div><div style="width:22px;height:22px;border-radius:50%;border:2px solid white;margin-left:-6px;background:#7C3AED;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;color:white;">+50K</div></div>
+<span>50,000+ contributors in 80+ countries</span></div>
+<div style="display:inline-flex;align-items:center;gap:6px;padding:12px 24px;border-radius:50px;font-size:14px;font-weight:700;color:white;background:#7C3AED;width:fit-content;box-shadow:0 4px 14px rgba(124,58,237,0.4);">{cta} →</div>
+</div>
+<div style="width:55%;position:relative;overflow:hidden;"><img src="{image_url}" style="width:100%;height:100%;object-fit:cover;object-position:85% 15%;"/></div>
+</div></body></html>'''
+
+
 # ── Pattern names ───────────────────────────────────────────────────
 
 PATTERN_NAMES = [
@@ -350,6 +458,13 @@ PATTERN_NAMES = [
     "diversity_grid",
     "ui_showcase",
     "testimonial",
+    # Proven before→after redesign patterns (F→A scores)
+    "conversion_split",
+    "conversion_split_reverse",
+    "dark_purple_split",
+    "fullbleed_testimonial",
+    "wavy_mask_split",
+    "hero_polish",
 ]
 
 
@@ -406,6 +521,37 @@ REFERENCE_TEMPLATES = {
         "description": "White bg, decorative purple quote marks, italic Georgia quote, circle photo, name/title. Trust-building.",
         "best_for": ["facebook_feed", "linkedin_feed", "instagram_feed", "google_display"],
     },
+    # ── Proven redesign templates (F→A scores) ──
+    "conversion_split": {
+        "html": TEMPLATE_CONVERSION_SPLIT,
+        "description": "PROVEN (30→86). Photo 55% left, text 45% right. Avatar-stack proof, Pix badge, barrier removal subheadline. Default format.",
+        "best_for": ["ig_feed", "facebook_feed", "linkedin_feed", "twitter_post"],
+    },
+    "conversion_split_reverse": {
+        "html": TEMPLATE_CONVERSION_SPLIT_REVERSE,
+        "description": "PROVEN (49→91). Text 45% left, photo 55% right. Purple accent bar above headline for editorial feel.",
+        "best_for": ["ig_feed", "facebook_feed", "linkedin_feed", "twitter_post"],
+    },
+    "dark_purple_split": {
+        "html": TEMPLATE_DARK_PURPLE_SPLIT,
+        "description": "PROVEN (22→87). Deep purple text panel. Green CTA for max contrast. 'When everyone is bright, go dark.'",
+        "best_for": ["ig_feed", "tiktok_feed", "ig_story", "facebook_feed"],
+    },
+    "fullbleed_testimonial": {
+        "html": TEMPLATE_FULLBLEED_TESTIMONIAL,
+        "description": "PROVEN (31→90). Photo fills canvas. 4-stop gradient overlay. Quote + attribution + verified badge at bottom. Looks like organic content.",
+        "best_for": ["ig_feed", "ig_story", "tiktok_feed", "facebook_feed"],
+    },
+    "wavy_mask_split": {
+        "html": TEMPLATE_WAVY_MASK_SPLIT,
+        "description": "PROVEN (41→89). Organic wavy edge mask on photo boundary. Star rating proof. Brand signature shape.",
+        "best_for": ["ig_feed", "facebook_feed", "linkedin_feed", "wechat_moments"],
+    },
+    "hero_polish": {
+        "html": TEMPLATE_HERO_POLISH,
+        "description": "PROVEN (59→91). 52/48 split, off-white panel, oversized CTA. Use when original is already decent — minimal surgical fixes.",
+        "best_for": ["ig_feed", "facebook_feed", "linkedin_feed", "twitter_post"],
+    },
 }
 
 
@@ -437,20 +583,35 @@ def get_template_by_pattern(pattern_name: str) -> str:
 
 
 def get_all_references_for_prompt() -> str:
-    """Build a prompt block showing all 10 reference templates.
+    """Build a prompt block showing reference templates — proven redesigns FIRST.
 
-    This gets injected into the designer's system prompt so the LLM
-    has concrete HTML examples to study and adapt.
+    The 6 proven redesign templates (F→A scores) are shown first and in full.
+    The original 10 templates are shown truncated as secondary references.
     """
+    # Proven templates get priority and full HTML
+    proven = ["conversion_split", "dark_purple_split", "fullbleed_testimonial",
+              "wavy_mask_split", "hero_polish", "conversion_split_reverse"]
     blocks = []
-    for name, data in REFERENCE_TEMPLATES.items():
+
+    blocks.append("\n## PROVEN TEMPLATES (these scored 86-91/100 in creative audit — USE THESE):\n")
+    for name in proven:
+        data = REFERENCE_TEMPLATES.get(name)
+        if not data:
+            continue
         blocks.append(
-            f"\n### REFERENCE TEMPLATE: {name.upper()}\n"
+            f"\n### ★ PROVEN: {name.upper()}\n"
+            f"Score: {data['description'].split('.')[0]}\n"
             f"Best for: {', '.join(data['best_for'])}\n"
-            f"Description: {data['description']}\n"
-            f"```html\n{data['html'][:1200]}...\n```\n"
-            f"KEY TECHNIQUES: Georgia serif for headlines → system sans for body → "
-            f"#6B21A8 purple + #E91E8C pink accents → white/light backgrounds → "
-            f"pill CTA with gradient → generous whitespace → subtle shadows\n"
+            f"```html\n{data['html']}\n```\n"
+        )
+
+    blocks.append("\n## ADDITIONAL TEMPLATES (secondary references):\n")
+    for name, data in REFERENCE_TEMPLATES.items():
+        if name in proven:
+            continue
+        blocks.append(
+            f"\n### {name.upper()}: {data['description'][:100]}\n"
+            f"Best for: {', '.join(data['best_for'])}\n"
+            f"```html\n{data['html'][:800]}...\n```\n"
         )
     return "\n".join(blocks)

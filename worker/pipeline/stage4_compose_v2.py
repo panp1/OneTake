@@ -690,6 +690,7 @@ async def _save_creative(
                 "overlay_cta": design.get("overlay_cta", ""),
                 "image_treatment": design.get("image_treatment", ""),
                 "overlay_url": overlay_url,
+                "creative_html": design.get("html", ""),
                 "persona": persona_key,
                 "eval_score": eval_score,
                 "eval_attempts": eval_attempts,

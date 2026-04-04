@@ -17,6 +17,7 @@ import httpx
 from config import NVIDIA_NIM_API_KEY, NVIDIA_NIM_BASE_URL, NVIDIA_NIM_DESIGN_MODEL, OPENROUTER_API_KEY
 from prompts.creative_overlay import (
     BRAND_KIT,
+    CONVERSION_SCIENCE,
     CREATIVE_DESIGN_SKILL,
     DESIGN_AUDIT,
     DESIGN_PSYCHOLOGY,
@@ -139,11 +140,12 @@ async def design_creatives(
         f"{CREATIVE_DESIGN_SKILL}\n\n"
         f"{BRAND_KIT}\n\n"
         f"{DESIGN_AUDIT}\n\n"
+        f"{CONVERSION_SCIENCE}\n\n"
         f"{DESIGN_PSYCHOLOGY}\n\n"
         f"{instructions}\n\n"
         f"## HTML REFERENCE TEMPLATES (study these, adapt for your design):\n"
-        f"These are WORKING examples. Use the same techniques — full photo base, "
-        f"overlay shapes/gradients for text zones, pill CTAs, accent lines.\n"
+        f"These are WORKING examples. Use the same techniques — split layouts, "
+        f"avatar-stack proof, pill CTAs, specific currency amounts.\n"
         f"{reference_html}"
     )
 

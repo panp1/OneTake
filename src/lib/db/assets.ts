@@ -55,6 +55,18 @@ export async function getAssetsByRequestId(requestId: string): Promise<Generated
   return rows as GeneratedAsset[];
 }
 
+export async function deleteAsset(id: string): Promise<void> {
+  const sql = getDb();
+  await sql`DELETE FROM generated_assets WHERE id = ${id}`;
+}
+
+export async function deleteAssetsByIds(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const sql = getDb();
+  const result = await sql`DELETE FROM generated_assets WHERE id = ANY(${ids})`;
+  return result.length;
+}
+
 export async function updateAssetEvaluation(
   id: string,
   data: {
