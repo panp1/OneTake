@@ -146,13 +146,11 @@ async def generate_copy(
         {"role": "user", "content": user_prompt},
     ]
 
-    # Model cascade: Gemma 27B (creative) → Kimi K2.5 (general) → OpenRouter (paid)
+    # Model cascade: Gemma 27B (creative) → Kimi K2.5 (fallback) — NIM only, no paid APIs
     providers = []
     if NVIDIA_NIM_API_KEY:
         providers.append(("NIM-Gemma27B", f"{NVIDIA_NIM_BASE_URL}/chat/completions", NVIDIA_NIM_API_KEY, NVIDIA_NIM_CREATIVE_MODEL))
         providers.append(("NIM-Kimi", f"{NVIDIA_NIM_BASE_URL}/chat/completions", NVIDIA_NIM_API_KEY, "moonshotai/kimi-k2.5"))
-    if OPENROUTER_API_KEY:
-        providers.append(("OpenRouter", "https://openrouter.ai/api/v1/chat/completions", OPENROUTER_API_KEY, "moonshotai/kimi-k2.5"))
 
     for provider_name, url, key, model in providers:
         try:

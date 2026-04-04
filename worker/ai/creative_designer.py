@@ -207,45 +207,57 @@ async def design_creatives(
         if skills:
             system_prompt = f"{system_prompt}\n\n{skills}"
 
-    # Model cascade: GLM-5 (design) → Kimi K2.5 (fallback) → OpenRouter (paid)
+    # Model cascade: GLM-5 (design) → Kimi K2.5 (fallback) — NIM only, no paid APIs
+    # If NIM is rate limited (429), retry with backoff instead of falling to OpenRouter
     providers = []
     if NVIDIA_NIM_API_KEY:
         providers.append(("NIM-GLM5", f"{NVIDIA_NIM_BASE_URL}/chat/completions", NVIDIA_NIM_API_KEY, NVIDIA_NIM_DESIGN_MODEL))
         providers.append(("NIM-Kimi", f"{NVIDIA_NIM_BASE_URL}/chat/completions", NVIDIA_NIM_API_KEY, "moonshotai/kimi-k2.5"))
-    if OPENROUTER_API_KEY:
-        providers.append(("OpenRouter", "https://openrouter.ai/api/v1/chat/completions", OPENROUTER_API_KEY, "moonshotai/kimi-k2.5"))
 
+    import asyncio
     content = ""
     for provider_name, url, key, model in providers:
-        try:
-            payload = {
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                "max_tokens": 16384,
-                "temperature": 0.8,
-                "stream": False,
-            }
+        # Retry with backoff on 429 rate limits (NIM free tier)
+        for retry in range(3):
+            try:
+                payload = {
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    "max_tokens": 16384,
+                    "temperature": 0.8,
+                    "stream": False,
+                }
 
-            # Rate limit protection: 2s delay for GLM-5 design calls
-            if "GLM" in provider_name:
-                import asyncio
-                await asyncio.sleep(2)
+                async with httpx.AsyncClient(timeout=300) as client:
+                    resp = await client.post(url, headers={
+                        "Authorization": f"Bearer {key}",
+                        "Content-Type": "application/json",
+                    }, json=payload)
 
-            async with httpx.AsyncClient(timeout=180) as client:
-                resp = await client.post(url, headers={
-                    "Authorization": f"Bearer {key}",
-                    "Content-Type": "application/json",
-                }, json=payload)
-                resp.raise_for_status()
-                data = resp.json()
-                content = data["choices"][0]["message"].get("content", "")
-                logger.info("Creative designer via %s (%d chars)", provider_name, len(content))
+                    if resp.status_code == 429:
+                        wait = (retry + 1) * 10  # 10s, 20s, 30s backoff
+                        logger.info("%s rate limited (429) — waiting %ds (retry %d/3)", provider_name, wait, retry + 1)
+                        await asyncio.sleep(wait)
+                        continue
+
+                    resp.raise_for_status()
+                    data = resp.json()
+                    content = data["choices"][0]["message"].get("content", "")
+                    logger.info("Creative designer via %s (%d chars)", provider_name, len(content))
+                    break
+            except Exception as e:
+                if retry < 2 and "429" in str(e):
+                    wait = (retry + 1) * 10
+                    logger.info("%s rate limited — waiting %ds (retry %d/3)", provider_name, wait, retry + 1)
+                    await asyncio.sleep(wait)
+                    continue
+                logger.warning("Creative designer via %s failed: %s", provider_name, e)
                 break
-        except Exception as e:
-            logger.warning("Creative designer via %s failed: %s", provider_name, e)
+        if content:
+            break
             continue
 
     if not content:
