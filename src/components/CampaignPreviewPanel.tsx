@@ -4,23 +4,17 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  Eye,
   Globe,
   Users,
-  Image as ImageIcon,
   Layers,
   Target,
-  Clock,
-  CheckCircle2,
   Loader2,
   AlertCircle,
-  Bell,
+  MessageSquare,
+  Check,
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
-import PipelineNav from "@/components/PipelineNav";
-import type { PipelineStage } from "@/components/PipelineNav";
-import ImageLoader from "@/components/ui/image-loading";
-import type { IntakeRequest, PipelineRun, GeneratedAsset } from "@/lib/types";
+import type { IntakeRequest } from "@/lib/types";
 
 interface ProgressData {
   request: IntakeRequest;
@@ -112,58 +106,107 @@ export default function CampaignPreviewPanel({ requestId }: CampaignPreviewPanel
   const composedAssets: Record<string, any>[] = (progress?.composed || []) as Record<string, any>[];
   const characters: Record<string, any>[] = (progress?.characters || []) as Record<string, any>[];
   const actors: Record<string, any>[] = (progress?.actors || []) as Record<string, any>[];
-  const allAssets: Record<string, any>[] = (progress?.assets || []) as Record<string, any>[];
   const hasBrief = !!progress?.brief;
   const isGenerating = request.status === "generating";
-
-  // Build pipeline stages from actual data
-  const stages: PipelineStage[] = [
-    { key: "brief", label: "Brief", status: hasBrief ? "passed" : isGenerating ? "running" : "pending" },
-    { key: "actors", label: "Actors", status: actors.length > 0 ? "passed" : hasBrief ? (isGenerating ? "running" : "pending") : "pending" },
-    { key: "images", label: "Images", status: characters.length > 0 ? "passed" : actors.length > 0 ? (isGenerating ? "running" : "pending") : "pending" },
-    { key: "creatives", label: "Creatives", status: composedAssets.length > 0 ? "passed" : characters.length > 0 ? (isGenerating ? "running" : "pending") : "pending" },
-  ];
 
   const formData = (request.form_data || {}) as Record<string, any>;
   const regions = (request.target_regions || []) as string[];
   const languages = (request.target_languages || []) as string[];
 
+  const briefData = progress?.brief || {};
+  const messaging = briefData.messaging_strategy || {};
+  const channels = briefData.channels || {};
+  const personas = briefData.personas || [];
+  const goalText = String(formData.goal || formData.description || "");
+
+  // Pipeline stage statuses for segmented bar
+  const stageList = [
+    { key: "brief", label: "Brief", status: hasBrief ? "passed" : isGenerating ? "running" : "pending" },
+    { key: "actors", label: "Actors", status: actors.length > 0 ? "passed" : hasBrief ? (isGenerating ? "running" : "pending") : "pending" },
+    { key: "images", label: "Images", status: characters.length > 0 ? "passed" : actors.length > 0 ? (isGenerating ? "running" : "pending") : "pending" },
+    { key: "creatives", label: "Creatives", status: composedAssets.length > 0 ? "passed" : characters.length > 0 ? (isGenerating ? "running" : "pending") : "pending" },
+  ] as const;
+
   return (
     <div className="h-full overflow-y-auto">
-      {/* Header */}
-      <div className="px-6 pt-6 pb-4 border-b border-[var(--border)]">
-        <div className="flex items-start justify-between gap-4 mb-2">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-semibold text-[var(--foreground)] tracking-tight truncate">
+      {/* Sticky campaign strip */}
+      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-[var(--border)]">
+        <div className="px-6 pt-5 pb-4">
+          {/* Row 1: Title */}
+          <div className="flex items-start justify-between gap-4 mb-1">
+            <h2 className="text-lg font-semibold text-[var(--foreground)] tracking-tight line-clamp-2 flex-1 min-w-0">
               {request.title}
             </h2>
-            <p className="text-[12px] text-[var(--muted-foreground)] mt-0.5">
-              {String(request.task_type || "").replace(/_/g, " ")}
-              {regions.length > 0 && (
-                <span>
-                  {" "}&middot;{" "}
-                  {regions.slice(0, 3).join(", ")}
-                  {regions.length > 3 && ` +${regions.length - 3}`}
-                </span>
-              )}
-            </p>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <StatusBadge status={request.status} />
+              <Link
+                href={`/intake/${request.id}`}
+                className="w-8 h-8 rounded-full bg-[var(--foreground)] text-white flex items-center justify-center hover:bg-[#32373c] transition-colors cursor-pointer"
+                title="View full details"
+              >
+                <ArrowRight size={14} />
+              </Link>
+            </div>
           </div>
-          <StatusBadge status={request.status} />
+
+          {/* Row 2: Meta */}
+          <p className="text-[12px] text-[var(--muted-foreground)]">
+            {String(request.task_type || "").replace(/_/g, " ")}
+            {regions.length > 0 && (
+              <span>
+                {" "}&middot;{" "}
+                {regions.slice(0, 3).join(", ")}
+                {regions.length > 3 && ` +${regions.length - 3}`}
+              </span>
+            )}
+          </p>
+
+          {/* Row 3: Goal one-liner */}
+          {goalText && (
+            <p className="text-[12px] text-[var(--muted-foreground)] mt-1 line-clamp-1">
+              {goalText}
+            </p>
+          )}
         </div>
 
-        {/* Compact pipeline nav */}
-        <div className="mt-3">
-          <PipelineNav stages={stages} />
+        {/* Segmented progress bar */}
+        <div className="px-6 pb-4">
+          <div className="flex gap-1.5">
+            {stageList.map((stage) => (
+              <div key={stage.key} className="flex-1 min-w-0">
+                <div
+                  className={[
+                    "h-1.5 rounded-full transition-all duration-500",
+                    stage.status === "passed" ? "bg-[#22c55e]" : "",
+                    stage.status === "running" ? "bg-[#2563eb] animate-pulse" : "",
+                    stage.status === "pending" ? "bg-[#e5e5e5]" : "",
+                  ].join(" ")}
+                />
+                <div className="flex items-center gap-1 mt-1.5">
+                  {stage.status === "passed" && <Check size={10} className="text-[#22c55e] flex-shrink-0" />}
+                  {stage.status === "running" && <Loader2 size={10} className="text-[#2563eb] animate-spin flex-shrink-0" />}
+                  <span
+                    className={[
+                      "text-[11px] font-medium truncate",
+                      stage.status === "passed" ? "text-[var(--foreground)]" : "",
+                      stage.status === "running" ? "text-[#2563eb]" : "",
+                      stage.status === "pending" ? "text-[#d4d4d8]" : "",
+                    ].join(" ")}
+                  >
+                    {stage.label}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-
-      {/* Stats — inline row, no tile borders */}
 
       {/* Content area */}
       <div className="p-6 space-y-5">
 
         {/* Compact stats row */}
-        <div className="flex gap-4">
+        <div className="flex gap-4 flex-wrap">
           {[
             { label: "Creatives", value: composedAssets.length, Icon: Layers, color: "#6B21A8" },
             { label: "Characters", value: characters.length, Icon: Users, color: "#E91E8C" },
@@ -178,33 +221,47 @@ export default function CampaignPreviewPanel({ requestId }: CampaignPreviewPanel
           ))}
         </div>
 
-        {/* Quick info */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">
-              Regions
-            </span>
-            <div className="flex flex-wrap gap-1">
-              {regions.map((r: string, i: number) => (
-                <span key={i} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#0693E3]/5 text-[#0693E3] border border-[#0693E3]/10">
-                  {r}
-                </span>
-              ))}
+        {/* Intel strip — messaging + channels summary */}
+        {hasBrief && (messaging.primary_message || channels.primary?.length > 0) && (
+          <div className="bg-[#F5F5F5] rounded-xl p-4 space-y-2.5">
+            {messaging.primary_message && (
+              <div className="flex gap-2.5">
+                <MessageSquare size={14} className="text-[#737373] flex-shrink-0 mt-0.5" />
+                <p className="text-[13px] text-[var(--foreground)] leading-relaxed line-clamp-2">
+                  {messaging.primary_message}
+                </p>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex gap-1.5 flex-wrap min-w-0">
+                {(channels.primary || []).slice(0, 3).map((ch: string) => {
+                  const cleaned = ch.replace(/\s*\(.*$/, "").trim();
+                  return (
+                    <span
+                      key={ch}
+                      className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#0693E3]/8 text-[#0693E3] border border-[#0693E3]/12"
+                    >
+                      {cleaned}
+                    </span>
+                  );
+                })}
+                {(channels.primary || []).length > 3 && (
+                  <span className="text-[10px] text-[#737373]">
+                    +{channels.primary.length - 3}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-[11px] text-[#737373] flex-shrink-0">
+                {personas.length > 0 && (
+                  <span>{personas.length} persona{personas.length !== 1 ? "s" : ""}</span>
+                )}
+                {languages.length > 0 && (
+                  <span>{languages.length} lang{languages.length !== 1 ? "s" : ""}</span>
+                )}
+              </div>
             </div>
           </div>
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">
-              Languages
-            </span>
-            <div className="flex flex-wrap gap-1">
-              {languages.map((l: string, i: number) => (
-                <span key={i} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#9B51E0]/5 text-[#9B51E0] border border-[#9B51E0]/10">
-                  {l}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Live creative thumbnails */}
         {composedAssets.length > 0 && (
@@ -216,14 +273,14 @@ export default function CampaignPreviewPanel({ requestId }: CampaignPreviewPanel
               {composedAssets.slice(0, 6).map((asset: Record<string, any>, i: number) => (
                 <div
                   key={asset.id || i}
-                  className="rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--muted)] relative"
-                  style={{ aspectRatio: "1" }}
+                  className="rounded-lg overflow-hidden border border-[var(--border)] bg-[#F5F5F5] relative hover:scale-[1.02] hover:shadow-md transition-all duration-150"
+                  style={{ aspectRatio: "4/3" }}
                 >
                   {asset.blob_url ? (
                     <img
                       src={asset.blob_url}
                       alt={asset.content?.overlay_headline || "Creative"}
-                      className="absolute inset-0 w-full h-full object-cover"
+                      className="absolute inset-0 w-full h-full object-contain"
                       loading="lazy"
                     />
                   ) : (
@@ -252,14 +309,14 @@ export default function CampaignPreviewPanel({ requestId }: CampaignPreviewPanel
               {characters.slice(0, 8).map((asset: Record<string, any>, i: number) => (
                 <div
                   key={asset.id || i}
-                  className="rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--muted)] relative"
-                  style={{ aspectRatio: "1" }}
+                  className="rounded-lg overflow-hidden border border-[var(--border)] bg-[#F5F5F5] relative hover:scale-[1.02] hover:shadow-md transition-all duration-150"
+                  style={{ aspectRatio: "4/3" }}
                 >
                   {asset.blob_url ? (
                     <img
                       src={asset.blob_url}
                       alt="Character"
-                      className="absolute inset-0 w-full h-full object-cover"
+                      className="absolute inset-0 w-full h-full object-contain"
                       loading="lazy"
                     />
                   ) : (
@@ -282,33 +339,11 @@ export default function CampaignPreviewPanel({ requestId }: CampaignPreviewPanel
                 Pipeline is running...
               </p>
               <p className="text-[11px] text-[var(--muted-foreground)]">
-                Assets will appear here as they're generated. Auto-refreshing every 5s.
+                Assets will appear here as they&apos;re generated. Auto-refreshing every 5s.
               </p>
             </div>
           </div>
         )}
-
-        {/* Goal snippet */}
-        {(formData.goal || formData.description) && (
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">
-              Goal
-            </span>
-            <p className="text-[13px] text-[var(--foreground)] leading-relaxed line-clamp-3">
-              {String(formData.goal || formData.description)}
-            </p>
-          </div>
-        )}
-
-        {/* CTA */}
-        <Link
-          href={`/intake/${request.id}`}
-          className="btn-primary cursor-pointer inline-flex items-center gap-2 text-sm"
-        >
-          <Eye size={14} />
-          View Full Details
-          <ArrowRight size={14} />
-        </Link>
       </div>
     </div>
   );
