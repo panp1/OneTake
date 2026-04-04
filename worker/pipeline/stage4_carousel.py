@@ -229,6 +229,14 @@ async def _generate_carousel(
         content_style=content_style,
     )
 
+    # Inject Lucide icon SVGs for LinkedIn text slides
+    if "linkedin" in platform_key:
+        icon_block = "\n\nAVAILABLE LUCIDE ICONS (copy-paste these inline SVGs into your HTML):\n"
+        for name, svg in LUCIDE_ICONS.items():
+            icon_block += f"  {name}: {svg}\n"
+        icon_block += "\nWrap each icon in a purple circle: <div style='width:56px;height:56px;border-radius:50%;background:#F3E5F5;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{icon_svg}</div>\n"
+        carousel_instructions += icon_block
+
     # Build actor context (for platforms that use photos)
     actor_context = []
     for actor in actors[:3]:
@@ -386,7 +394,21 @@ def _build_carousel_prompt(
             "- Large clear typography. One idea per slide.\n"
             "- Page number in bottom right corner of each slide (e.g., '3/7').\n"
             "- First slide can optionally include a character photo — rest MUST be text/icon only.\n"
-            "- Use inline SVG icons from the Lucide set for visual anchors.\n"
+            "- Use inline SVG icons from the Lucide set for visual anchors on EVERY text slide.\n"
+            "\n"
+            "VERTICAL SPACE RULES (CRITICAL — slides look empty without this):\n"
+            "- Content must fill at LEAST 70% of the vertical canvas height.\n"
+            "- Use display:flex; flex-direction:column; justify-content:center; min-height:100% on the body.\n"
+            "- For numbered lists (how-it-works): space items evenly across the full height with gap:48px.\n"
+            "- For stat slides: center the number vertically AND add a supporting element below (accent line, context text, trust badge).\n"
+            "- The bottom 20% of each slide should have SOMETHING — a decorative element, page number, accent line, or trust badge.\n"
+            "- NEVER leave the bottom half of a slide completely empty.\n"
+            "\n"
+            "ICON USAGE (MANDATORY on text-only slides):\n"
+            "- Every bullet point or numbered step MUST have an inline SVG Lucide icon (48x48px) to the left.\n"
+            "- Icons use stroke='#6B21A8' (purple) for brand consistency.\n"
+            "- Available icons: globe, dollar_sign, clock, users, shield_check, laptop, mic, trending_up.\n"
+            "- Place icons in a purple circle background (48px, border-radius:50%, bg:#F3E5F5) for depth.\n"
         ),
         "ig_carousel": (
             "INSTAGRAM CAROUSEL RULES:\n"
@@ -397,20 +419,33 @@ def _build_carousel_prompt(
             "- Purple/pink brand palette. Organic blob shapes. OneForma visual identity.\n"
             "- Each slide must be compelling standalone (people skip around).\n"
             "- Bottom 130px is danger zone (dots + caption preview).\n"
+            "\n"
+            "VERTICAL SPACE (CRITICAL):\n"
+            "- Content must fill at LEAST 70% of the 1350px height.\n"
+            "- Use display:flex; flex-direction:column; justify-content:space-between on the body.\n"
+            "- Photo slides: photo fills top 60%, text zone fills bottom 40%.\n"
+            "- Text slides: center content vertically with generous top/bottom padding.\n"
+            "- NEVER leave the bottom 40% of a slide empty.\n"
         ),
         "tiktok_carousel": (
             "TIKTOK CAROUSEL RULES — CRITICAL READ:\n"
             "- Polished-casual aesthetic. Looks like a smart 22-year-old made it on Canva.\n"
             "- NOT agency-polished. NO blobs. NO gradients. NO depth layering.\n"
             "- Solid color backgrounds (purple, pink, white, dark gray). ONE color per slide.\n"
-            "- MASSIVE text. The text IS the content. 48-72px font minimum.\n"
+            "  VARY the background color between slides for visual variety.\n"
+            "- MASSIVE text. The text IS the content. 56-80px font minimum.\n"
             "- Maximum 10 words per slide. Preferably 3-7.\n"
             "- Hook slide = meme format: 'POV:', 'Nobody:', 'Things I wish I knew:', etc.\n"
+            "\n"
+            "TEXT POSITIONING (CRITICAL — TikTok dead zones):\n"
             "- BOTTOM 400px IS DEAD ZONE — caption, music bar, nav cover this area.\n"
-            "  All text and visuals MUST be in the top 1520px (1920 - 400).\n"
-            "- RIGHT 164px has action buttons (like/comment/share). Keep text left of this.\n"
-            "  Effective text area: 60px left to 916px right, 150px top to 1520px bottom.\n"
-            "- Actor photos: show on 1-2 slides max, positioned in upper-center area.\n"
+            "- RIGHT 164px has action buttons (like/comment/share).\n"
+            "- ALL text must be positioned in the TOP-CENTER of the slide.\n"
+            "- Use: position:absolute; top:25%; left:60px; right:180px; to center text in safe area.\n"
+            "- Or use: display:flex; align-items:center; justify-content:center; padding-top:150px; padding-bottom:500px;\n"
+            "  This pushes content UP and away from the dead zone.\n"
+            "- NEVER use vertical centering (top:50%) — this puts text in the dead zone.\n"
+            "- Actor photos: show on 1-2 slides max, positioned in UPPER 60% of canvas.\n"
         ),
         "wechat_carousel": (
             "WECHAT MOMENTS CAROUSEL RULES — CRITICAL:\n"
