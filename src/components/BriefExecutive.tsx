@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Target,
   MessageSquare,
@@ -17,10 +18,20 @@ import EditableField from "@/components/EditableField";
 import MiniTabs from "@/components/MiniTabs";
 import { toReadable } from "@/lib/format";
 
+interface CampaignStrategy {
+  id: string;
+  country: string;
+  tier: number;
+  monthly_budget: number;
+  budget_mode: string;
+  strategy_data: Record<string, any>;
+}
+
 interface BriefExecutiveProps {
   briefData: Record<string, any>;
   channelResearch?: Record<string, any> | null;
   designDirection?: Record<string, any> | null;
+  campaignStrategies?: CampaignStrategy[];
   editable?: boolean;
   onFieldSave?: (path: string, value: string) => void;
 }
@@ -64,34 +75,50 @@ function Tag({ children, color = "#6B21A8" }: { children: React.ReactNode; color
   );
 }
 
+function normalizeToString(val: unknown): string {
+  if (typeof val === "string") return val;
+  if (val && typeof val === "object") {
+    const obj = val as Record<string, unknown>;
+    return (obj.text || obj.value || obj.proposition || obj.description || obj.message || JSON.stringify(val)) as string;
+  }
+  return String(val ?? "");
+}
+
+function cleanChannelName(name: string): string {
+  return name.replace(/\s*\(.*$/, "").trim();
+}
+
 function BulletList({
   items,
   color = "#6B21A8",
   editable = false,
   onItemSave,
 }: {
-  items: string[];
+  items: unknown[];
   color?: string;
   editable?: boolean;
   onItemSave?: (index: number, value: string) => void;
 }) {
   return (
     <ul className="space-y-1">
-      {items.map((item, i) => (
-        <li key={i} className="flex items-start gap-2.5">
-          <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[7px]" style={{ backgroundColor: color }} />
-          {editable ? (
-            <EditableField
-              value={item}
-              editable
-              onSave={(v) => onItemSave?.(i, v)}
-              textClassName="text-[13px] leading-relaxed text-[var(--foreground)]"
-            />
-          ) : (
-            <span className="text-[13px] text-[var(--foreground)] leading-relaxed">{item}</span>
-          )}
-        </li>
-      ))}
+      {items.map((raw, i) => {
+        const item = normalizeToString(raw);
+        return (
+          <li key={i} className="flex items-start gap-2.5">
+            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[7px]" style={{ backgroundColor: color }} />
+            {editable ? (
+              <EditableField
+                value={item}
+                editable
+                onSave={(v) => onItemSave?.(i, v)}
+                textClassName="text-[13px] leading-relaxed text-[var(--foreground)]"
+              />
+            ) : (
+              <span className="text-[13px] text-[var(--foreground)] leading-relaxed">{item}</span>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -239,22 +266,47 @@ function PersonaTable({ personas, targetAudience }: { personas: any[]; targetAud
   );
 }
 
-function ChannelMatrix({ channels, personas }: { channels: Record<string, any>; personas: any[] }) {
-  const perPersona = channels.per_persona || {};
-  const allChannels = new Set<string>();
+function resolvePersonaKey(persona: any, index: number, perPersona: Record<string, any>): string {
+  const candidates = [
+    persona.archetype_key,
+    persona.persona_name,
+    persona.name,
+    persona.persona_name?.toLowerCase().replace(/\s+/g, "_"),
+    persona.name?.toLowerCase().replace(/\s+/g, "_"),
+    `persona_${index + 1}`,
+  ].filter(Boolean);
+  return candidates.find((k) => k && perPersona[k]) || candidates[0] || `persona_${index + 1}`;
+}
 
-  // Collect all unique channels
-  (channels.primary || []).forEach((c: string) => allChannels.add(c));
-  (channels.secondary || []).forEach((c: string) => allChannels.add(c));
+function ChannelMatrix({ channels, personas }: { channels: Record<string, any>; personas: any[] }) {
+  const [showAll, setShowAll] = useState(false);
+  const perPersona = channels.per_persona || {};
+  const rawChannels = new Set<string>();
+
+  // Collect all unique channels (raw names)
+  (channels.primary || []).forEach((c: string) => rawChannels.add(c));
+  (channels.secondary || []).forEach((c: string) => rawChannels.add(c));
   Object.values(perPersona).forEach((chs: any) => {
-    if (Array.isArray(chs)) chs.forEach((c: string) => allChannels.add(c));
+    if (Array.isArray(chs)) chs.forEach((c: string) => rawChannels.add(c));
   });
 
-  if (allChannels.size === 0) return null;
+  if (rawChannels.size === 0) return null;
 
-  const channelList = Array.from(allChannels);
-  const primarySet = new Set(channels.primary || []);
-  const secondarySet = new Set(channels.secondary || []);
+  const channelList = Array.from(rawChannels);
+  const primaryCleaned = new Set((channels.primary || []).map((c: string) => cleanChannelName(c)));
+  const secondaryCleaned = new Set((channels.secondary || []).map((c: string) => cleanChannelName(c)));
+
+  // Split into prioritized (primary/secondary) and unassigned
+  const prioritized = channelList.filter((ch) => {
+    const cleaned = cleanChannelName(ch);
+    return primaryCleaned.has(cleaned) || secondaryCleaned.has(cleaned);
+  });
+  const unassigned = channelList.filter((ch) => {
+    const cleaned = cleanChannelName(ch);
+    return !primaryCleaned.has(cleaned) && !secondaryCleaned.has(cleaned);
+  });
+
+  const visibleChannels = showAll ? channelList : prioritized;
 
   return (
     <div className="overflow-x-auto">
@@ -271,26 +323,34 @@ function ChannelMatrix({ channels, personas }: { channels: Record<string, any>; 
           </tr>
         </thead>
         <tbody>
-          {channelList.map((ch) => {
-            const isPrimary = primarySet.has(ch);
-            const isSecondary = secondarySet.has(ch);
+          {visibleChannels.map((ch) => {
+            const cleaned = cleanChannelName(ch);
+            const isPrimary = primaryCleaned.has(cleaned);
+            const isSecondary = secondaryCleaned.has(cleaned);
 
             return (
-              <tr key={ch} className="border-b border-[var(--border)] last:border-0">
-                <td className="py-2.5 pr-4 font-medium text-[var(--foreground)]">{ch}</td>
+              <tr
+                key={ch}
+                className={[
+                  "border-b border-[var(--border)] last:border-0",
+                  isPrimary ? "bg-[#0693E3]/[0.03]" : "",
+                ].join(" ")}
+              >
+                <td className="py-2.5 pr-4 font-medium text-[var(--foreground)]">{cleaned}</td>
                 <td className="py-2.5 pr-4">
                   {isPrimary ? (
                     <span className="px-2 py-0.5 bg-[#0693E308] text-[#0693E3] rounded-md text-[10px] font-semibold border border-[#0693E315]">Primary</span>
                   ) : isSecondary ? (
                     <span className="px-2 py-0.5 bg-gray-50 text-gray-500 rounded-md text-[10px] font-semibold border border-gray-200">Secondary</span>
                   ) : (
-                    <span className="text-[var(--muted-foreground)] text-[10px]">—</span>
+                    <span className="text-[var(--muted-foreground)] text-[10px]">&mdash;</span>
                   )}
                 </td>
                 {personas.map((p: any, i: number) => {
-                  const key = p.archetype_key || `persona_${i + 1}`;
-                  const personaChannels = perPersona[key] || [];
-                  const isActive = Array.isArray(personaChannels) && personaChannels.includes(ch);
+                  const key = resolvePersonaKey(p, i, perPersona);
+                  const personaChannels: string[] = Array.isArray(perPersona[key]) ? perPersona[key] : [];
+                  const cleanedPersonaChannels = personaChannels.map(cleanChannelName);
+                  const isActive = cleanedPersonaChannels.includes(cleaned);
 
                   return (
                     <td key={i} className="py-2.5 px-2 text-center">
@@ -298,11 +358,7 @@ function ChannelMatrix({ channels, personas }: { channels: Record<string, any>; 
                         <div className="w-5 h-5 rounded-full bg-[#0693E310] flex items-center justify-center mx-auto">
                           <div className="w-2 h-2 rounded-full bg-[#0693E3]" />
                         </div>
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-[var(--muted)] flex items-center justify-center mx-auto">
-                          <div className="w-1 h-1 rounded-full bg-[var(--border)]" />
-                        </div>
-                      )}
+                      ) : null}
                     </td>
                   );
                 })}
@@ -311,6 +367,15 @@ function ChannelMatrix({ channels, personas }: { channels: Record<string, any>; 
           })}
         </tbody>
       </table>
+      {unassigned.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowAll(!showAll)}
+          className="text-[11px] text-[#737373] hover:text-[#1a1a1a] mt-2 cursor-pointer transition-colors"
+        >
+          {showAll ? "Hide" : `Show ${unassigned.length} more`} unassigned channels
+        </button>
+      )}
     </div>
   );
 }
@@ -340,9 +405,15 @@ function TargetingTable({ personas, channels }: { personas: any[]; channels: Rec
         const tp = p.targeting_profile || {};
         const interests = tp.interests || {};
         const demo = tp.demographics || {};
+        const behaviors: string[] = tp.behaviors || [];
+        const psycho = tp.psychographics || {};
         const colors = ["#6B21A8", "#0693E3", "#E91E8C", "#22c55e"];
         const color = colors[pi % colors.length];
         const personaChannels = (channels.per_persona?.[p.archetype_key] || allChannels) as string[];
+
+        const hyperAll: string[] = interests.hyper || [];
+        const hotAll: string[] = interests.hot || [];
+        const broadAll: string[] = interests.broad || [];
 
         return (
           <div key={pi} className="border border-[var(--border)] rounded-xl overflow-hidden">
@@ -358,7 +429,7 @@ function TargetingTable({ personas, channels }: { personas: any[]; channels: Rec
                 </span>
               </div>
               <div className="flex gap-1">
-                {(interests.hyper || []).slice(0, 3).map((h: string, i: number) => (
+                {hyperAll.slice(0, 3).map((h: string, i: number) => (
                   <span key={i} className="px-1.5 py-0.5 rounded text-[9px] font-medium" style={{ backgroundColor: `${color}08`, color, border: `1px solid ${color}15` }}>
                     {h}
                   </span>
@@ -366,41 +437,64 @@ function TargetingTable({ personas, channels }: { personas: any[]; channels: Rec
               </div>
             </div>
 
-            {/* Platform routing table */}
-            <table className="w-full text-[11px]">
-              <thead>
-                <tr className="border-b border-[var(--border)]">
-                  <th className="text-left py-1.5 px-4 text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Platform</th>
-                  <th className="text-left py-1.5 px-3 text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Hyper Targeting</th>
-                  <th className="text-left py-1.5 px-3 text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Hot Targeting</th>
-                  <th className="text-left py-1.5 px-3 text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Broad Targeting</th>
-                  <th className="text-left py-1.5 px-3 text-[9px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Interests Applied</th>
-                </tr>
-              </thead>
-              <tbody>
-                {personaChannels.map((ch: string) => {
-                  const platform = PLATFORM_TARGETING[ch] || { label: ch, hyper: "Interest targeting", hot: "Stacked interests", broad: "Broad" };
-                  return (
-                    <tr key={ch} className="border-b border-[var(--border)] last:border-0">
-                      <td className="py-2 px-4 font-medium text-[var(--foreground)]">{platform.label}</td>
-                      <td className="py-2 px-3 text-[var(--muted-foreground)]">{platform.hyper}</td>
-                      <td className="py-2 px-3 text-[var(--muted-foreground)]">{platform.hot}</td>
-                      <td className="py-2 px-3 text-[var(--muted-foreground)]">{platform.broad}</td>
-                      <td className="py-2 px-3">
+            {/* Platform targeting — 3 ad set tiers per platform */}
+            <div className="divide-y divide-[var(--border)]">
+              {personaChannels.map((ch: string, ci: number) => {
+                const cleaned = cleanChannelName(ch);
+                const platform = PLATFORM_TARGETING[cleaned] || { label: cleaned, hyper: "Interest targeting", hot: "Stacked interests", broad: "Broad" };
+
+                // Rotate different interests across platforms so each shows unique values
+                const hyperSlice = hyperAll.length > 0
+                  ? [hyperAll[ci % hyperAll.length], hyperAll[(ci + 1) % hyperAll.length]].filter((v, idx, arr) => arr.indexOf(v) === idx)
+                  : [];
+                const hotSlice = hotAll.length > 0
+                  ? [hotAll[ci % hotAll.length]]
+                  : [];
+                const broadSlice = broadAll.length > 0
+                  ? [broadAll[ci % broadAll.length]]
+                  : behaviors.slice(0, 1);
+
+                return (
+                  <div key={ch} className="px-4 py-2.5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[12px] font-semibold text-[var(--foreground)]">{platform.label}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {/* Hyper tier */}
+                      <div>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-[#6B21A8] block mb-1">Hyper</span>
+                        <span className="text-[10px] text-[var(--muted-foreground)] block mb-1">{platform.hyper}</span>
                         <div className="flex flex-wrap gap-0.5">
-                          {(interests.hyper || []).slice(0, 2).map((h: string, i: number) => (
-                            <span key={`h${i}`} className="px-1 py-0.5 bg-[#6B21A808] text-[#6B21A8] rounded text-[9px] border border-[#6B21A815]">{h}</span>
-                          ))}
-                          {(interests.hot || []).slice(0, 1).map((h: string, i: number) => (
-                            <span key={`o${i}`} className="px-1 py-0.5 bg-[#f59e0b08] text-[#f59e0b] rounded text-[9px] border border-[#f59e0b15]">{h}</span>
+                          {hyperSlice.map((h: string, i: number) => (
+                            <span key={i} className="px-1 py-0.5 bg-[#6B21A808] text-[#6B21A8] rounded text-[9px] border border-[#6B21A815]">{h}</span>
                           ))}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                      {/* Hot tier */}
+                      <div>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-[#f59e0b] block mb-1">Hot</span>
+                        <span className="text-[10px] text-[var(--muted-foreground)] block mb-1">{platform.hot}</span>
+                        <div className="flex flex-wrap gap-0.5">
+                          {hotSlice.map((h: string, i: number) => (
+                            <span key={i} className="px-1 py-0.5 bg-[#f59e0b08] text-[#f59e0b] rounded text-[9px] border border-[#f59e0b15]">{h}</span>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Broad tier */}
+                      <div>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-[#22c55e] block mb-1">Broad</span>
+                        <span className="text-[10px] text-[var(--muted-foreground)] block mb-1">{platform.broad}</span>
+                        <div className="flex flex-wrap gap-0.5">
+                          {broadSlice.map((h: string, i: number) => (
+                            <span key={i} className="px-1 py-0.5 bg-[#22c55e08] text-[#22c55e] rounded text-[9px] border border-[#22c55e15]">{h}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       })}
@@ -412,6 +506,7 @@ export default function BriefExecutive({
   briefData,
   channelResearch,
   designDirection,
+  campaignStrategies = [],
   editable = false,
   onFieldSave,
 }: BriefExecutiveProps) {
@@ -431,6 +526,7 @@ export default function BriefExecutive({
   const hasPersonas = personas.length > 0 || Object.keys(perPersonaHooks).length > 0;
   const hasChannels = channels.primary?.length > 0 || channels.secondary?.length > 0;
   const hasCulture = guardrails.things_to_avoid?.length > 0 || guardrails.things_to_lean_into?.length > 0 || contentLang.primary;
+  const hasStrategy = campaignStrategies.length > 0 || briefData.campaign_strategies_summary;
 
   return (
     <div>
@@ -614,6 +710,161 @@ export default function BriefExecutive({
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+              </div>
+            ),
+          }] : []),
+
+          // Tab 6: Media Strategy
+          ...(hasStrategy ? [{
+            key: "media",
+            label: "Media Strategy",
+            count: campaignStrategies.length,
+            content: (
+              <div className="space-y-4">
+                {/* Summary from brief (always available if strategy was generated) */}
+                {briefData.campaign_strategies_summary && (
+                  <div>
+                    <SectionHeader icon={Megaphone} title="Strategy Summary" color="#0693E3" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {Object.entries(briefData.campaign_strategies_summary as Record<string, any>).map(([region, summary]: [string, any]) => (
+                        <div key={region} className="border border-[var(--border)] rounded-xl p-4" style={{ borderTopColor: "#0693E3", borderTopWidth: "2px" }}>
+                          <h4 className="text-[12px] font-bold text-[var(--foreground)] mb-2">{region}</h4>
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[11px]">
+                              <span className="text-[var(--muted-foreground)]">Tier</span>
+                              <Tag color="#0693E3">Tier {summary.tier || 1}</Tag>
+                            </div>
+                            <div className="flex justify-between text-[11px]">
+                              <span className="text-[var(--muted-foreground)]">Ad Sets</span>
+                              <span className="text-[var(--foreground)] font-medium">{summary.ad_set_count || "—"}</span>
+                            </div>
+                            {summary.split_test_variable && (
+                              <div className="flex justify-between text-[11px]">
+                                <span className="text-[var(--muted-foreground)]">Split Test</span>
+                                <span className="text-[var(--foreground)] font-medium capitalize">{summary.split_test_variable}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Full strategy details from campaign_strategies table */}
+                {campaignStrategies.length > 0 && (
+                  <div>
+                    <SectionHeader icon={Target} title="Campaign Plans" color="#6B21A8" />
+                    <div className="space-y-3">
+                      {campaignStrategies.map((strat) => {
+                        const sd = strat.strategy_data || {};
+                        const campaigns: any[] = sd.campaigns || [];
+                        const splitTest = sd.split_test || {};
+                        const rules = sd.rules || {};
+
+                        return (
+                          <div key={strat.id} className="border border-[var(--border)] rounded-xl overflow-hidden">
+                            <div className="px-4 py-3 bg-[var(--muted)] flex items-center justify-between" style={{ borderLeft: "3px solid #6B21A8" }}>
+                              <div className="flex items-center gap-3">
+                                <span className="text-[13px] font-semibold text-[var(--foreground)]">{strat.country}</span>
+                                <Tag color="#6B21A8">Tier {strat.tier}</Tag>
+                                <Tag color="#0693E3">{strat.budget_mode}</Tag>
+                              </div>
+                              <span className="text-[13px] font-bold text-[var(--foreground)]">
+                                ${strat.monthly_budget?.toLocaleString()}/mo
+                              </span>
+                            </div>
+
+                            {/* Campaigns + ad sets */}
+                            {campaigns.length > 0 && (
+                              <div className="px-4 py-3 space-y-3">
+                                {campaigns.map((camp: any, ci: number) => (
+                                  <div key={ci}>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-[11px] font-bold text-[var(--foreground)]">
+                                        Campaign {ci + 1}: {camp.name || camp.objective || "Recruitment"}
+                                      </span>
+                                    </div>
+                                    {camp.ad_sets?.length > 0 && (
+                                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                                        {camp.ad_sets.map((adSet: any, ai: number) => (
+                                          <div key={ai} className="border border-[var(--border)] rounded-lg p-2.5">
+                                            <span className="text-[10px] font-bold text-[var(--foreground)] block mb-1">
+                                              {adSet.name || `Ad Set ${ai + 1}`}
+                                            </span>
+                                            {adSet.targeting_tier && (
+                                              <Tag color={adSet.targeting_tier === "hyper" ? "#6B21A8" : adSet.targeting_tier === "hot" ? "#f59e0b" : "#22c55e"}>
+                                                {adSet.targeting_tier}
+                                              </Tag>
+                                            )}
+                                            {adSet.daily_budget && (
+                                              <span className="text-[10px] text-[var(--muted-foreground)] block mt-1">${adSet.daily_budget}/day</span>
+                                            )}
+                                            {adSet.interests?.length > 0 && (
+                                              <div className="flex flex-wrap gap-0.5 mt-1">
+                                                {adSet.interests.slice(0, 2).map((int: string, ii: number) => (
+                                                  <span key={ii} className="text-[8px] px-1 py-0.5 bg-[var(--muted)] rounded text-[var(--foreground)]">{int}</span>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Split test + rules */}
+                            {(splitTest.variable || rules.kill_threshold) && (
+                              <div className="px-4 py-2.5 bg-[var(--muted)] border-t border-[var(--border)] flex flex-wrap gap-4 text-[11px]">
+                                {splitTest.variable && (
+                                  <span className="text-[var(--muted-foreground)]">
+                                    Split test: <span className="font-medium text-[var(--foreground)] capitalize">{splitTest.variable}</span>
+                                  </span>
+                                )}
+                                {rules.kill_threshold && (
+                                  <span className="text-[var(--muted-foreground)]">
+                                    Kill: <span className="font-medium text-[var(--foreground)]">{rules.kill_threshold}</span>
+                                  </span>
+                                )}
+                                {rules.scale_trigger && (
+                                  <span className="text-[var(--muted-foreground)]">
+                                    Scale: <span className="font-medium text-[var(--foreground)]">{rules.scale_trigger}</span>
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Budget breakdown from brief */}
+                {briefData.budget_data && (
+                  <div>
+                    <SectionHeader icon={Globe} title="Budget Allocation" color="#22c55e" />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {Object.entries(briefData.budget_data as Record<string, any>).map(([key, val]: [string, any]) => {
+                        if (typeof val !== "object" || !val) return null;
+                        return (
+                          <div key={key} className="border border-[var(--border)] rounded-lg p-3">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">{key}</span>
+                            {val.monthly_budget && (
+                              <span className="text-[14px] font-bold text-[var(--foreground)]">${Number(val.monthly_budget).toLocaleString()}</span>
+                            )}
+                            {val.weight_pct && (
+                              <span className="text-[10px] text-[var(--muted-foreground)] block">{val.weight_pct}% of total</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
