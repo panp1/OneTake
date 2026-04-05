@@ -65,13 +65,23 @@ function groupByPersona(briefData: Record<string, any>, assets: GeneratedAsset[]
     groups.set(key, { key, persona: p, assets: [], platforms: [] });
   }
 
+  const unassigned: GeneratedAsset[] = [];
   for (const asset of assets) {
     if (asset.asset_type === "base_image") continue;
-    const pk = (asset.content as Record<string, any>)?.persona || "unassigned";
-    if (!groups.has(pk)) {
-      groups.set(pk, { key: pk, persona: { archetype_key: pk }, assets: [], platforms: [] });
+    const pk = (asset.content as Record<string, any>)?.persona || "";
+    if (pk && groups.has(pk)) {
+      groups.get(pk)!.assets.push(asset);
+    } else {
+      unassigned.push(asset);
     }
-    groups.get(pk)!.assets.push(asset);
+  }
+
+  // Distribute unassigned across named personas
+  const namedGroups = Array.from(groups.values());
+  if (namedGroups.length > 0 && unassigned.length > 0) {
+    for (let i = 0; i < unassigned.length; i++) {
+      namedGroups[i % namedGroups.length].assets.push(unassigned[i]);
+    }
   }
 
   for (const g of groups.values()) {
@@ -210,7 +220,7 @@ function AgencyContent({ id }: { id: string }) {
                       <span className="text-[13px] font-semibold">{strat.country}</span>
                       <span className="px-2 py-0.5 rounded-lg text-[12px] font-semibold bg-purple-50 text-[#6B21A8]">Tier {strat.tier}</span>
                     </div>
-                    <span className="text-[14px] font-bold">${strat.monthly_budget?.toLocaleString()}/mo</span>
+                    <span className="text-[14px] font-bold">{(sd.monthly_budget || strat.monthly_budget) ? `$${Number(sd.monthly_budget || strat.monthly_budget).toLocaleString()}/mo` : ""}</span>
                   </div>
                   {campaigns.map((camp: any, ci: number) => (
                     <div key={ci} className="px-4 py-3 border-t border-[var(--border)]">
@@ -218,20 +228,23 @@ function AgencyContent({ id }: { id: string }) {
                       {camp.ad_sets?.length > 0 && (
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                           {camp.ad_sets.map((adSet: any, ai: number) => (
-                            <div key={ai} className="border border-[var(--border)] rounded-lg p-2.5">
-                              <span className="text-[12px] font-bold block mb-1">{adSet.name || `Ad Set ${ai + 1}`}</span>
+                            <div key={ai} className="border border-[var(--border)] rounded-lg p-2.5 bg-white">
+                              <span className="text-[12px] font-bold block">{adSet.name || `Ad Set ${ai + 1}`}</span>
                               {adSet.targeting_tier && (
-                                <span className={`px-1.5 py-0.5 rounded text-[12px] font-semibold ${adSet.targeting_tier === "hyper" ? "bg-purple-50 text-purple-700" : adSet.targeting_tier === "hot" ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700"}`}>
+                                <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[11px] font-semibold ${adSet.targeting_tier === "hyper" ? "bg-purple-50 text-purple-700" : adSet.targeting_tier === "hot" ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700"}`}>
                                   {adSet.targeting_tier}
                                 </span>
                               )}
                               {adSet.daily_budget && <span className="text-[12px] text-[var(--muted-foreground)] block mt-1">${adSet.daily_budget}/day</span>}
                               {adSet.interests?.length > 0 && (
-                                <div className="flex flex-wrap gap-0.5 mt-1">
-                                  {adSet.interests.slice(0, 3).map((int: string, ii: number) => (
-                                    <span key={ii} className="text-[12px] px-1 py-0.5 bg-[var(--muted)] rounded">{int}</span>
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {adSet.interests.map((int: string, ii: number) => (
+                                    <span key={ii} className="text-[11px] px-1.5 py-0.5 bg-[var(--muted)] rounded text-[var(--foreground)]">{int}</span>
                                   ))}
                                 </div>
+                              )}
+                              {adSet.placements?.length > 0 && (
+                                <p className="text-[11px] text-[var(--muted-foreground)] mt-1">{adSet.placements.join(", ")}</p>
                               )}
                             </div>
                           ))}
