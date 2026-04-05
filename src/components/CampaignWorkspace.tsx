@@ -713,10 +713,17 @@ function PersonaSection({
             <div>
               <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Actors</span>
               <div className="flex gap-3 flex-wrap">
-                {group.actors.slice(0, 3).map((actor) => {
-                  // Find best base_image for this actor from ALL assets passed to workspace
+                {/* Prioritize actors that have images — compare as strings for UUID safety */}
+                {[...group.actors]
+                  .sort((a, b) => {
+                    const aHas = allAssets.some(x => x.asset_type === "base_image" && String(x.actor_id) === String(a.id) && x.blob_url) ? 1 : 0;
+                    const bHas = allAssets.some(x => x.asset_type === "base_image" && String(x.actor_id) === String(b.id) && x.blob_url) ? 1 : 0;
+                    return bHas - aHas;
+                  })
+                  .slice(0, 3).map((actor) => {
+                  const actorIdStr = String(actor.id);
                   const actorImage = allAssets
-                    .filter(a => a.asset_type === "base_image" && a.actor_id === actor.id && a.blob_url)
+                    .filter(a => a.asset_type === "base_image" && String(a.actor_id) === actorIdStr && a.blob_url)
                     .sort((a, b) => (b.evaluation_score || 0) - (a.evaluation_score || 0))[0];
                   const imgUrl = actorImage?.blob_url || "";
                   return (
