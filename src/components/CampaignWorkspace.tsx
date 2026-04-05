@@ -60,29 +60,128 @@ interface PersonaGroup {
 
 // ── Platform metadata ────────────────────────────────────────────────
 
-const PLATFORM_ICONS: Record<string, { label: string; color: string; icon: string }> = {
-  ig_feed: { label: "Instagram", color: "#E1306C", icon: "IG" },
-  instagram_feed: { label: "Instagram", color: "#E1306C", icon: "IG" },
-  ig_story: { label: "IG Stories", color: "#E1306C", icon: "IG" },
-  ig_carousel: { label: "IG Carousel", color: "#E1306C", icon: "IG" },
-  facebook_feed: { label: "Facebook", color: "#1877F2", icon: "FB" },
-  facebook_stories: { label: "FB Stories", color: "#1877F2", icon: "FB" },
-  linkedin_feed: { label: "LinkedIn", color: "#0A66C2", icon: "LI" },
-  linkedin_carousel: { label: "LI Carousel", color: "#0A66C2", icon: "LI" },
-  tiktok_feed: { label: "TikTok", color: "#000000", icon: "TT" },
-  tiktok_carousel: { label: "TT Carousel", color: "#000000", icon: "TT" },
-  telegram_card: { label: "Telegram", color: "#0088cc", icon: "TG" },
-  twitter_post: { label: "X/Twitter", color: "#1DA1F2", icon: "X" },
-  wechat_moments: { label: "WeChat", color: "#07C160", icon: "WC" },
-  wechat_carousel: { label: "WC Carousel", color: "#07C160", icon: "WC" },
-  whatsapp_story: { label: "WhatsApp", color: "#25D366", icon: "WA" },
-  google_display: { label: "Display", color: "#4285F4", icon: "GD" },
-  pinterest_feed: { label: "Pinterest", color: "#E60023", icon: "PT" },
-  youtube_feed: { label: "YouTube", color: "#FF0000", icon: "YT" },
+const PLATFORM_META: Record<string, { label: string; color: string; brand: string }> = {
+  ig_feed: { label: "Instagram", color: "#E1306C", brand: "instagram" },
+  instagram_feed: { label: "Instagram", color: "#E1306C", brand: "instagram" },
+  ig_story: { label: "IG Stories", color: "#E1306C", brand: "instagram" },
+  ig_carousel: { label: "IG Carousel", color: "#E1306C", brand: "instagram" },
+  facebook_feed: { label: "Facebook", color: "#1877F2", brand: "facebook" },
+  facebook_stories: { label: "FB Stories", color: "#1877F2", brand: "facebook" },
+  linkedin_feed: { label: "LinkedIn", color: "#0A66C2", brand: "linkedin" },
+  linkedin_carousel: { label: "LI Carousel", color: "#0A66C2", brand: "linkedin" },
+  tiktok_feed: { label: "TikTok", color: "#000000", brand: "tiktok" },
+  tiktok_carousel: { label: "TT Carousel", color: "#000000", brand: "tiktok" },
+  telegram_card: { label: "Telegram", color: "#0088cc", brand: "telegram" },
+  twitter_post: { label: "X/Twitter", color: "#1DA1F2", brand: "twitter" },
+  wechat_moments: { label: "WeChat", color: "#07C160", brand: "wechat" },
+  wechat_carousel: { label: "WC Carousel", color: "#07C160", brand: "wechat" },
+  whatsapp_story: { label: "WhatsApp", color: "#25D366", brand: "whatsapp" },
+  google_display: { label: "Display", color: "#4285F4", brand: "google" },
+  pinterest_feed: { label: "Pinterest", color: "#E60023", brand: "pinterest" },
+  youtube_feed: { label: "YouTube", color: "#FF0000", brand: "youtube" },
 };
 
 function getPlatformMeta(platform: string) {
-  return PLATFORM_ICONS[platform] || { label: platform.replace(/_/g, " "), color: "#6B21A8", icon: platform.slice(0, 2).toUpperCase() };
+  return PLATFORM_META[platform] || { label: platform.replace(/_/g, " "), color: "#6B21A8", brand: "unknown" };
+}
+
+// ── Platform SVG Logos ──────────────────────────────────────────────
+
+function PlatformLogo({ brand, className = "w-5 h-5" }: { brand: string; className?: string }) {
+  switch (brand) {
+    case "instagram":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <defs><linearGradient id="ig-grad" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stopColor="#FD5" /><stop offset="50%" stopColor="#FF543E" /><stop offset="100%" stopColor="#C837AB" /></linearGradient></defs>
+          <rect width="24" height="24" rx="6" fill="url(#ig-grad)" />
+          <rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="white" strokeWidth="1.5" />
+          <circle cx="12" cy="12" r="4" fill="none" stroke="white" strokeWidth="1.5" />
+          <circle cx="17" cy="7" r="1.2" fill="white" />
+        </svg>
+      );
+    case "facebook":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <circle cx="12" cy="12" r="12" fill="#1877F2" />
+          <path d="M16.5 12.5h-2.5v8h-3v-8H9v-2.5h2v-1.8c0-2 1.2-3.2 3-3.2.9 0 1.5.1 1.5.1v2h-.8c-.8 0-1.2.5-1.2 1.1v1.8h2.5l-.5 2.5z" fill="white" />
+        </svg>
+      );
+    case "linkedin":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <rect width="24" height="24" rx="4" fill="#0A66C2" />
+          <path d="M7 10h2v7H7zm1-3.5a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4zM11 10h2v1c.5-.7 1.3-1.2 2.3-1.2 2 0 2.7 1.2 2.7 3.2v4h-2v-3.5c0-1-.4-1.5-1.2-1.5-.9 0-1.5.6-1.5 1.7V17h-2.3V10z" fill="white" />
+        </svg>
+      );
+    case "tiktok":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <circle cx="12" cy="12" r="12" fill="#000" />
+          <path d="M16.5 8.5c-.8-.5-1.3-1.4-1.5-2.5h-2v10a2 2 0 11-1.5-1.9V12c-2.2.2-4 2-4 4.2a4.2 4.2 0 007.5 2.3V11c.7.5 1.5.8 2.5.8V9.5c-.4 0-.7-.1-1-.2z" fill="white" />
+        </svg>
+      );
+    case "telegram":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <circle cx="12" cy="12" r="12" fill="#0088CC" />
+          <path d="M6 12l2.5 1.5L10 17l2-3 4 3 3-11-13 6z" fill="white" />
+          <path d="M10 17l.5-3 5.5-5" fill="none" stroke="white" strokeWidth=".5" />
+        </svg>
+      );
+    case "twitter":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <circle cx="12" cy="12" r="12" fill="#000" />
+          <path d="M13.5 11L17 7h-1.2l-3 3.4L10.2 7H7l3.7 5.2L7 17h1.2l3.2-3.7 2.8 3.7H17l-3.5-5z" fill="white" />
+        </svg>
+      );
+    case "whatsapp":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <circle cx="12" cy="12" r="12" fill="#25D366" />
+          <path d="M8 16.5l.8-2.8A5 5 0 1114.5 16L8 16.5z" fill="white" />
+        </svg>
+      );
+    case "youtube":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <rect width="24" height="24" rx="6" fill="#FF0000" />
+          <polygon points="10,7 17,12 10,17" fill="white" />
+        </svg>
+      );
+    case "pinterest":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <circle cx="12" cy="12" r="12" fill="#E60023" />
+          <path d="M12 6c-3.3 0-6 2.7-6 6 0 2.5 1.5 4.6 3.6 5.5-.1-.5-.1-1.2 0-1.7l.7-2.8s-.2-.4-.2-.9c0-.8.5-1.4 1.1-1.4.5 0 .8.4.8.9 0 .5-.3 1.3-.5 2-.1.6.3 1.1.9 1.1 1.1 0 2-1.2 2-2.9 0-1.5-1.1-2.5-2.6-2.5-1.8 0-2.8 1.3-2.8 2.7 0 .5.2 1.1.4 1.4.1.1 0 .2 0 .3l-.1.6c0 .1-.1.2-.3.1-.7-.4-1.2-1.4-1.2-2.3 0-1.9 1.4-3.6 4-3.6 2.1 0 3.7 1.5 3.7 3.5 0 2.1-1.3 3.8-3.1 3.8-.6 0-1.2-.3-1.4-.7l-.4 1.5c-.1.5-.4 1.1-.7 1.5.6.2 1.1.3 1.7.3 3.3 0 6-2.7 6-6s-2.7-6-6-6z" fill="white" />
+        </svg>
+      );
+    case "google":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <circle cx="12" cy="12" r="12" fill="#fff" stroke="#ddd" strokeWidth=".5" />
+          <path d="M18.6 12.2H12v2.8h3.8c-.4 1.6-1.8 2.8-3.8 2.8a4.2 4.2 0 010-8.4c1 0 2 .4 2.7 1l2-2a7 7 0 10-4.7 12.2c4 0 7.3-2.8 7.3-7 0-.5 0-.9-.1-1.4z" fill="#4285F4" />
+        </svg>
+      );
+    case "wechat":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <circle cx="12" cy="12" r="12" fill="#07C160" />
+          <ellipse cx="10" cy="11" rx="4.5" ry="3.5" fill="white" />
+          <ellipse cx="14.5" cy="14" rx="3.5" ry="2.5" fill="white" opacity=".8" />
+        </svg>
+      );
+    default: {
+      // Fallback: colored circle with first 2 letters
+      const meta = getPlatformMeta("");
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <circle cx="12" cy="12" r="12" fill="#6B21A8" />
+          <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">{brand.slice(0, 2).toUpperCase()}</text>
+        </svg>
+      );
+    }
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -172,11 +271,8 @@ function PlatformIcon({
       style={active ? { borderColor: meta.color } : {}}
       title={meta.label}
     >
-      <div
-        className="w-9 h-9 rounded-lg flex items-center justify-center text-[13px] font-black text-white"
-        style={{ backgroundColor: meta.color }}
-      >
-        {meta.icon}
+      <div className="w-9 h-9 flex items-center justify-center">
+        <PlatformLogo brand={meta.brand} className="w-8 h-8" />
       </div>
       <span className="text-[12px] font-medium text-[var(--foreground)] whitespace-nowrap">{meta.label}</span>
       <span className="text-[12px] text-[var(--muted-foreground)]">{count}</span>
@@ -204,7 +300,7 @@ function CreativeThumb({
       onClick={onClick}
       className="group border border-[var(--border)] rounded-xl overflow-hidden bg-white hover:shadow-md transition-all cursor-pointer text-left"
     >
-      <div className="relative aspect-square bg-[var(--muted)]">
+      <div className="relative aspect-[4/5] bg-[var(--muted)]">
         {asset.blob_url ? (
           <img src={asset.blob_url} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
@@ -263,64 +359,21 @@ function CreativeEditorModal({
   const score = asset.evaluation_score || 0;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl max-w-[1200px] w-full max-h-[90vh] overflow-hidden flex flex-col md:flex-row" onClick={e => e.stopPropagation()}>
-        {/* Left: Creative / Mockup */}
-        <div className="flex-1 bg-[#1a1a1a] relative flex items-center justify-center p-6 min-h-[300px]">
-          <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-lg cursor-pointer transition-colors">
-            <X size={18} className="text-white" />
-          </button>
-          {asset.blob_url ? (
-            <img src={asset.blob_url} alt="" className="max-w-full max-h-[75vh] rounded-lg shadow-2xl" />
-          ) : (
-            <div className="bg-[#2a2a2a] rounded-lg overflow-hidden" style={{ maxWidth: "400px", width: "100%" }}>
-              <MockupPreview asset={asset} />
+    <div className="fixed inset-0 z-50">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      {/* Panel slides from right */}
+      <div className="absolute top-0 right-0 h-full w-full max-w-[900px] bg-white shadow-2xl flex flex-col overflow-y-auto slide-in" onClick={e => e.stopPropagation()}>
+        {/* Sticky header */}
+        <div className="sticky top-0 z-10 bg-white border-b border-[var(--border)] px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 flex items-center justify-center">
+              <PlatformLogo brand={meta.brand} className="w-6 h-6" />
             </div>
-          )}
-          {/* Bottom action bar */}
-          <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md flex items-center justify-center text-[12px] font-black text-white" style={{ backgroundColor: meta.color }}>
-                {meta.icon}
-              </div>
-              <span className="text-[12px] text-white/70">{meta.label} · {asset.format}</span>
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--foreground)]">Creative Details</h2>
+              <span className="text-[12px] text-[var(--muted-foreground)]">{meta.label} · {asset.format}</span>
             </div>
-            <div className="flex items-center gap-2">
-              {onEditHtml && (content.creative_html || content.html) && (
-                <button
-                  onClick={() => { onEditHtml(asset); onClose(); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#6B21A8] hover:bg-[#5B21B6] rounded-lg text-[12px] font-semibold text-white cursor-pointer transition-colors"
-                >
-                  <Type size={13} />
-                  Edit Live
-                </button>
-              )}
-              {onChangeLayout && (
-                <button
-                  onClick={() => onChangeLayout(asset)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-[12px] font-medium text-white cursor-pointer transition-colors"
-                >
-                  <Sparkles size={13} />
-                  Change Layout
-                </button>
-              )}
-              {asset.blob_url && (
-                <button
-                  onClick={() => window.open(asset.blob_url!, "_blank")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-[12px] font-medium text-white cursor-pointer transition-colors"
-                >
-                  <Download size={13} />
-                  Download
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Edit fields */}
-        <div className="w-full md:w-[380px] border-l border-[var(--border)] overflow-y-auto p-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-[var(--foreground)]">Creative Details</h3>
             {score > 0 && (
               <span className={`text-[13px] font-bold px-2 py-0.5 rounded ${
                 score >= 0.85 ? "bg-green-50 text-green-700" : score >= 0.70 ? "bg-yellow-50 text-yellow-700" : "bg-red-50 text-red-700"
@@ -329,7 +382,74 @@ function CreativeEditorModal({
               </span>
             )}
           </div>
+          <button onClick={onClose} className="p-2 hover:bg-[var(--muted)] rounded-lg cursor-pointer transition-colors">
+            <X size={18} className="text-[var(--muted-foreground)]" />
+          </button>
+        </div>
 
+        {/* Creative image - full width */}
+        <div className="bg-[#1a1a1a] p-6 flex items-center justify-center min-h-[300px]">
+          {asset.blob_url ? (
+            <img src={asset.blob_url} alt="" className="max-w-full max-h-[60vh] rounded-lg shadow-2xl" />
+          ) : (
+            <div className="bg-[#2a2a2a] rounded-lg overflow-hidden" style={{ maxWidth: "400px", width: "100%" }}>
+              <MockupPreview asset={asset} />
+            </div>
+          )}
+        </div>
+
+        {/* Action bar */}
+        <div className="px-6 py-3 border-b border-[var(--border)] bg-[var(--muted)] flex items-center gap-2 flex-wrap">
+          {onEditHtml && (content.creative_html || content.html) && (
+            <button
+              onClick={() => { onEditHtml(asset); onClose(); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#6B21A8] hover:bg-[#5B21B6] rounded-lg text-[12px] font-semibold text-white cursor-pointer transition-colors"
+            >
+              <Type size={13} />
+              Edit Live
+            </button>
+          )}
+          {onChangeLayout && (
+            <button
+              onClick={() => onChangeLayout(asset)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] bg-white hover:bg-[var(--muted)] rounded-lg text-[12px] font-medium text-[var(--foreground)] cursor-pointer transition-colors"
+            >
+              <Sparkles size={13} />
+              Change Layout
+            </button>
+          )}
+          {asset.blob_url && (
+            <button
+              onClick={() => window.open(asset.blob_url!, "_blank")}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] bg-white hover:bg-[var(--muted)] rounded-lg text-[12px] font-medium text-[var(--foreground)] cursor-pointer transition-colors"
+            >
+              <Download size={13} />
+              Download
+            </button>
+          )}
+          <div className="flex-1" />
+          {onRefine && (
+            <button
+              onClick={() => { onRefine(asset); onClose(); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] bg-white hover:bg-[var(--muted)] rounded-lg text-[12px] font-medium text-[var(--foreground)] cursor-pointer transition-colors"
+            >
+              <Pencil size={13} />
+              Request Revision
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => { onDelete(asset); onClose(); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 bg-white hover:bg-red-50 rounded-lg text-[12px] font-medium text-red-600 cursor-pointer transition-colors"
+            >
+              <Trash2 size={13} />
+              Delete
+            </button>
+          )}
+        </div>
+
+        {/* Edit fields below */}
+        <div className="p-6 space-y-5">
           {/* Headline */}
           <div>
             <label className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Headline</label>
@@ -386,28 +506,6 @@ function CreativeEditorModal({
               {content.scene && <p className="text-[13px] text-[var(--muted-foreground)]">{content.scene.replace(/_/g, " ")}</p>}
             </div>
           )}
-
-          {/* Actions */}
-          <div className="pt-3 border-t border-[var(--border)] flex gap-2">
-            {onRefine && (
-              <button
-                onClick={() => { onRefine(asset); onClose(); }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 border border-[var(--border)] rounded-lg text-[12px] font-medium text-[var(--foreground)] hover:bg-[var(--muted)] cursor-pointer transition-colors"
-              >
-                <Pencil size={13} />
-                Request Revision
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={() => { onDelete(asset); onClose(); }}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 border border-red-200 rounded-lg text-[12px] font-medium text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
-              >
-                <Trash2 size={13} />
-                Delete
-              </button>
-            )}
-          </div>
         </div>
       </div>
     </div>
@@ -506,8 +604,8 @@ function PersonaSection({
             {group.platforms.slice(0, 8).map(plat => {
               const meta = getPlatformMeta(plat);
               return (
-                <div key={plat} className="w-7 h-7 rounded-md flex items-center justify-center text-[8px] font-black text-white" style={{ backgroundColor: meta.color }} title={meta.label}>
-                  {meta.icon}
+                <div key={plat} className="w-7 h-7 flex items-center justify-center" title={meta.label}>
+                  <PlatformLogo brand={meta.brand} className="w-6 h-6" />
                 </div>
               );
             })}
@@ -671,14 +769,14 @@ function PersonaSection({
                     onClick={() => setActivePlatform(plat)}
                     className="group border border-[var(--border)] rounded-xl overflow-hidden bg-white hover:shadow-md transition-all cursor-pointer text-left"
                   >
-                    <div className="relative aspect-square bg-[var(--muted)]">
+                    <div className="relative aspect-[4/5] bg-[var(--muted)]">
                       {asset.blob_url ? (
                         <img src={asset.blob_url} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center"><Layers size={14} className="text-[var(--muted-foreground)] opacity-30" /></div>
                       )}
-                      <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded flex items-center justify-center text-[8px] font-black text-white" style={{ backgroundColor: meta.color }}>
-                        {meta.icon}
+                      <div className="absolute top-1.5 left-1.5 w-5 h-5 flex items-center justify-center">
+                        <PlatformLogo brand={meta.brand} className="w-5 h-5" />
                       </div>
                       <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-medium">
                         {assetsByPlatform.get(plat)?.length || 1}
@@ -698,8 +796,8 @@ function PersonaSection({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md flex items-center justify-center text-[12px] font-black text-white" style={{ backgroundColor: getPlatformMeta(activePlatform).color }}>
-                    {getPlatformMeta(activePlatform).icon}
+                  <div className="w-6 h-6 flex items-center justify-center">
+                    <PlatformLogo brand={getPlatformMeta(activePlatform).brand} className="w-6 h-6" />
                   </div>
                   <span className="text-[14px] font-semibold text-[var(--foreground)]">{getPlatformMeta(activePlatform).label}</span>
                   <span className="text-[13px] text-[var(--muted-foreground)]">{activePlatformAssets.length} creatives</span>
@@ -1048,7 +1146,7 @@ export default function CampaignWorkspace({
                         const meta = getPlatformMeta(clean.toLowerCase().replace(/\s+/g, "_"));
                         return (
                           <span key={ch} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] font-medium border" style={{ borderColor: `${meta.color}30`, color: meta.color, backgroundColor: `${meta.color}08` }}>
-                            <span className="w-3 h-3 rounded flex items-center justify-center text-[6px] font-black text-white" style={{ backgroundColor: meta.color }}>{meta.icon}</span>
+                            <PlatformLogo brand={meta.brand} className="w-4 h-4" />
                             {clean}
                           </span>
                         );
