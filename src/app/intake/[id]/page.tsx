@@ -536,16 +536,17 @@ export default function IntakeDetailPage({
               </div>
             )}
 
-            {/* Draft status — pipeline auto-triggers on submit, retry if stuck */}
+            {/* Draft status — auto-triggered, recruiter sees friendly message, admin gets retry */}
             {request.status === "draft" && (
               <section className="card p-6 text-center">
                 <Clock size={28} className="mx-auto text-[var(--muted-foreground)] mb-3" />
                 <h2 className="text-base font-semibold text-[var(--foreground)] mb-2">
-                  Queued for Generation
+                  Your Campaign is Being Created
                 </h2>
                 <p className="text-sm text-[var(--muted-foreground)] mb-4 max-w-md mx-auto">
-                  This request will be automatically picked up by the pipeline. If it appears stuck, you can retry manually.
+                  Our AI is generating your creative brief, personas, and ad creatives. This typically takes 5-10 minutes. You&apos;ll be notified when it&apos;s ready for review.
                 </p>
+                {role === "admin" && (
                 <button
                   onClick={handleStartPipeline}
                   disabled={actionLoading === "pipeline"}
@@ -563,6 +564,7 @@ export default function IntakeDetailPage({
                     </>
                   )}
                 </button>
+                )}
               </section>
             )}
 
