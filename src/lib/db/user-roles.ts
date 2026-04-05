@@ -38,6 +38,19 @@ export async function getUserRole(clerkId: string, email?: string): Promise<User
     }
   }
 
+  // Auto-provision: new users get 'recruiter' role by default
+  if (email) {
+    const newRows = await sql`
+      INSERT INTO user_roles (clerk_id, email, role)
+      VALUES (${clerkId}, ${email}, 'recruiter')
+      ON CONFLICT (clerk_id) DO NOTHING
+      RETURNING *
+    `;
+    if (newRows[0]) {
+      return newRows[0] as UserRoleRecord;
+    }
+  }
+
   return null;
 }
 
