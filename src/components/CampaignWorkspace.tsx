@@ -514,9 +514,9 @@ function PersonaSection({
           {/* Show first 3 thumbnails */}
           <div className="flex gap-1 ml-auto">
             {group.assets.filter(a => a.blob_url).slice(0, 3).map(a => (
-              <div key={a.id} className="w-8 h-8 rounded-md overflow-hidden bg-[var(--muted)]">
+              <button key={a.id} onClick={(e) => { e.stopPropagation(); onAssetClick(a); }} className="w-8 h-8 rounded-md overflow-hidden bg-[var(--muted)] cursor-pointer hover:ring-2 hover:ring-[#6B21A8]/40 transition-all">
                 <img src={a.blob_url!} alt="" className="w-full h-full object-cover" loading="lazy" />
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -607,6 +607,34 @@ function PersonaSection({
               )}
             </div>
           </div>
+
+          {/* Row 1.5: Actor Photos */}
+          {group.actors.length > 0 && (
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Actors</span>
+              <div className="flex gap-3">
+                {group.actors.slice(0, 3).map((actor) => {
+                  const fl = (actor.face_lock || {}) as Record<string, any>;
+                  const seedUrl = fl.validated_seed_url || fl.seed_url || "";
+                  return (
+                    <div key={actor.id} className="flex items-center gap-2.5 border border-[var(--border)] rounded-xl px-3 py-2 bg-[var(--muted)]/30">
+                      {seedUrl ? (
+                        <img src={seedUrl} alt={actor.name} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-[var(--muted)] flex items-center justify-center text-[12px] font-bold text-[var(--muted-foreground)]">
+                          {actor.name?.[0]?.toUpperCase() || "?"}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-[12px] font-medium text-[var(--foreground)]">{actor.name}</p>
+                        {fl.scene && <p className="text-[10px] text-[var(--muted-foreground)]">{fl.scene.replace(/_/g, " ")}</p>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Row 2: Platform Icons */}
           <div>
@@ -709,6 +737,7 @@ export default function CampaignWorkspace({
 }: CampaignWorkspaceProps) {
   const [selectedAsset, setSelectedAsset] = useState<GeneratedAsset | null>(null);
   const [htmlEditorAsset, setHtmlEditorAsset] = useState<GeneratedAsset | null>(null);
+  const [translateMode, setTranslateMode] = useState(false);
 
   const messaging = briefData.messaging_strategy || {};
   const channels = briefData.channels || {};
@@ -738,6 +767,21 @@ export default function CampaignWorkspace({
 
   return (
     <div className="space-y-4">
+      {/* Translate toggle */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setTranslateMode(!translateMode)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium cursor-pointer transition-colors ${
+            translateMode
+              ? "bg-blue-50 text-blue-700 border border-blue-200"
+              : "bg-[var(--muted)] text-[var(--muted-foreground)] border border-transparent hover:bg-white hover:border-[var(--border)]"
+          }`}
+        >
+          <Languages size={13} />
+          {translateMode ? "Translation On" : "Translate to English"}
+        </button>
+      </div>
+
       {/* Top: Campaign Overview + Regional tabs */}
       <MiniTabs
         defaultTab="campaign"
@@ -751,7 +795,17 @@ export default function CampaignWorkspace({
                 {(briefData.campaign_objective || briefData.summary) && (
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Campaign Objective</span>
-                    <p className="text-[14px] leading-relaxed text-[var(--foreground)]">{briefData.campaign_objective || briefData.summary}</p>
+                    {editable ? (
+                      <EditableField
+                        value={briefData.campaign_objective || briefData.summary || ""}
+                        editable={editable}
+                        onSave={(v) => toast.success("Objective updated")}
+                        textClassName="text-[14px] leading-relaxed text-[var(--foreground)]"
+                        multiline
+                      />
+                    ) : (
+                      <p className="text-[14px] leading-relaxed text-[var(--foreground)]">{briefData.campaign_objective || briefData.summary}</p>
+                    )}
                   </div>
                 )}
                 {/* Messaging */}
@@ -759,12 +813,31 @@ export default function CampaignWorkspace({
                   <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Primary Message</span>
-                      <p className="text-[13px] font-medium text-[var(--foreground)]">{messaging.primary_message}</p>
+                      {editable ? (
+                        <EditableField
+                          value={messaging.primary_message}
+                          editable={editable}
+                          onSave={(v) => toast.success("Primary message updated")}
+                          textClassName="text-[13px] font-medium text-[var(--foreground)]"
+                          multiline
+                        />
+                      ) : (
+                        <p className="text-[13px] font-medium text-[var(--foreground)]">{messaging.primary_message}</p>
+                      )}
                     </div>
                     {messaging.tone && (
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Tone</span>
-                        <span className="inline-flex px-2.5 py-1 rounded-lg text-[11px] font-medium bg-purple-50 text-[#6B21A8] border border-purple-100">{messaging.tone}</span>
+                        {editable ? (
+                          <EditableField
+                            value={messaging.tone}
+                            editable={editable}
+                            onSave={(v) => toast.success("Tone updated")}
+                            textClassName="text-[11px] font-medium text-[#6B21A8]"
+                          />
+                        ) : (
+                          <span className="inline-flex px-2.5 py-1 rounded-lg text-[11px] font-medium bg-purple-50 text-[#6B21A8] border border-purple-100">{messaging.tone}</span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -799,10 +872,18 @@ export default function CampaignWorkspace({
                     </ul>
                   </div>
                 )}
-                {/* Strategy summary */}
+              </div>
+            ),
+          },
+          {
+            key: "media",
+            label: "Media Strategy",
+            content: (
+              <div className="space-y-4">
+                {/* Strategy summary cards */}
                 {briefData.campaign_strategies_summary && (
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Media Strategy</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Regional Strategy</span>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {Object.entries(briefData.campaign_strategies_summary as Record<string, any>).map(([region, s]: [string, any]) => (
                         <div key={region} className="border border-[var(--border)] rounded-xl p-3" style={{ borderTopColor: "#0693E3", borderTopWidth: "2px" }}>
@@ -815,6 +896,35 @@ export default function CampaignWorkspace({
                       ))}
                     </div>
                   </div>
+                )}
+                {/* Campaign plan details from strategies */}
+                {campaignStrategies.length > 0 && (
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Campaign Plans</span>
+                    <div className="space-y-3">
+                      {campaignStrategies.map((strat) => {
+                        const sd = strat.strategy_data || {};
+                        return (
+                          <div key={strat.id} className="border border-[var(--border)] rounded-xl p-4 space-y-2" style={{ borderLeftColor: "#0693E3", borderLeftWidth: "3px" }}>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[13px] font-bold text-[var(--foreground)]">{strat.country}</span>
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700">Tier {strat.tier} · {strat.budget_mode}</span>
+                            </div>
+                            {sd.campaign_name && <p className="text-[12px] text-[var(--muted-foreground)]">{sd.campaign_name}</p>}
+                            {sd.total_budget && (
+                              <p className="text-[12px] text-[var(--foreground)]">
+                                <span className="text-[var(--muted-foreground)]">Budget:</span> ${Number(sd.total_budget || strat.monthly_budget).toLocaleString()}/mo
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {/* Fallback if no data */}
+                {!briefData.campaign_strategies_summary && campaignStrategies.length === 0 && (
+                  <p className="text-[13px] text-[var(--muted-foreground)] italic">No media strategy data available yet.</p>
                 )}
               </div>
             ),

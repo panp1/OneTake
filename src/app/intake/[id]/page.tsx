@@ -10,10 +10,8 @@ import {
   Target,
   Megaphone,
   UserCircle,
-  BarChart3,
   Loader2,
   RefreshCw,
-  PanelRightOpen,
   Clock,
   Copy,
   AlertCircle,
@@ -25,8 +23,6 @@ import { StatusBadge, UrgencyBadge } from "@/components/StatusBadge";
 import PipelineProgress from "@/components/PipelineProgress";
 import ChannelCard from "@/components/ChannelCard";
 import ActorCard from "@/components/ActorCard";
-import EvaluationScores from "@/components/EvaluationScores";
-import OutputsPanel from "@/components/OutputsPanel";
 import AssetCategoryTabs from "@/components/AssetCategoryTabs";
 import AssetCard from "@/components/AssetCard";
 import BulkActions from "@/components/BulkActions";
@@ -94,7 +90,6 @@ export default function IntakeDetailPage({
   const [data, setData] = useState<DetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [outputsOpen, setOutputsOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [changesNote, setChangesNote] = useState("");
   const [showChangesModal, setShowChangesModal] = useState(false);
@@ -467,15 +462,6 @@ export default function IntakeDetailPage({
               <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
                 <StatusBadge status={request.status} />
                 <UrgencyBadge urgency={request.urgency} />
-                {hasOutputs && (
-                  <button
-                    onClick={() => setOutputsOpen(true)}
-                    className="btn-secondary text-xs px-3 py-1.5 cursor-pointer"
-                  >
-                    <PanelRightOpen size={14} />
-                    Outputs
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -650,18 +636,6 @@ export default function IntakeDetailPage({
               </LiveSection>
             )}
 
-            {/* Evaluation Scores */}
-            {evaluationData && Object.keys(evaluationData).length > 0 && (
-              <section className="card p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <BarChart3 size={16} className="text-[var(--muted-foreground)]" />
-                  <h2 className="text-sm font-semibold text-[var(--foreground)]">
-                    Evaluation Scores
-                  </h2>
-                </div>
-                <EvaluationScores scores={evaluationData} />
-              </section>
-            )}
 
             {/* Separate Assets panel only for recruiter role (marketing uses CampaignWorkspace) */}
             {hasOutputs && role !== "admin" && role !== "designer" && role !== null && (
@@ -848,19 +822,6 @@ export default function IntakeDetailPage({
             )}
           </div>
         </div>
-
-        {/* Outputs panel */}
-        <OutputsPanel
-          open={outputsOpen}
-          onClose={() => setOutputsOpen(false)}
-          assets={assets}
-          requestId={id}
-          evaluationData={evaluationData}
-          hasBrief={!!brief}
-          onViewBrief={() => {
-            briefSectionRef.current?.scrollIntoView({ behavior: "smooth" });
-          }}
-        />
 
         {/* Changes Modal */}
         {showChangesModal && (
