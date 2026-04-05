@@ -536,15 +536,29 @@ export default function IntakeDetailPage({
               </div>
             )}
 
-            {/* Draft status — auto-triggered, recruiter sees friendly message, admin gets retry */}
-            {request.status === "draft" && (
+            {/* Draft/generating status — recruiter sees human team message, admin gets retry */}
+            {(request.status === "draft" || request.status === "generating") && role !== "admin" && role !== "designer" && role !== null && (
+              <section className="card p-6 text-center">
+                <CheckCircle2 size={28} className="mx-auto text-[#22c55e] mb-3" />
+                <h2 className="text-base font-semibold text-[var(--foreground)] mb-2">
+                  Thanks for Your Submission!
+                </h2>
+                <p className="text-sm text-[var(--muted-foreground)] mb-2 max-w-md mx-auto">
+                  Marketing &amp; Design are now working on the strategy &amp; creative assets for your campaign.
+                </p>
+                <p className="text-sm text-[var(--muted-foreground)] max-w-md mx-auto">
+                  We&apos;ll ping you via Teams once everything is ready for your review.
+                </p>
+              </section>
+            )}
+            {request.status === "draft" && (role === "admin" || role === "designer" || role === null) && (
               <section className="card p-6 text-center">
                 <Clock size={28} className="mx-auto text-[var(--muted-foreground)] mb-3" />
                 <h2 className="text-base font-semibold text-[var(--foreground)] mb-2">
-                  Your Campaign is Being Created
+                  Pipeline Queued
                 </h2>
                 <p className="text-sm text-[var(--muted-foreground)] mb-4 max-w-md mx-auto">
-                  Our AI is generating your creative brief, personas, and ad creatives. This typically takes 5-10 minutes. You&apos;ll be notified when it&apos;s ready for review.
+                  Waiting for the worker to pick up this job.
                 </p>
                 {role === "admin" && (
                 <button
