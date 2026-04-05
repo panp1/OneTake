@@ -419,12 +419,14 @@ function CreativeEditorModal({
 function PersonaSection({
   group,
   index,
+  allAssets,
   onAssetClick,
   onRefine,
   onDelete,
 }: {
   group: PersonaGroup;
   index: number;
+  allAssets: GeneratedAsset[];
   onAssetClick: (asset: GeneratedAsset) => void;
   onRefine?: (asset: GeneratedAsset) => void;
   onDelete?: (asset: GeneratedAsset) => void;
@@ -608,26 +610,29 @@ function PersonaSection({
             </div>
           </div>
 
-          {/* Row 1.5: Actor Photos */}
+          {/* Row 1.5: Actor Photos — pull from base_image assets */}
           {group.actors.length > 0 && (
             <div>
               <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Actors</span>
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 {group.actors.slice(0, 3).map((actor) => {
-                  const fl = (actor.face_lock || {}) as Record<string, any>;
-                  const seedUrl = fl.validated_seed_url || fl.seed_url || "";
+                  // Find best base_image for this actor from ALL assets passed to workspace
+                  const actorImage = allAssets
+                    .filter(a => a.asset_type === "base_image" && a.actor_id === actor.id && a.blob_url)
+                    .sort((a, b) => (b.evaluation_score || 0) - (a.evaluation_score || 0))[0];
+                  const imgUrl = actorImage?.blob_url || "";
                   return (
-                    <div key={actor.id} className="flex items-center gap-2.5 border border-[var(--border)] rounded-xl px-3 py-2 bg-[var(--muted)]/30">
-                      {seedUrl ? (
-                        <img src={seedUrl} alt={actor.name} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" />
+                    <div key={actor.id} className="flex items-center gap-2.5 border border-[var(--border)] rounded-xl px-3 py-2.5 bg-white">
+                      {imgUrl ? (
+                        <img src={imgUrl} alt={actor.name} className="w-12 h-12 rounded-full object-cover border-2 border-[var(--border)] shadow-sm" />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-[var(--muted)] flex items-center justify-center text-[12px] font-bold text-[var(--muted-foreground)]">
+                        <div className="w-12 h-12 rounded-full bg-[var(--muted)] flex items-center justify-center text-[14px] font-bold text-[var(--muted-foreground)]">
                           {actor.name?.[0]?.toUpperCase() || "?"}
                         </div>
                       )}
                       <div>
-                        <p className="text-[12px] font-medium text-[var(--foreground)]">{actor.name}</p>
-                        {fl.scene && <p className="text-[12px] text-[var(--muted-foreground)]">{fl.scene.replace(/_/g, " ")}</p>}
+                        <p className="text-[13px] font-semibold text-[var(--foreground)]">{actor.name}</p>
+                        <p className="text-[12px] text-[var(--muted-foreground)]">{actorImage ? `${((actorImage.evaluation_score || 0) * 100).toFixed(0)}% VQA` : "No images"}</p>
                       </div>
                     </div>
                   );
@@ -655,21 +660,34 @@ function PersonaSection({
             </div>
           </div>
 
-          {/* Row 3: Representative creatives (1 per platform) when no platform selected */}
+          {/* Row 3: Best creative per platform (uniform square grid) — click platform icon above to see all */}
           {!activePlatform && representativeByPlatform.size > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
               {Array.from(representativeByPlatform.entries()).map(([plat, asset]) => {
                 const meta = getPlatformMeta(plat);
                 return (
-                  <div key={plat} className="space-y-1">
-                    <div className="flex items-center gap-1 mb-1">
-                      <div className="w-4 h-4 rounded flex items-center justify-center text-[7px] font-black text-white" style={{ backgroundColor: meta.color }}>
+                  <button
+                    key={plat}
+                    onClick={() => setActivePlatform(plat)}
+                    className="group border border-[var(--border)] rounded-xl overflow-hidden bg-white hover:shadow-md transition-all cursor-pointer text-left"
+                  >
+                    <div className="relative aspect-square bg-[var(--muted)]">
+                      {asset.blob_url ? (
+                        <img src={asset.blob_url} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center"><Layers size={14} className="text-[var(--muted-foreground)] opacity-30" /></div>
+                      )}
+                      <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded flex items-center justify-center text-[8px] font-black text-white" style={{ backgroundColor: meta.color }}>
                         {meta.icon}
                       </div>
-                      <span className="text-[12px] font-medium text-[var(--muted-foreground)]">{meta.label}</span>
+                      <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-medium">
+                        {assetsByPlatform.get(plat)?.length || 1}
+                      </div>
                     </div>
-                    <CreativeThumb asset={asset} onClick={() => onAssetClick(asset)} onDelete={onDelete} />
-                  </div>
+                    <div className="px-2 py-1.5">
+                      <p className="text-[11px] font-medium text-[var(--foreground)] truncate">{meta.label}</p>
+                    </div>
+                  </button>
                 );
               })}
             </div>
@@ -902,19 +920,53 @@ export default function CampaignWorkspace({
                   <div>
                     <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Campaign Plans</span>
                     <div className="space-y-3">
-                      {campaignStrategies.map((strat) => {
+                      {campaignStrategies.map((strat: any) => {
                         const sd = strat.strategy_data || {};
+                        const campaigns: any[] = sd.campaigns || [];
+                        const budget = sd.monthly_budget || strat.monthly_budget;
                         return (
-                          <div key={strat.id} className="border border-[var(--border)] rounded-xl p-4 space-y-2" style={{ borderLeftColor: "#0693E3", borderLeftWidth: "3px" }}>
-                            <div className="flex items-center justify-between">
-                              <span className="text-[13px] font-bold text-[var(--foreground)]">{strat.country}</span>
-                              <span className="text-[12px] font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700">Tier {strat.tier} · {strat.budget_mode}</span>
+                          <div key={strat.id} className="border border-[var(--border)] rounded-xl overflow-hidden" style={{ borderLeftColor: "#0693E3", borderLeftWidth: "3px" }}>
+                            <div className="px-4 py-3 bg-[var(--muted)] flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <span className="text-[14px] font-bold text-[var(--foreground)]">{strat.country}</span>
+                                <span className="text-[12px] font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700">Tier {sd.tier || strat.tier}</span>
+                                <span className="text-[12px] font-medium px-2 py-0.5 rounded bg-purple-50 text-purple-700">{sd.budget_mode || strat.budget_mode}</span>
+                              </div>
+                              {budget && <span className="text-[14px] font-bold text-[var(--foreground)]">${Number(budget).toLocaleString()}/mo</span>}
                             </div>
-                            {sd.campaign_name && <p className="text-[12px] text-[var(--muted-foreground)]">{sd.campaign_name}</p>}
-                            {sd.total_budget && (
-                              <p className="text-[12px] text-[var(--foreground)]">
-                                <span className="text-[var(--muted-foreground)]">Budget:</span> ${Number(sd.total_budget || strat.monthly_budget).toLocaleString()}/mo
-                              </p>
+                            {campaigns.map((camp: any, ci: number) => (
+                              <div key={ci} className="px-4 py-3 border-t border-[var(--border)]">
+                                <span className="text-[13px] font-semibold block mb-2">{camp.name || `Campaign ${ci + 1}`}</span>
+                                {camp.ad_sets?.length > 0 && (
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                                    {camp.ad_sets.map((adSet: any, ai: number) => (
+                                      <div key={ai} className="border border-[var(--border)] rounded-lg p-2.5 bg-white">
+                                        <span className="text-[12px] font-bold block">{adSet.name || `Ad Set ${ai + 1}`}</span>
+                                        {adSet.targeting_tier && (
+                                          <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[11px] font-semibold ${adSet.targeting_tier === "hyper" ? "bg-purple-50 text-purple-700" : adSet.targeting_tier === "hot" ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700"}`}>
+                                            {adSet.targeting_tier}
+                                          </span>
+                                        )}
+                                        {adSet.interests?.length > 0 && (
+                                          <div className="flex flex-wrap gap-1 mt-1.5">
+                                            {adSet.interests.map((int: string, ii: number) => (
+                                              <span key={ii} className="text-[11px] px-1.5 py-0.5 bg-[var(--muted)] rounded text-[var(--foreground)]">{int}</span>
+                                            ))}
+                                          </div>
+                                        )}
+                                        {adSet.placements?.length > 0 && (
+                                          <p className="text-[11px] text-[var(--muted-foreground)] mt-1">{adSet.placements.join(", ")}</p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                            {sd.scaling_rules && (
+                              <div className="px-4 py-2 bg-[var(--muted)] border-t border-[var(--border)] text-[12px] text-[var(--muted-foreground)]">
+                                <span className="font-semibold">Scaling:</span> {typeof sd.scaling_rules === "string" ? sd.scaling_rules : JSON.stringify(sd.scaling_rules, null, 0).slice(0, 150)}
+                              </div>
                             )}
                           </div>
                         );
@@ -1033,6 +1085,7 @@ export default function CampaignWorkspace({
               key={group.key}
               group={group}
               index={i}
+              allAssets={assets}
               onAssetClick={setSelectedAsset}
               onRefine={onRefine}
               onDelete={onDelete}
