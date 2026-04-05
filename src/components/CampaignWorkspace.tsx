@@ -173,13 +173,13 @@ function PlatformIcon({
       title={meta.label}
     >
       <div
-        className="w-9 h-9 rounded-lg flex items-center justify-center text-[11px] font-black text-white"
+        className="w-9 h-9 rounded-lg flex items-center justify-center text-[13px] font-black text-white"
         style={{ backgroundColor: meta.color }}
       >
         {meta.icon}
       </div>
-      <span className="text-[10px] font-medium text-[var(--foreground)] whitespace-nowrap">{meta.label}</span>
-      <span className="text-[9px] text-[var(--muted-foreground)]">{count}</span>
+      <span className="text-[12px] font-medium text-[var(--foreground)] whitespace-nowrap">{meta.label}</span>
+      <span className="text-[12px] text-[var(--muted-foreground)]">{count}</span>
     </button>
   );
 }
@@ -211,12 +211,12 @@ function CreativeThumb({
           <div className="absolute inset-0 flex items-center justify-center"><Layers size={16} className="text-[var(--muted-foreground)] opacity-30" /></div>
         )}
         {score > 0 && (
-          <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-white" style={{ backgroundColor: scoreColor }}>
+          <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md text-[12px] font-bold text-white" style={{ backgroundColor: scoreColor }}>
             {(score * 100).toFixed(0)}%
           </div>
         )}
         {content.slide_index && (
-          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/70 text-white text-[9px] font-bold flex items-center justify-center">
+          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/70 text-white text-[12px] font-bold flex items-center justify-center">
             {content.slide_index}
           </div>
         )}
@@ -232,7 +232,7 @@ function CreativeThumb({
         )}
       </div>
       <div className="px-2 py-1.5">
-        <p className="text-[11px] font-medium text-[var(--foreground)] truncate">
+        <p className="text-[13px] font-medium text-[var(--foreground)] truncate">
           {content.overlay_headline || content.slide_headline || asset.format}
         </p>
       </div>
@@ -280,7 +280,7 @@ function CreativeEditorModal({
           {/* Bottom action bar */}
           <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md flex items-center justify-center text-[9px] font-black text-white" style={{ backgroundColor: meta.color }}>
+              <div className="w-7 h-7 rounded-md flex items-center justify-center text-[12px] font-black text-white" style={{ backgroundColor: meta.color }}>
                 {meta.icon}
               </div>
               <span className="text-[12px] text-white/70">{meta.label} · {asset.format}</span>
@@ -322,7 +322,7 @@ function CreativeEditorModal({
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-[var(--foreground)]">Creative Details</h3>
             {score > 0 && (
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+              <span className={`text-[13px] font-bold px-2 py-0.5 rounded ${
                 score >= 0.85 ? "bg-green-50 text-green-700" : score >= 0.70 ? "bg-yellow-50 text-yellow-700" : "bg-red-50 text-red-700"
               }`}>
                 {(score * 100).toFixed(0)}% VQA
@@ -332,7 +332,7 @@ function CreativeEditorModal({
 
           {/* Headline */}
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Headline</label>
+            <label className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Headline</label>
             <EditableField
               value={content.overlay_headline || copyData.headline || content.slide_headline || ""}
               editable
@@ -343,7 +343,7 @@ function CreativeEditorModal({
 
           {/* Subheadline */}
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Subheadline</label>
+            <label className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Subheadline</label>
             <EditableField
               value={content.overlay_sub || copyData.description || ""}
               editable
@@ -355,7 +355,7 @@ function CreativeEditorModal({
 
           {/* CTA */}
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">CTA</label>
+            <label className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">CTA</label>
             <EditableField
               value={content.overlay_cta || copyData.cta || "Apply Now"}
               editable
@@ -367,7 +367,7 @@ function CreativeEditorModal({
           {/* Caption / Primary Text */}
           {(copyData.caption || copyData.primary_text) && (
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Caption</label>
+              <label className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Caption</label>
               <EditableField
                 value={copyData.caption || copyData.primary_text || ""}
                 editable
@@ -381,9 +381,9 @@ function CreativeEditorModal({
           {/* Actor info */}
           {content.actor_name && (
             <div className="pt-3 border-t border-[var(--border)]">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Actor</label>
+              <label className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Actor</label>
               <p className="text-[13px] text-[var(--foreground)]">{content.actor_name}</p>
-              {content.scene && <p className="text-[11px] text-[var(--muted-foreground)]">{content.scene.replace(/_/g, " ")}</p>}
+              {content.scene && <p className="text-[13px] text-[var(--muted-foreground)]">{content.scene.replace(/_/g, " ")}</p>}
             </div>
           )}
 
@@ -486,7 +486,7 @@ function PersonaSection({
             <h3 className="text-[14px] font-semibold text-[var(--foreground)]">
               {p.persona_name || p.name || group.key.replace(/_/g, " ")}
             </h3>
-            <p className="text-[11px] text-[var(--muted-foreground)]">
+            <p className="text-[13px] text-[var(--muted-foreground)]">
               {p.age_range || (demo.age_min && demo.age_max ? `${demo.age_min}-${demo.age_max}` : "")}
               {p.region ? ` · ${p.region}` : ""}
               {demo.occupation ? ` · ${demo.occupation}` : ""}
@@ -510,7 +510,7 @@ function PersonaSection({
               );
             })}
           </div>
-          <span className="text-[11px] text-[var(--muted-foreground)]">{group.assets.length} creatives across {group.platforms.length} platforms</span>
+          <span className="text-[13px] text-[var(--muted-foreground)]">{group.assets.length} creatives across {group.platforms.length} platforms</span>
           {/* Show first 3 thumbnails */}
           <div className="flex gap-1 ml-auto">
             {group.assets.filter(a => a.blob_url).slice(0, 3).map(a => (
@@ -530,7 +530,7 @@ function PersonaSection({
             <div className="border border-[var(--border)] rounded-xl p-3.5 space-y-2">
               <div className="flex items-center gap-1.5">
                 <Users size={12} style={{ color }} />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Demographics</span>
+                <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Demographics</span>
               </div>
               <div className="space-y-1 text-[12px]">
                 {p.age_range && <p><span className="text-[var(--muted-foreground)]">Age:</span> <span className="font-medium">{p.age_range}</span></p>}
@@ -545,24 +545,24 @@ function PersonaSection({
             <div className="border border-[var(--border)] rounded-xl p-3.5 space-y-2">
               <div className="flex items-center gap-1.5">
                 <Heart size={12} style={{ color }} />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Psychographics</span>
+                <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Psychographics</span>
               </div>
               {(p.motivations || []).length > 0 && (
                 <div>
-                  <span className="text-[9px] font-semibold text-[#22c55e] uppercase">Motivations</span>
+                  <span className="text-[12px] font-semibold text-[#22c55e] uppercase">Motivations</span>
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {(p.motivations as string[]).slice(0, 4).map((m: string, i: number) => (
-                      <span key={i} className="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-[10px]">{m}</span>
+                      <span key={i} className="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-[12px]">{m}</span>
                     ))}
                   </div>
                 </div>
               )}
               {(p.pain_points || []).length > 0 && (
                 <div>
-                  <span className="text-[9px] font-semibold text-red-500 uppercase">Pain Points</span>
+                  <span className="text-[12px] font-semibold text-red-500 uppercase">Pain Points</span>
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {(p.pain_points as string[]).slice(0, 3).map((pp: string, i: number) => (
-                      <span key={i} className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[10px]">{pp}</span>
+                      <span key={i} className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[12px]">{pp}</span>
                     ))}
                   </div>
                 </div>
@@ -573,34 +573,34 @@ function PersonaSection({
             <div className="border border-[var(--border)] rounded-xl p-3.5 space-y-2">
               <div className="flex items-center gap-1.5">
                 <Target size={12} style={{ color }} />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Targeting</span>
+                <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Targeting</span>
               </div>
               {(interests.hyper || []).length > 0 && (
                 <div>
-                  <span className="text-[9px] font-semibold text-[#6B21A8] uppercase">Hyper</span>
+                  <span className="text-[12px] font-semibold text-[#6B21A8] uppercase">Hyper</span>
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {(interests.hyper as string[]).slice(0, 3).map((h: string, i: number) => (
-                      <span key={i} className="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-[10px]">{h}</span>
+                      <span key={i} className="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-[12px]">{h}</span>
                     ))}
                   </div>
                 </div>
               )}
               {(interests.hot || []).length > 0 && (
                 <div>
-                  <span className="text-[9px] font-semibold text-[#f59e0b] uppercase">Hot</span>
+                  <span className="text-[12px] font-semibold text-[#f59e0b] uppercase">Hot</span>
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {(interests.hot as string[]).slice(0, 3).map((h: string, i: number) => (
-                      <span key={i} className="px-1.5 py-0.5 bg-yellow-50 text-yellow-700 rounded text-[10px]">{h}</span>
+                      <span key={i} className="px-1.5 py-0.5 bg-yellow-50 text-yellow-700 rounded text-[12px]">{h}</span>
                     ))}
                   </div>
                 </div>
               )}
               {(p.trigger_words || []).length > 0 && (
                 <div>
-                  <span className="text-[9px] font-semibold text-[var(--muted-foreground)] uppercase">Triggers</span>
+                  <span className="text-[12px] font-semibold text-[var(--muted-foreground)] uppercase">Triggers</span>
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {(p.trigger_words as string[]).slice(0, 4).map((t: string, i: number) => (
-                      <span key={i} className="px-1.5 py-0.5 bg-[var(--muted)] text-[var(--foreground)] rounded text-[10px]">{t}</span>
+                      <span key={i} className="px-1.5 py-0.5 bg-[var(--muted)] text-[var(--foreground)] rounded text-[12px]">{t}</span>
                     ))}
                   </div>
                 </div>
@@ -611,7 +611,7 @@ function PersonaSection({
           {/* Row 1.5: Actor Photos */}
           {group.actors.length > 0 && (
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Actors</span>
+              <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Actors</span>
               <div className="flex gap-3">
                 {group.actors.slice(0, 3).map((actor) => {
                   const fl = (actor.face_lock || {}) as Record<string, any>;
@@ -627,7 +627,7 @@ function PersonaSection({
                       )}
                       <div>
                         <p className="text-[12px] font-medium text-[var(--foreground)]">{actor.name}</p>
-                        {fl.scene && <p className="text-[10px] text-[var(--muted-foreground)]">{fl.scene.replace(/_/g, " ")}</p>}
+                        {fl.scene && <p className="text-[12px] text-[var(--muted-foreground)]">{fl.scene.replace(/_/g, " ")}</p>}
                       </div>
                     </div>
                   );
@@ -638,7 +638,7 @@ function PersonaSection({
 
           {/* Row 2: Platform Icons */}
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Platforms & Creatives</span>
+            <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Platforms & Creatives</span>
             <div className="flex flex-wrap gap-2">
               {group.platforms.map(plat => {
                 const count = assetsByPlatform.get(plat)?.length || 0;
@@ -666,7 +666,7 @@ function PersonaSection({
                       <div className="w-4 h-4 rounded flex items-center justify-center text-[7px] font-black text-white" style={{ backgroundColor: meta.color }}>
                         {meta.icon}
                       </div>
-                      <span className="text-[10px] font-medium text-[var(--muted-foreground)]">{meta.label}</span>
+                      <span className="text-[12px] font-medium text-[var(--muted-foreground)]">{meta.label}</span>
                     </div>
                     <CreativeThumb asset={asset} onClick={() => onAssetClick(asset)} onDelete={onDelete} />
                   </div>
@@ -680,11 +680,11 @@ function PersonaSection({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md flex items-center justify-center text-[9px] font-black text-white" style={{ backgroundColor: getPlatformMeta(activePlatform).color }}>
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center text-[12px] font-black text-white" style={{ backgroundColor: getPlatformMeta(activePlatform).color }}>
                     {getPlatformMeta(activePlatform).icon}
                   </div>
-                  <span className="text-[13px] font-semibold text-[var(--foreground)]">{getPlatformMeta(activePlatform).label}</span>
-                  <span className="text-[11px] text-[var(--muted-foreground)]">{activePlatformAssets.length} creatives</span>
+                  <span className="text-[14px] font-semibold text-[var(--foreground)]">{getPlatformMeta(activePlatform).label}</span>
+                  <span className="text-[13px] text-[var(--muted-foreground)]">{activePlatformAssets.length} creatives</span>
                 </div>
               </div>
 
@@ -697,7 +697,7 @@ function PersonaSection({
 
               {/* Mockups for this platform — first 4 only */}
               <div className="mt-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Ad Mockups</span>
+                <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Ad Mockups</span>
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2">
                   {activePlatformAssets.slice(0, 4).map(asset => (
                     <button key={`mock-${asset.id}`} onClick={() => onAssetClick(asset)} className="border border-[var(--border)] rounded-xl overflow-hidden bg-white hover:shadow-md transition-shadow cursor-pointer text-left">
@@ -705,7 +705,7 @@ function PersonaSection({
                         <MockupPreview asset={asset} />
                       </div>
                       <div className="px-3 py-2">
-                        <p className="text-[11px] font-medium text-[var(--foreground)] truncate">
+                        <p className="text-[13px] font-medium text-[var(--foreground)] truncate">
                           {(asset.content as Record<string, any>)?.overlay_headline || asset.format}
                         </p>
                       </div>
@@ -771,7 +771,7 @@ export default function CampaignWorkspace({
       <div className="flex justify-end">
         <button
           onClick={() => setTranslateMode(!translateMode)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium cursor-pointer transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium cursor-pointer transition-colors ${
             translateMode
               ? "bg-blue-50 text-blue-700 border border-blue-200"
               : "bg-[var(--muted)] text-[var(--muted-foreground)] border border-transparent hover:bg-white hover:border-[var(--border)]"
@@ -794,7 +794,7 @@ export default function CampaignWorkspace({
                 {/* Objective */}
                 {(briefData.campaign_objective || briefData.summary) && (
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Campaign Objective</span>
+                    <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Campaign Objective</span>
                     {editable ? (
                       <EditableField
                         value={briefData.campaign_objective || briefData.summary || ""}
@@ -812,7 +812,7 @@ export default function CampaignWorkspace({
                 {messaging.primary_message && (
                   <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Primary Message</span>
+                      <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Primary Message</span>
                       {editable ? (
                         <EditableField
                           value={messaging.primary_message}
@@ -827,16 +827,16 @@ export default function CampaignWorkspace({
                     </div>
                     {messaging.tone && (
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Tone</span>
+                        <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Tone</span>
                         {editable ? (
                           <EditableField
                             value={messaging.tone}
                             editable={editable}
                             onSave={(v) => toast.success("Tone updated")}
-                            textClassName="text-[11px] font-medium text-[#6B21A8]"
+                            textClassName="text-[13px] font-medium text-[#6B21A8]"
                           />
                         ) : (
-                          <span className="inline-flex px-2.5 py-1 rounded-lg text-[11px] font-medium bg-purple-50 text-[#6B21A8] border border-purple-100">{messaging.tone}</span>
+                          <span className="inline-flex px-2.5 py-1 rounded-lg text-[13px] font-medium bg-purple-50 text-[#6B21A8] border border-purple-100">{messaging.tone}</span>
                         )}
                       </div>
                     )}
@@ -845,7 +845,7 @@ export default function CampaignWorkspace({
                 {/* Value Props */}
                 {(messaging.value_propositions || briefData.value_props) && (
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Value Propositions</span>
+                    <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Value Propositions</span>
                     <ul className="space-y-1">
                       {(messaging.value_propositions || briefData.value_props || []).slice(0, 6).map((vp: any, i: number) => {
                         let text = "";
@@ -883,12 +883,12 @@ export default function CampaignWorkspace({
                 {/* Strategy summary cards */}
                 {briefData.campaign_strategies_summary && (
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Regional Strategy</span>
+                    <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Regional Strategy</span>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {Object.entries(briefData.campaign_strategies_summary as Record<string, any>).map(([region, s]: [string, any]) => (
                         <div key={region} className="border border-[var(--border)] rounded-xl p-3" style={{ borderTopColor: "#0693E3", borderTopWidth: "2px" }}>
                           <span className="text-[12px] font-bold text-[var(--foreground)]">{region}</span>
-                          <div className="mt-1 text-[11px] text-[var(--muted-foreground)] space-y-0.5">
+                          <div className="mt-1 text-[13px] text-[var(--muted-foreground)] space-y-0.5">
                             <p>Tier {s.tier || 1} · {s.ad_set_count || "?"} ad sets</p>
                             {s.split_test_variable && <p>Split test: {s.split_test_variable}</p>}
                           </div>
@@ -900,7 +900,7 @@ export default function CampaignWorkspace({
                 {/* Campaign plan details from strategies */}
                 {campaignStrategies.length > 0 && (
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Campaign Plans</span>
+                    <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Campaign Plans</span>
                     <div className="space-y-3">
                       {campaignStrategies.map((strat) => {
                         const sd = strat.strategy_data || {};
@@ -908,7 +908,7 @@ export default function CampaignWorkspace({
                           <div key={strat.id} className="border border-[var(--border)] rounded-xl p-4 space-y-2" style={{ borderLeftColor: "#0693E3", borderLeftWidth: "3px" }}>
                             <div className="flex items-center justify-between">
                               <span className="text-[13px] font-bold text-[var(--foreground)]">{strat.country}</span>
-                              <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700">Tier {strat.tier} · {strat.budget_mode}</span>
+                              <span className="text-[12px] font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700">Tier {strat.tier} · {strat.budget_mode}</span>
                             </div>
                             {sd.campaign_name && <p className="text-[12px] text-[var(--muted-foreground)]">{sd.campaign_name}</p>}
                             {sd.total_budget && (
@@ -938,18 +938,18 @@ export default function CampaignWorkspace({
                 {contentLang.primary && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Language</span>
+                      <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Language</span>
                       <span className="text-[13px] font-medium text-[var(--foreground)]">{contentLang.primary}</span>
                     </div>
                     {contentLang.formality && (
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Formality</span>
+                        <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Formality</span>
                         <span className="text-[13px] text-[var(--foreground)]">{contentLang.formality}</span>
                       </div>
                     )}
                     {contentLang.dialect_notes && (
                       <div className="col-span-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Dialect Notes</span>
+                        <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Dialect Notes</span>
                         <span className="text-[12px] text-[var(--muted-foreground)]">{contentLang.dialect_notes}</span>
                       </div>
                     )}
@@ -960,7 +960,7 @@ export default function CampaignWorkspace({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {guardrails.things_to_lean_into?.length > 0 && (
                       <div className="border border-[var(--border)] rounded-xl p-3.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#22c55e] block mb-2">Lean Into</span>
+                        <span className="text-[12px] font-bold uppercase tracking-wider text-[#22c55e] block mb-2">Lean Into</span>
                         <ul className="space-y-1">
                           {guardrails.things_to_lean_into.map((item: string, i: number) => (
                             <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--foreground)]">
@@ -973,7 +973,7 @@ export default function CampaignWorkspace({
                     )}
                     {guardrails.things_to_avoid?.length > 0 && (
                       <div className="border border-[var(--border)] rounded-xl p-3.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#ef4444] block mb-2">Avoid</span>
+                        <span className="text-[12px] font-bold uppercase tracking-wider text-[#ef4444] block mb-2">Avoid</span>
                         <ul className="space-y-1">
                           {guardrails.things_to_avoid.map((item: string, i: number) => (
                             <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--foreground)]">
@@ -989,13 +989,13 @@ export default function CampaignWorkspace({
                 {/* Channels */}
                 {(channels.primary?.length > 0 || channels.secondary?.length > 0) && (
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Channel Strategy</span>
+                    <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Channel Strategy</span>
                     <div className="flex flex-wrap gap-2">
                       {(channels.primary || []).map((ch: string) => {
                         const clean = ch.replace(/\s*\(.*$/, "").trim();
                         const meta = getPlatformMeta(clean.toLowerCase().replace(/\s+/g, "_"));
                         return (
-                          <span key={ch} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border" style={{ borderColor: `${meta.color}30`, color: meta.color, backgroundColor: `${meta.color}08` }}>
+                          <span key={ch} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] font-medium border" style={{ borderColor: `${meta.color}30`, color: meta.color, backgroundColor: `${meta.color}08` }}>
                             <span className="w-3 h-3 rounded flex items-center justify-center text-[6px] font-black text-white" style={{ backgroundColor: meta.color }}>{meta.icon}</span>
                             {clean}
                           </span>
@@ -1004,7 +1004,7 @@ export default function CampaignWorkspace({
                       {(channels.secondary || []).map((ch: string) => {
                         const clean = ch.replace(/\s*\(.*$/, "").trim();
                         return (
-                          <span key={ch} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] text-[var(--muted-foreground)] bg-[var(--muted)]">
+                          <span key={ch} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[12px] text-[var(--muted-foreground)] bg-[var(--muted)]">
                             {clean}
                           </span>
                         );
@@ -1024,8 +1024,8 @@ export default function CampaignWorkspace({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users size={14} className="text-[var(--muted-foreground)]" />
-              <h2 className="text-[13px] font-semibold text-[var(--foreground)]">Personas & Creatives</h2>
-              <span className="text-[11px] text-[var(--muted-foreground)]">{personaGroups.length} personas · {assets.filter(a => a.asset_type !== "base_image").length} creatives</span>
+              <h2 className="text-[14px] font-semibold text-[var(--foreground)]">Personas & Creatives</h2>
+              <span className="text-[13px] text-[var(--muted-foreground)]">{personaGroups.length} personas · {assets.filter(a => a.asset_type !== "base_image").length} creatives</span>
             </div>
           </div>
           {personaGroups.map((group, i) => (
