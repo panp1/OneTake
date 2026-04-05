@@ -19,8 +19,10 @@ export function LinkedInFeedFrame({ creative, className = '' }: PlatformFramePro
   const imageUrl = creative.imageUrl ?? '';
   const primaryText = creative.primaryText ?? '';
   const headline = creative.headline ?? '';
+  const description = creative.description ?? '';
   const ctaText = creative.ctaText ?? 'Learn More';
   const brandName = creative.brandName ?? 'OneForma';
+  const displayUrl = creative.displayUrl ?? 'oneforma.com';
 
   return (
     <div className={`rounded-[14px] border border-white/[0.06] bg-[#141414] overflow-hidden ${className}`}>
@@ -69,12 +71,18 @@ export function LinkedInFeedFrame({ creative, className = '' }: PlatformFramePro
           )}
         </div>
 
-        {/* Headline + CTA below image */}
+        {/* Headline + Description + CTA below image */}
         <div className="flex items-center justify-between px-3 py-2.5 border-t border-[#e8e7e4]">
           <div className="flex-1 min-w-0 mr-3">
-            {headline && (
-              <h4 className="text-[14px] font-semibold text-[#000000e6] truncate">{headline}</h4>
-            )}
+            <h4 className="text-[14px] font-semibold text-[#000000e6] truncate leading-tight">
+              {headline || 'Headline goes here'}
+            </h4>
+            <p className="text-[12px] text-[#00000099] truncate leading-tight">
+              {displayUrl}
+            </p>
+            <p className="text-[13px] text-[#00000099] truncate leading-tight mt-0.5">
+              {description || 'Description goes here'}
+            </p>
           </div>
           <button className="shrink-0 px-4 py-1.5 border-2 border-[#0A66C2] text-[#0A66C2] text-[14px] font-semibold rounded-full hover:bg-[#0A66C2]/5 transition-colors">
             {ctaText}

@@ -11,4 +11,6 @@ export interface MockupCreative {
   brandLogoUrl?: string;
   hashtags?: string[];
   caption?: string;
+  displayUrl?: string;
+  websiteUrl?: string;
 }

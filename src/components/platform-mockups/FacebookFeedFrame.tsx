@@ -22,6 +22,7 @@ export function FacebookFeedFrame({ creative, className = '' }: PlatformFramePro
   const description = creative.description ?? '';
   const ctaText = creative.ctaText ?? 'Learn More';
   const brandName = creative.brandName ?? 'OneForma';
+  const displayUrl = creative.displayUrl ?? 'oneforma.com';
 
   return (
     <div className={`rounded-[14px] border border-white/[0.06] bg-[#141414] overflow-hidden ${className}`}>
@@ -71,15 +72,16 @@ export function FacebookFeedFrame({ creative, className = '' }: PlatformFramePro
           )}
         </div>
 
-        {/* Below-image headline + CTA */}
+        {/* Below-image headline + description + CTA */}
         <div className="flex items-center justify-between px-3 py-2.5 bg-[#f0f2f5] border-t border-[#dadde1]">
           <div className="flex-1 min-w-0 mr-3">
-            {headline && (
-              <h4 className="text-[15px] font-semibold text-[#050505] truncate">{headline}</h4>
-            )}
-            {description && (
-              <p className="text-[13px] text-[#65676B] truncate">{description}</p>
-            )}
+            <p className="text-[12px] text-[#65676B] uppercase truncate">{displayUrl}</p>
+            <h4 className="text-[15px] font-semibold text-[#050505] truncate leading-tight">
+              {headline || 'Headline goes here'}
+            </h4>
+            <p className="text-[13px] text-[#65676B] truncate leading-tight">
+              {description || 'Description goes here'}
+            </p>
           </div>
           <button className="shrink-0 px-4 py-1.5 bg-[#e4e6eb] text-[#050505] text-[13px] font-semibold rounded-md hover:bg-[#d8dadf] transition-colors">
             {ctaText}

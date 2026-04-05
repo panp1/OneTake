@@ -83,11 +83,13 @@ export function InstagramStoryFrame({ creative, className = '' }: PlatformFrameP
           </div>
         )}
 
-        {/* CTA at bottom */}
+        {/* CTA at bottom — Instagram native style */}
         <div className="absolute bottom-0 inset-x-0 z-10">
-          <div className="flex flex-col items-center gap-1 pb-4 pt-8 bg-gradient-to-t from-black/50 to-transparent">
+          <div className="flex flex-col items-center gap-2 pb-5 pt-10 bg-gradient-to-t from-black/60 to-transparent">
             <ChevronUp className="w-5 h-5 text-white animate-bounce" />
-            <span className="text-[13px] font-semibold text-white tracking-wide">{ctaText}</span>
+            <button className="px-6 py-2 bg-white text-[#262626] text-[13px] font-semibold rounded-full shadow-lg">
+              {ctaText}
+            </button>
           </div>
         </div>
       </div>

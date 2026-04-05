@@ -20,6 +20,7 @@ export function TikTokFrame({ creative, className = '' }: PlatformFrameProps) {
   const imageUrl = creative.imageUrl ?? '';
   const videoUrl = creative.videoUrl ?? '';
   const primaryText = creative.primaryText ?? '';
+  const ctaText = creative.ctaText ?? 'Learn More';
   const hashtags = creative.hashtags ?? [];
   const brandName = creative.brandName ?? 'OneForma';
 
@@ -107,7 +108,7 @@ export function TikTokFrame({ creative, className = '' }: PlatformFrameProps) {
         </div>
 
         {/* Bottom text overlay */}
-        <div className="absolute bottom-0 inset-x-0 z-10 p-3 pr-16 bg-gradient-to-t from-black/70 to-transparent pt-16">
+        <div className="absolute bottom-12 inset-x-0 z-10 p-3 pr-16 bg-gradient-to-t from-black/70 to-transparent pt-16">
           {/* Brand name */}
           <p className="text-[15px] font-semibold text-white mb-1 drop-shadow-lg">
             @{brandName.toLowerCase().replace(/\s+/g, '')}
@@ -134,6 +135,13 @@ export function TikTokFrame({ creative, className = '' }: PlatformFrameProps) {
               <p className="text-[12px] text-white truncate">Original Sound</p>
             </div>
           </div>
+        </div>
+
+        {/* CTA button — full-width at bottom */}
+        <div className="absolute bottom-0 inset-x-0 z-10 px-3 pb-3">
+          <button className="w-full py-2.5 bg-[#FE2C55] text-white text-[14px] font-semibold rounded-lg">
+            {ctaText}
+          </button>
         </div>
       </div>
     </div>

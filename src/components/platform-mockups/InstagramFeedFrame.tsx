@@ -19,8 +19,12 @@ interface PlatformFrameProps {
 export function InstagramFeedFrame({ creative, className = '' }: PlatformFrameProps) {
   const imageUrl = creative.imageUrl ?? '';
   const primaryText = creative.primaryText ?? '';
+  const headline = creative.headline ?? '';
+  const description = creative.description ?? '';
+  const ctaText = creative.ctaText ?? 'Learn More';
   const hashtags = creative.hashtags ?? [];
   const brandName = creative.brandName ?? 'OneForma';
+  const displayUrl = creative.displayUrl ?? 'oneforma.com';
 
   return (
     <div className={`rounded-[14px] border border-white/[0.06] bg-[#141414] overflow-hidden ${className}`}>
@@ -79,7 +83,7 @@ export function InstagramFeedFrame({ creative, className = '' }: PlatformFramePr
         </div>
 
         {/* Caption */}
-        <div className="px-3 pb-2.5">
+        <div className="px-3 pb-2">
           {primaryText && (
             <p className="text-[13px] text-[#262626] line-clamp-3">
               <span className="font-semibold">{brandName}</span>{' '}
@@ -91,6 +95,24 @@ export function InstagramFeedFrame({ creative, className = '' }: PlatformFramePr
               {hashtags.map((tag) => (tag.startsWith('#') ? tag : `#${tag}`)).join(' ')}
             </p>
           )}
+        </div>
+
+        {/* Headline + Description + CTA bar (below-image card) */}
+        <div className="flex items-center justify-between px-3 py-2 border-t border-[#efefef]">
+          <div className="flex-1 min-w-0 mr-3">
+            <p className="text-[11px] text-[#8e8e8e] uppercase tracking-wide truncate">
+              {displayUrl}
+            </p>
+            <h4 className="text-[15px] font-semibold text-[#262626] truncate leading-tight">
+              {headline || 'Headline goes here'}
+            </h4>
+            <p className="text-[13px] text-[#8e8e8e] truncate leading-tight">
+              {description || 'Description goes here'}
+            </p>
+          </div>
+          <button className="shrink-0 px-4 py-1.5 bg-[#0095F6] text-white text-[13px] font-semibold rounded-full">
+            {ctaText}
+          </button>
         </div>
       </div>
     </div>
