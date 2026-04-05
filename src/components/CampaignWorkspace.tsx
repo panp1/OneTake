@@ -206,9 +206,24 @@ function groupByPersona(
     });
   }
 
-  // Assign actors to persona groups
+  // Assign actors to persona groups — deduplicate by name, prefer actors with images
+  const actorsByName = new Map<string, ActorProfile>();
   for (const actor of actors) {
-    const fl = actor.face_lock as Record<string, any> || {};
+    const name = actor.name || "unknown";
+    const existing = actorsByName.get(name);
+    if (!existing) {
+      actorsByName.set(name, actor);
+    } else {
+      // Keep the one that has base_image assets
+      const existingHasImages = assets.some(a => a.asset_type === "base_image" && String(a.actor_id) === String(existing.id) && a.blob_url);
+      const newHasImages = assets.some(a => a.asset_type === "base_image" && String(a.actor_id) === String(actor.id) && a.blob_url);
+      if (newHasImages && !existingHasImages) {
+        actorsByName.set(name, actor);
+      }
+    }
+  }
+  for (const actor of actorsByName.values()) {
+    const fl = (typeof actor.face_lock === "string" ? JSON.parse(actor.face_lock || "{}") : actor.face_lock) as Record<string, any> || {};
     const pk = fl.persona_key || fl.archetype_key || "unassigned";
     if (!groups.has(pk)) {
       groups.set(pk, { key: pk, persona: { archetype_key: pk }, actors: [], assets: [], platforms: [] });
@@ -300,7 +315,7 @@ function CreativeThumb({
       onClick={onClick}
       className="group border border-[var(--border)] rounded-xl overflow-hidden bg-white hover:shadow-md transition-all cursor-pointer text-left"
     >
-      <div className="relative aspect-[4/5] bg-[var(--muted)]">
+      <div className="relative aspect-square bg-[var(--muted)]">
         {asset.blob_url ? (
           <img src={asset.blob_url} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
@@ -558,11 +573,15 @@ function PersonaSection({
     return map;
   }, [group.assets]);
 
-  // Get 1 representative creative per platform (highest score)
+  // Get 1 representative creative per platform — MUST have a blob_url (skip blanks)
   const representativeByPlatform = useMemo(() => {
     const reps = new Map<string, GeneratedAsset>();
     for (const [plat, assets] of assetsByPlatform) {
-      const best = [...assets].sort((a, b) => (b.evaluation_score || 0) - (a.evaluation_score || 0))[0];
+      // Prioritize assets with images, then by score
+      const withImage = assets.filter(a => a.blob_url);
+      const best = withImage.length > 0
+        ? [...withImage].sort((a, b) => (b.evaluation_score || 0) - (a.evaluation_score || 0))[0]
+        : assets[0]; // fallback to first even without image
       if (best) reps.set(plat, best);
     }
     return reps;
@@ -623,7 +642,7 @@ function PersonaSection({
       )}
 
       {expanded && (
-        <div className="px-5 pb-5 space-y-4">
+        <div className="px-5 pb-6 space-y-6">
           {/* Row 1: Demographics + Psychographics + Channels */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Demographics */}
@@ -776,7 +795,7 @@ function PersonaSection({
                     onClick={() => setActivePlatform(plat)}
                     className="group border border-[var(--border)] rounded-xl overflow-hidden bg-white hover:shadow-md transition-all cursor-pointer text-left"
                   >
-                    <div className="relative aspect-[4/5] bg-[var(--muted)]">
+                    <div className="relative aspect-square bg-[var(--muted)]">
                       {asset.blob_url ? (
                         <img src={asset.blob_url} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
                       ) : (
