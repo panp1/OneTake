@@ -9,20 +9,51 @@ async function extractTextFromFile(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  // PDF — use pdf-parse for proper text extraction
+  // PDF — extract readable text from raw bytes (serverless-safe, no native deps)
   if (fileType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-    try {
-      const pdfModule = await import('pdf-parse');
-      const pdfParse = (pdfModule as any).default || pdfModule;
-      const data = await pdfParse(buffer);
-      if (data.text && data.text.trim().length > 50) {
-        return data.text;
+    // Extract text between stream markers and readable ASCII sequences
+    const rawText = buffer.toString('latin1');
+    const textChunks: string[] = [];
+
+    // Method 1: Find text between BT/ET markers (PDF text objects)
+    const btEtRegex = /BT\s*([\s\S]*?)\s*ET/g;
+    let match;
+    while ((match = btEtRegex.exec(rawText)) !== null) {
+      // Extract strings in parentheses (PDF literal strings)
+      const parenRegex = /\(([^)]*)\)/g;
+      let strMatch;
+      while ((strMatch = parenRegex.exec(match[1])) !== null) {
+        const decoded = strMatch[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\t/g, '\t')
+          .replace(/\\\(/g, '(')
+          .replace(/\\\)/g, ')')
+          .replace(/\\\\/g, '\\');
+        if (decoded.trim().length > 1) {
+          textChunks.push(decoded.trim());
+        }
       }
-      return `[PDF parsed but text content was too short. Pages: ${data.numpages}. File: ${file.name}]`;
-    } catch (e) {
-      console.error('[extract/rfp] PDF parse failed:', e);
-      return `[PDF parse failed for ${file.name}. Error: ${e instanceof Error ? e.message : 'unknown'}]`;
     }
+
+    // Method 2: Find readable ASCII sequences (fallback)
+    if (textChunks.length < 5) {
+      const readableRegex = /[\x20-\x7E]{10,}/g;
+      let readable;
+      while ((readable = readableRegex.exec(rawText)) !== null) {
+        const text = readable[0].trim();
+        if (text.length > 15 && !/^[A-Za-z0-9+/=]+$/.test(text)) { // Skip base64-looking strings
+          textChunks.push(text);
+        }
+      }
+    }
+
+    if (textChunks.length > 0) {
+      const extracted = textChunks.join('\n');
+      console.log(`[extract/rfp] PDF text extracted: ${extracted.length} chars from ${textChunks.length} chunks`);
+      return extracted;
+    }
+    return `[PDF file: ${file.name}. Could not extract text — may be image-based/scanned PDF. Please copy-paste the text content instead.]`;
   }
 
   // DOCX — extract raw text (basic but works for most docs)
