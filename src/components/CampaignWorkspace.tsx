@@ -77,8 +77,22 @@ const PLATFORM_META: Record<string, { label: string; color: string; brand: strin
   wechat_carousel: { label: "WC Carousel", color: "#07C160", brand: "wechat" },
   whatsapp_story: { label: "WhatsApp", color: "#25D366", brand: "whatsapp" },
   google_display: { label: "Display", color: "#4285F4", brand: "google" },
+  google_search: { label: "Google Search", color: "#4285F4", brand: "google" },
   pinterest_feed: { label: "Pinterest", color: "#E60023", brand: "pinterest" },
   youtube_feed: { label: "YouTube", color: "#FF0000", brand: "youtube" },
+  reddit_ads: { label: "Reddit", color: "#FF4500", brand: "reddit" },
+  snapchat_feed: { label: "Snapchat", color: "#FFFC00", brand: "snapchat" },
+  // Title Case variants (from Stage 3 copy)
+  "Facebook Feed": { label: "Facebook", color: "#1877F2", brand: "facebook" },
+  "Facebook Groups": { label: "Facebook", color: "#1877F2", brand: "facebook" },
+  "Facebook Stories": { label: "Facebook", color: "#1877F2", brand: "facebook" },
+  "Instagram Feed": { label: "Instagram", color: "#E1306C", brand: "instagram" },
+  "Instagram Stories": { label: "Instagram", color: "#E1306C", brand: "instagram" },
+  "LinkedIn Feed": { label: "LinkedIn", color: "#0A66C2", brand: "linkedin" },
+  "Google Search": { label: "Google Search", color: "#4285F4", brand: "google" },
+  "Reddit Ads": { label: "Reddit", color: "#FF4500", brand: "reddit" },
+  "TikTok Feed": { label: "TikTok", color: "#000000", brand: "tiktok" },
+  "Telegram Card": { label: "Telegram", color: "#0088cc", brand: "telegram" },
 };
 
 function getPlatformMeta(platform: string) {
@@ -171,9 +185,25 @@ function PlatformLogo({ brand, className = "w-5 h-5" }: { brand: string; classNa
           <ellipse cx="14.5" cy="14" rx="3.5" ry="2.5" fill="white" opacity=".8" />
         </svg>
       );
+    case "reddit":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <circle cx="12" cy="12" r="12" fill="#FF4500" />
+          <circle cx="12" cy="13" r="5" fill="white" />
+          <circle cx="10" cy="12.5" r="1" fill="#FF4500" />
+          <circle cx="14" cy="12.5" r="1" fill="#FF4500" />
+          <circle cx="12" cy="7" r="2" fill="white" />
+          <path d="M14 7 L17 4" stroke="white" strokeWidth="1.5" fill="none" />
+        </svg>
+      );
+    case "snapchat":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <circle cx="12" cy="12" r="12" fill="#FFFC00" />
+          <path d="M12 7c-2 0-3 1.5-3 3v2l-2 .5c0 .5.5 1 1 1-.5 1-1.5 2-1.5 2h11s-1-1-1.5-2c.5 0 1-.5 1-1l-2-.5v-2c0-1.5-1-3-3-3z" fill="white" />
+        </svg>
+      );
     default: {
-      // Fallback: colored circle with first 2 letters
-      const meta = getPlatformMeta("");
       return (
         <svg viewBox="0 0 24 24" className={className}>
           <circle cx="12" cy="12" r="12" fill="#6B21A8" />
@@ -569,24 +599,34 @@ function PersonaSection({
 
   const activePlatformAssets = activePlatform ? (assetsByPlatform.get(activePlatform) || []) : [];
 
-  // Group platforms by channel (Instagram, LinkedIn, Facebook, etc.)
+  // Group platforms by channel — handles both snake_case and Title Case
   const channelGroups = useMemo(() => {
-    const channelMap: Record<string, string> = {
-      ig_feed: "Instagram", ig_story: "Instagram", ig_carousel: "Instagram", instagram_feed: "Instagram",
-      facebook_feed: "Facebook", facebook_stories: "Facebook",
-      linkedin_feed: "LinkedIn", linkedin_carousel: "LinkedIn",
-      tiktok_feed: "TikTok", tiktok_carousel: "TikTok",
-      telegram_card: "Telegram",
-      twitter_post: "X/Twitter",
-      whatsapp_story: "WhatsApp",
-      youtube_feed: "YouTube",
-      google_display: "Google Display",
-      pinterest_feed: "Pinterest",
-      wechat_moments: "WeChat", wechat_carousel: "WeChat",
-    };
+    // Normalize platform key to channel name
+    function toChannel(plat: string): string | null {
+      const lower = plat.toLowerCase().replace(/\s+/g, "_");
+      // Filter out non-ad channels
+      if (lower.includes("email") || lower.includes("university") || lower.includes("job_board")) return null;
+      // Map to channel
+      if (lower.includes("instagram") || lower.includes("ig_")) return "Instagram";
+      if (lower.includes("facebook") || lower === "fb_feed" || lower === "fb_stories") return "Facebook";
+      if (lower.includes("linkedin") || lower === "li_feed" || lower === "li_carousel") return "LinkedIn";
+      if (lower.includes("tiktok") || lower === "tt_feed" || lower === "tt_carousel") return "TikTok";
+      if (lower.includes("telegram")) return "Telegram";
+      if (lower.includes("twitter") || lower.startsWith("x_")) return "X/Twitter";
+      if (lower.includes("whatsapp")) return "WhatsApp";
+      if (lower.includes("youtube")) return "YouTube";
+      if (lower.includes("google") && lower.includes("search")) return "Google Search";
+      if (lower.includes("google") && lower.includes("display")) return "Google Display";
+      if (lower.includes("pinterest")) return "Pinterest";
+      if (lower.includes("reddit")) return "Reddit";
+      if (lower.includes("wechat")) return "WeChat";
+      if (lower.includes("snapchat")) return "Snapchat";
+      return plat.split("_")[0].charAt(0).toUpperCase() + plat.split("_")[0].slice(1);
+    }
     const groups = new Map<string, { platforms: string[]; totalAssets: number }>();
     for (const plat of group.platforms) {
-      const channel = channelMap[plat] || plat.split("_")[0];
+      const channel = toChannel(plat);
+      if (!channel) continue; // Skip filtered channels
       if (!groups.has(channel)) groups.set(channel, { platforms: [], totalAssets: 0 });
       groups.get(channel)!.platforms.push(plat);
       groups.get(channel)!.totalAssets += assetsByPlatform.get(plat)?.length || 0;
