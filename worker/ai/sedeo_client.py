@@ -36,6 +36,54 @@ POLL_INTERVAL = 10  # seconds
 MAX_POLL_TIME = 600  # 10 minutes max wait
 
 
+# ── Person filter bypass preprocessing ────────────────────────────────
+# AtlasCloud workarounds (from Mia @ AtlasCloud):
+#   1. Cover eyes  2. Reduce opacity  3. Apply blur
+# We combine: light Gaussian blur (radius 2) + slight opacity reduction
+# This tricks the moderation filter while preserving enough detail for
+# Sedeo to generate a consistent character.
+
+async def preprocess_for_sedeo(image_url: str) -> str:
+    """Download an image, apply light blur + opacity to bypass person filter.
+
+    Returns a base64 data URL that can be used as first_frame_url.
+    """
+    import base64
+    import io
+    try:
+        from PIL import Image, ImageFilter
+    except ImportError:
+        logger.warning("PIL not available — skipping Sedeo preprocessing")
+        return image_url
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.get(image_url)
+            resp.raise_for_status()
+
+        img = Image.open(io.BytesIO(resp.content)).convert("RGBA")
+
+        # Method 2+3: Light Gaussian blur (radius 2) + reduce opacity to 92%
+        img = img.filter(ImageFilter.GaussianBlur(radius=2))
+
+        # Reduce opacity by blending with white at 8% (92% original)
+        white = Image.new("RGBA", img.size, (255, 255, 255, 255))
+        img = Image.blend(img, white, alpha=0.08)
+
+        # Convert back to RGB for base64
+        rgb = img.convert("RGB")
+        buf = io.BytesIO()
+        rgb.save(buf, format="JPEG", quality=90)
+        b64 = base64.b64encode(buf.getvalue()).decode()
+
+        logger.info("Sedeo preprocess: blur+opacity applied (%d bytes → %d b64)", len(resp.content), len(b64))
+        return f"data:image/jpeg;base64,{b64}"
+
+    except Exception as e:
+        logger.warning("Sedeo preprocess failed: %s — using original URL", e)
+        return image_url
+
+
 async def generate_video_from_image(
     first_frame_url: str,
     prompt: str,
@@ -86,6 +134,10 @@ async def generate_video_from_image(
 
     model = SEDEO_FAST_MODEL if use_fast else SEDEO_MODEL
 
+    # Preprocess images to bypass person filter (blur + opacity)
+    processed_first_frame = await preprocess_for_sedeo(first_frame_url)
+    logger.info("Sedeo: first_frame preprocessed for person filter bypass")
+
     # Build content array
     content = []
 
@@ -93,10 +145,10 @@ async def generate_video_from_image(
     if prompt:
         content.append({"type": "text", "text": prompt})
 
-    # First frame image
+    # First frame image (preprocessed)
     content.append({
         "type": "image_url",
-        "image_url": {"url": first_frame_url},
+        "image_url": {"url": processed_first_frame},
         "role": "first_frame",
     })
 
@@ -108,12 +160,13 @@ async def generate_video_from_image(
             "role": "last_frame",
         })
 
-    # Reference images for character consistency (optional)
+    # Reference images for character consistency (optional, preprocessed)
     if reference_images:
         for ref_url in reference_images[:9]:  # Max 9 references
+            processed_ref = await preprocess_for_sedeo(ref_url)
             content.append({
                 "type": "image_url",
-                "image_url": {"url": ref_url},
+                "image_url": {"url": processed_ref},
                 "role": "reference_image",
             })
 
