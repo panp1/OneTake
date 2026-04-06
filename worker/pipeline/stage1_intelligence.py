@@ -438,13 +438,12 @@ def _parse_json(text: str) -> dict:
     except json.JSONDecodeError:
         pass
 
-    # Try to find JSON object embedded in text (reasoning mode)
-    # Search for the LAST { ... } block that's valid JSON
-    import re
-    # Find all potential JSON blocks (starting with { ending with })
+    # Try to find the LARGEST valid JSON object in reasoning text
+    # Reasoning mode produces small JSON fragments in thinking + the real answer
     brace_depth = 0
     json_start = -1
-    last_valid_json = None
+    best_json = None
+    best_size = 0
 
     for i, char in enumerate(cleaned):
         if char == '{':
@@ -457,15 +456,16 @@ def _parse_json(text: str) -> dict:
                 candidate = cleaned[json_start:i+1]
                 try:
                     parsed = json.loads(candidate)
-                    if isinstance(parsed, dict) and len(parsed) > 1:
-                        last_valid_json = parsed
+                    if isinstance(parsed, dict) and len(candidate) > best_size and len(parsed) > 1:
+                        best_json = parsed
+                        best_size = len(candidate)
                 except json.JSONDecodeError:
                     pass
                 json_start = -1
 
-    if last_valid_json:
-        logger.info("Extracted JSON from reasoning text (%d keys)", len(last_valid_json))
-        return last_valid_json
+    if best_json:
+        logger.info("Extracted JSON from reasoning text (%d keys, %d chars)", len(best_json), best_size)
+        return best_json
 
     logger.warning("Failed to parse JSON from LLM output (%d chars); wrapping in raw_text.", len(text))
     return {"raw_text": text}

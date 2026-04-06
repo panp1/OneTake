@@ -422,10 +422,11 @@ def _parse_strategy_json(text: str) -> dict:
     except json.JSONDecodeError:
         pass
 
-    # Find the LAST valid JSON object (skip reasoning preamble)
+    # Find the LARGEST valid JSON object (reasoning contains small fragments + the real answer)
     brace_depth = 0
     start = -1
-    last_valid = None
+    best_valid = None
+    best_size = 0
 
     for i, char in enumerate(cleaned):
         if char == '{':
@@ -438,15 +439,19 @@ def _parse_strategy_json(text: str) -> dict:
                 candidate = cleaned[start:i + 1]
                 try:
                     parsed = json.loads(candidate)
-                    if isinstance(parsed, dict) and len(parsed) > 1:
-                        last_valid = parsed
+                    if isinstance(parsed, dict) and len(candidate) > best_size:
+                        # Prefer objects with strategy-related keys
+                        has_strategy_keys = any(k in parsed for k in ["campaigns", "ad_sets", "tier", "split_test", "budget_mode"])
+                        if has_strategy_keys or len(parsed) > 2:
+                            best_valid = parsed
+                            best_size = len(candidate)
                 except json.JSONDecodeError:
                     pass
                 start = -1
 
-    if last_valid:
-        logger.info("Extracted strategy JSON from reasoning text (%d keys)", len(last_valid))
-        return last_valid
+    if best_valid:
+        logger.info("Extracted strategy JSON from reasoning text (%d keys, %d chars)", len(best_valid), best_size)
+        return best_valid
 
     logger.warning("Failed to parse campaign strategy JSON (%d chars)", len(text))
     return {}
