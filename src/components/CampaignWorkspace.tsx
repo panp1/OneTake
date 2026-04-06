@@ -1159,23 +1159,6 @@ export default function CampaignWorkspace({
             label: "Media Strategy",
             content: (
               <div className="space-y-4">
-                {/* Strategy summary cards */}
-                {briefData.campaign_strategies_summary && (
-                  <div>
-                    <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Regional Strategy</span>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {Object.entries(briefData.campaign_strategies_summary as Record<string, any>).map(([region, s]: [string, any]) => (
-                        <div key={region} className="border border-[var(--border)] rounded-xl p-3" style={{ borderTopColor: "#0693E3", borderTopWidth: "2px" }}>
-                          <span className="text-[12px] font-bold text-[var(--foreground)]">{region}</span>
-                          <div className="mt-1 text-[13px] text-[var(--muted-foreground)] space-y-0.5">
-                            <p>Tier {s.tier || 1} · {s.ad_set_count || "?"} ad sets</p>
-                            {s.split_test_variable && <p>Split test: {s.split_test_variable}</p>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 {/* Campaign plan details from strategies */}
                 {campaignStrategies.length > 0 && (
                   <div>
