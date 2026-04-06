@@ -15,7 +15,11 @@ import logging
 
 import httpx
 
+import os
 from config import OPENROUTER_API_KEY
+
+# Dedicated Flux key for parallel image editing (separate from main OpenRouter key)
+FLUX_API_KEY = os.environ.get("FLUX_OPENROUTER_KEY", OPENROUTER_API_KEY)
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +54,8 @@ async def edit_image_flux(
     bytes
         Edited image bytes.
     """
-    if not OPENROUTER_API_KEY:
-        raise ValueError("OPENROUTER_API_KEY not configured")
+    if not FLUX_API_KEY:
+        raise ValueError("No Flux API key configured")
 
     prompt = edit_prompt or DEFAULT_CLEANUP_PROMPT
     b64 = base64.b64encode(image_bytes).decode("utf-8")
@@ -75,7 +79,7 @@ async def edit_image_flux(
         resp = await client.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Authorization": f"Bearer {FLUX_API_KEY}",
                 "Content-Type": "application/json",
             },
             json=payload,
