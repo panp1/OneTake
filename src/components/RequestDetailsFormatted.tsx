@@ -62,10 +62,17 @@ export default function RequestDetailsFormatted({
   editable = true,
   onFieldSave,
 }: RequestDetailsFormattedProps) {
+  // Normalize field names — form_data keys vary by task type schema
   const compensation = formData.compensation || {};
+  const compensationModel = formData.compensation_model || compensation.type || "";
+  const compensationDesc = formData.compensation_description || compensation.description || "";
   const requirements = formData.requirements || {};
   const taskDetails = formData.task_details || {};
+  const taskDescription = formData.task_description || formData.description || formData.goal || "";
+  const targetVolume = formData.volume_needed || formData.target_volume || "";
   const languagePairs = formData.language_pairs as string[] | undefined;
+  const ndaRequired = formData.nda_required || formData.nda || false;
+  const commitmentLevel = formData.commitment_level || formData.commitment || "";
 
   return (
     <div className="space-y-0">
@@ -75,9 +82,9 @@ export default function RequestDetailsFormatted({
         <div>
           <Label>Campaign Goal</Label>
           <EditableField
-            value={String(formData.goal || formData.description || "")}
+            value={String(taskDescription)}
             editable={editable}
-            onSave={(v) => onFieldSave?.("goal", v)}
+            onSave={(v) => onFieldSave?.("task_description", v)}
             textClassName="text-[14px] leading-relaxed text-[var(--foreground)]"
             multiline
           />
@@ -122,13 +129,13 @@ export default function RequestDetailsFormatted({
         <div>
           <Label>Compensation</Label>
           <p className="text-[14px] font-semibold text-[var(--foreground)]">
-            {compensation.type
-              ? String(compensation.type).replace(/_/g, " ")
+            {compensationModel
+              ? String(compensationModel).replace(/_/g, " ")
               : "Not specified"}
           </p>
-          {compensation.description && (
-            <p className="text-[12px] text-[var(--muted-foreground)] mt-0.5">
-              {String(compensation.description)}
+          {compensationDesc && (
+            <p className="text-[13px] text-[var(--muted-foreground)] mt-0.5">
+              {String(compensationDesc)}
             </p>
           )}
         </div>
@@ -136,9 +143,9 @@ export default function RequestDetailsFormatted({
           <Label>Target Volume</Label>
           <p className="text-[14px] text-[var(--foreground)]">
             <span className="text-2xl font-bold tracking-tight">
-              {String(formData.target_volume || "—")}
+              {String(targetVolume || "—")}
             </span>
-            <span className="text-[var(--muted-foreground)] text-[12px] ml-1.5">
+            <span className="text-[var(--muted-foreground)] text-[13px] ml-1.5">
               contributors
             </span>
           </p>
@@ -260,6 +267,54 @@ export default function RequestDetailsFormatted({
           </div>
         </>
       )}
+      {/* ── Additional Fields (NDA, commitment, etc) ──────── */}
+      {(ndaRequired || commitmentLevel) && (
+        <>
+          <SectionDivider />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {ndaRequired && (
+              <div>
+                <Label>NDA Required</Label>
+                <div className="flex items-center gap-1.5">
+                  <Shield size={14} className="text-red-500" />
+                  <span className="text-[14px] font-semibold text-red-600">Yes</span>
+                </div>
+              </div>
+            )}
+            {commitmentLevel && (
+              <div>
+                <Label>Commitment Level</Label>
+                <span className="text-[14px] font-medium text-[var(--foreground)] capitalize">{String(commitmentLevel).replace(/_/g, " ")}</span>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ── Catch-all: Show any form_data fields not already rendered ── */}
+      {(() => {
+        const rendered = new Set(["title", "urgency", "goal", "description", "task_description", "compensation", "compensation_model", "compensation_description", "target_volume", "volume_needed", "requirements", "task_details", "source_url", "language_pairs", "target_regions", "target_languages", "nda_required", "nda", "commitment_level", "commitment"]);
+        const remaining = Object.entries(formData).filter(([k, v]) => !rendered.has(k) && v !== null && v !== undefined && v !== "");
+        if (remaining.length === 0) return null;
+        return (
+          <>
+            <SectionDivider />
+            <div>
+              <Label>Additional Details</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                {remaining.map(([k, v]) => (
+                  <div key={k}>
+                    <span className="text-[12px] font-semibold text-[var(--muted-foreground)] capitalize block mb-0.5">{k.replace(/_/g, " ")}</span>
+                    <span className="text-[13px] text-[var(--foreground)]">
+                      {Array.isArray(v) ? v.join(", ") : typeof v === "object" ? JSON.stringify(v) : String(v)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }
