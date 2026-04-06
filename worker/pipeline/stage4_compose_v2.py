@@ -171,14 +171,15 @@ async def run_stage4(context: dict) -> dict:
         else:
             platforms = DEFAULT_PLATFORMS
 
-        # ── OPTIMAL CREATIVE VOLUME: 3 singles per platform per persona ──
-        # Pick 1 best actor (most images), 1 best scene (highest VQA).
-        # Generate exactly 3 creatives per platform (one per copy angle).
-        # Total: 3 personas × 5 platforms × 3 = 45 singles (not 381).
+        # ── OPTIMAL CREATIVE VOLUME ──────────────────────────────────
+        # 3 personas × top 2 actors × 2 best scenes × persona platforms × 3 creatives
+        # Fewer creatives = stricter VQA gate + more retries per creative
+        #
+        # Platforms are DYNAMIC — only generate for platforms this persona
+        # will actually be targeted on (from best_channels or brief channels).
 
-        # Find best actor (most scene images)
-        best_actor = None
-        best_actor_scenes: dict[str, dict] = {}
+        # Rank all actors by number of scene images (most → least)
+        ranked_actors: list[tuple[dict, dict[str, dict]]] = []
         for actor_data in persona_actors:
             actor_id = str(actor_data.get("actor_id", actor_data.get("id", "")))
             actor_images = {
@@ -187,69 +188,75 @@ async def run_stage4(context: dict) -> dict:
             }
             if not actor_images:
                 continue
-            # Group by scene
             scenes: dict[str, dict] = {}
             for asset_id, img in actor_images.items():
                 scene_key = img.get("scene", "default")
                 if scene_key not in scenes:
                     scenes[scene_key] = img
-            if len(scenes) > len(best_actor_scenes):
-                best_actor = actor_data
-                best_actor_scenes = scenes
+            ranked_actors.append((actor_data, scenes))
 
-        if not best_actor or not best_actor_scenes:
-            logger.warning("No actor with images for persona %s — skipping", persona_key)
+        # Sort by scene count descending, take top 2
+        ranked_actors.sort(key=lambda x: len(x[1]), reverse=True)
+        top_actors = ranked_actors[:2]
+
+        if not top_actors:
+            logger.warning("No actors with images for persona %s — skipping", persona_key)
             continue
 
-        actor_id = str(best_actor.get("actor_id", best_actor.get("id", "")))
-        actor_name = best_actor.get("name", "contributor")
-
-        # Pick best scene (highest VQA score or first available)
-        best_scene_key = next(iter(best_actor_scenes))
-        best_scene_img = best_actor_scenes[best_scene_key]
-
-        # Build single-actor context for GLM-5
-        single_actor = [{
-            "name": actor_name,
-            "region": best_actor.get("region", "Global"),
-            "images": {
-                best_scene_key: {
-                    "full_url": best_scene_img.get("full_url", ""),
-                    "cutout_url": best_scene_img.get("cutout_url", ""),
-                    "shadow_url": best_scene_img.get("shadow_url", ""),
-                    "scene_description": best_scene_img.get("scene_description", ""),
-                }
-            },
-        }]
-
         logger.info(
-            "Persona '%s': best actor=%s, scene=%s, %d platforms",
-            persona_key, actor_name, best_scene_key, len(platforms),
+            "Persona '%s': %d actors selected, %d platforms (dynamic)",
+            persona_key, len(top_actors), len(platforms),
         )
 
-        # 3 creatives per platform (one per copy angle)
-        for platform in platforms:
-            spec = PLATFORM_SPECS.get(platform)
-            if not spec:
-                logger.warning("Unknown platform spec: %s — skipping", platform)
-                continue
+        for actor_data, actor_scenes in top_actors:
+            actor_id = str(actor_data.get("actor_id", actor_data.get("id", "")))
+            actor_name = actor_data.get("name", "contributor")
 
-            platform_copy = _find_copy(channel_copy, platform)
+            # Pick top 2 scenes (by image count or first 2)
+            scene_items = list(actor_scenes.items())[:2]
 
-            tasks.append(
-                _design_and_render_batch(
-                    semaphore=semaphore,
-                    request_id=request_id,
-                    persona=persona,
-                    persona_key=persona_key,
-                    actors=single_actor,
-                    platform=platform,
-                    spec=spec,
-                    brief=brief,
-                    platform_copy=platform_copy,
-                    required_pattern=next(pattern_iter),
+            for scene_key, scene_img in scene_items:
+                single_actor = [{
+                    "name": actor_name,
+                    "region": actor_data.get("region", "Global"),
+                    "images": {
+                        scene_key: {
+                            "full_url": scene_img.get("full_url", ""),
+                            "cutout_url": scene_img.get("cutout_url", ""),
+                            "shadow_url": scene_img.get("shadow_url", ""),
+                            "scene_description": scene_img.get("scene_description", ""),
+                        }
+                    },
+                }]
+
+                logger.info(
+                    "  Actor '%s' scene '%s' → %d platforms",
+                    actor_name, scene_key, len(platforms),
                 )
-            )
+
+                # 3 creatives per platform (one per copy angle)
+                for platform in platforms:
+                    spec = PLATFORM_SPECS.get(platform)
+                    if not spec:
+                        logger.warning("Unknown platform spec: %s — skipping", platform)
+                        continue
+
+                    platform_copy = _find_copy(channel_copy, platform)
+
+                    tasks.append(
+                        _design_and_render_batch(
+                            semaphore=semaphore,
+                            request_id=request_id,
+                            persona=persona,
+                            persona_key=persona_key,
+                            actors=single_actor,
+                            platform=platform,
+                            spec=spec,
+                            brief=brief,
+                            platform_copy=platform_copy,
+                            required_pattern=next(pattern_iter),
+                        )
+                    )
 
     logger.info(
         "Stage 4 dispatching %d batches (persona×platform, 3 creatives each) — optimal volume",

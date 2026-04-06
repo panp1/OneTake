@@ -22,8 +22,8 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 # Thresholds
-CREATIVE_VQA_THRESHOLD = 0.80
-MAX_CREATIVE_RETRIES = 2  # Total attempts = 1 initial + 2 retries = 3
+CREATIVE_VQA_THRESHOLD = 0.85  # Stricter — fewer creatives means higher bar
+MAX_CREATIVE_RETRIES = 3  # Total attempts = 1 initial + 3 retries = 4
 
 # Phase 1: deterministic check labels
 REQUIRED_ELEMENTS = ["headline", "cta"]  # Must be present in design metadata
@@ -316,7 +316,7 @@ async def evaluate_creative(
 # Gemma 4 VQA config
 GEMMA4_MODEL = os.environ.get("NVIDIA_NIM_VQA_MODEL", "google/gemma-4-31b-it")
 GEMMA4_KEY = os.environ.get("NVIDIA_NIM_VQA_KEY", os.environ.get("NVIDIA_NIM_API_KEY", ""))
-COMPOSED_VQA_THRESHOLD = 0.70
+COMPOSED_VQA_THRESHOLD = 0.80  # Raised — fewer creatives, each must be higher quality
 
 COMPOSED_VQA_PROMPT = '''You are a senior creative director scoring a OneForma recruitment ad creative.
 Use the 8-category weighted matrix below. Score each category 1-10, then compute the weighted total (max 100).
