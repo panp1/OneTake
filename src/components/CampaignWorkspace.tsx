@@ -524,6 +524,7 @@ function PersonaSection({
   onDelete?: (asset: GeneratedAsset) => void;
 }) {
   const [activePlatform, setActivePlatform] = useState<string | null>(null);
+  const [activeChannel, setActiveChannel] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const colors = ["#6B21A8", "#0693E3", "#E91E8C", "#22c55e"];
   const color = colors[index % colors.length];
@@ -567,6 +568,34 @@ function PersonaSection({
   }, [assetsByPlatform]);
 
   const activePlatformAssets = activePlatform ? (assetsByPlatform.get(activePlatform) || []) : [];
+
+  // Group platforms by channel (Instagram, LinkedIn, Facebook, etc.)
+  const channelGroups = useMemo(() => {
+    const channelMap: Record<string, string> = {
+      ig_feed: "Instagram", ig_story: "Instagram", ig_carousel: "Instagram", instagram_feed: "Instagram",
+      facebook_feed: "Facebook", facebook_stories: "Facebook",
+      linkedin_feed: "LinkedIn", linkedin_carousel: "LinkedIn",
+      tiktok_feed: "TikTok", tiktok_carousel: "TikTok",
+      telegram_card: "Telegram",
+      twitter_post: "X/Twitter",
+      whatsapp_story: "WhatsApp",
+      youtube_feed: "YouTube",
+      google_display: "Google Display",
+      pinterest_feed: "Pinterest",
+      wechat_moments: "WeChat", wechat_carousel: "WeChat",
+    };
+    const groups = new Map<string, { platforms: string[]; totalAssets: number }>();
+    for (const plat of group.platforms) {
+      const channel = channelMap[plat] || plat.split("_")[0];
+      if (!groups.has(channel)) groups.set(channel, { platforms: [], totalAssets: 0 });
+      groups.get(channel)!.platforms.push(plat);
+      groups.get(channel)!.totalAssets += assetsByPlatform.get(plat)?.length || 0;
+    }
+    return groups;
+  }, [group.platforms, assetsByPlatform]);
+
+  // Get formats for active channel
+  const activeChannelPlatforms = activeChannel ? (channelGroups.get(activeChannel)?.platforms || []) : [];
 
   return (
     <div className="border border-[var(--border)] rounded-2xl overflow-hidden bg-white">
@@ -718,7 +747,7 @@ function PersonaSection({
                     const bHas = allAssets.some(x => x.asset_type === "base_image" && String(x.actor_id) === String(b.id) && x.blob_url) ? 1 : 0;
                     return bHas - aHas;
                   })
-                  .slice(0, 3).map((actor) => {
+                  .slice(0, 4).map((actor) => {
                   const actorIdStr = String(actor.id);
                   const actorImage = allAssets
                     .filter(a => a.asset_type === "base_image" && String(a.actor_id) === actorIdStr && a.blob_url)
@@ -750,27 +779,58 @@ function PersonaSection({
             </div>
           )}
 
-          {/* Row 2: Platform Icons */}
+          {/* Row 2: Channel Icons (grouped) */}
           <div>
-            <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Platforms & Creatives</span>
+            <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">Channels</span>
             <div className="flex flex-wrap gap-2">
-              {group.platforms.map(plat => {
-                const count = assetsByPlatform.get(plat)?.length || 0;
+              {Array.from(channelGroups.entries()).map(([channel, { platforms: plats, totalAssets }]) => {
+                const firstPlat = plats[0] || "";
+                const meta = getPlatformMeta(firstPlat);
+                const isActive = activeChannel === channel;
                 return (
-                  <PlatformIcon
-                    key={plat}
-                    platform={plat}
-                    count={count}
-                    active={activePlatform === plat}
-                    onClick={() => setActivePlatform(activePlatform === plat ? null : plat)}
-                  />
+                  <button
+                    key={channel}
+                    onClick={() => {
+                      setActiveChannel(isActive ? null : channel);
+                      setActivePlatform(null);
+                    }}
+                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl cursor-pointer transition-all ${
+                      isActive ? "bg-white shadow-md border-2" : "bg-[var(--muted)] hover:bg-white hover:shadow-sm border-2 border-transparent"
+                    }`}
+                    style={isActive ? { borderColor: meta.color } : {}}
+                  >
+                    <PlatformLogo brand={meta.brand} className="w-7 h-7" />
+                    <span className="text-[12px] font-medium text-[var(--foreground)]">{channel}</span>
+                    <span className="text-[11px] text-[var(--muted-foreground)]">{totalAssets}</span>
+                  </button>
                 );
               })}
             </div>
+            {/* Format sub-tabs for active channel */}
+            {activeChannel && activeChannelPlatforms.length > 1 && (
+              <div className="flex gap-2 mt-3">
+                {activeChannelPlatforms.map(plat => {
+                  const format = plat.split("_").slice(1).join(" ") || "feed";
+                  const count = assetsByPlatform.get(plat)?.length || 0;
+                  const isActive = activePlatform === plat;
+                  return (
+                    <button
+                      key={plat}
+                      onClick={() => setActivePlatform(isActive ? null : plat)}
+                      className={`px-3 py-1.5 rounded-lg text-[12px] font-medium cursor-pointer transition-all capitalize ${
+                        isActive ? "bg-[var(--foreground)] text-white" : "bg-[var(--muted)] text-[var(--foreground)] hover:bg-[var(--border)]"
+                      }`}
+                    >
+                      {format} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {/* Row 3: Best creative per platform (uniform square grid) — click platform icon above to see all */}
-          {!activePlatform && representativeByPlatform.size > 0 && (
+          {/* Row 3: Best creative per platform — show for no channel selection OR single-format channel */}
+          {!activeChannel && representativeByPlatform.size > 0 && (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
               {Array.from(representativeByPlatform.entries()).map(([plat, asset]) => {
                 const meta = getPlatformMeta(plat);
@@ -802,7 +862,24 @@ function PersonaSection({
             </div>
           )}
 
-          {/* Row 4: All creatives for selected platform */}
+          {/* Row 4a: All creatives for channel (when no specific format selected) */}
+          {activeChannel && !activePlatform && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[14px] font-semibold text-[var(--foreground)]">{activeChannel}</span>
+                <span className="text-[13px] text-[var(--muted-foreground)]">
+                  {activeChannelPlatforms.reduce((sum, p) => sum + (assetsByPlatform.get(p)?.length || 0), 0)} creatives
+                </span>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 max-h-[360px] overflow-y-auto pr-1">
+                {activeChannelPlatforms.flatMap(plat => (assetsByPlatform.get(plat) || [])).map(asset => (
+                  <CreativeThumb key={asset.id} asset={asset} onClick={() => onAssetClick(asset)} onDelete={onDelete} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Row 4b: All creatives for selected specific format */}
           {activePlatform && activePlatformAssets.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-2">
