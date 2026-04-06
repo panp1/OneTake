@@ -4,6 +4,9 @@ import { callKimiK25 } from '@/lib/openrouter';
 import { buildExtractionSystemPrompt } from '@/lib/extraction-prompt';
 import type { ExtractionResult } from '@/lib/types';
 
+// Increase serverless function timeout for vision OCR
+export const maxDuration = 60;
+
 // Use Gemma 4 vision (NIM, free) to OCR PDF pages as images
 async function ocrWithGemma4(imageBase64: string, systemPrompt: string): Promise<string> {
   const nimKey = process.env.NVIDIA_NIM_API_KEY;
@@ -38,23 +41,24 @@ async function ocrWithGemma4(imageBase64: string, systemPrompt: string): Promise
   return data.choices?.[0]?.message?.content ?? '';
 }
 
-// Convert PDF buffer to PNG images using canvas-free approach
-// We send the raw PDF bytes as a data URL to Gemma 4 — it can read PDFs directly
-async function extractFromPdfViaVision(buffer: Buffer, systemPrompt: string): Promise<string> {
-  const base64 = buffer.toString('base64');
+// Extract readable text from PDF using multiple strategies
+function extractTextFromPdf(buffer: Buffer): string {
+  const raw = buffer.toString('latin1');
+  const chunks: string[] = [];
 
-  // Gemma 4 can accept PDFs as images — send the first page
-  // If that fails, we'll convert to a simpler format
-  const ocrPrompt = `${systemPrompt}
+  // Strategy 1: Find Unicode text mappings (CMap/ToUnicode)
+  // Strategy 2: Extract readable ASCII runs (>20 chars, not base64)
+  const readable = raw.match(/[\x20-\x7E]{15,}/g) || [];
+  for (const r of readable) {
+    // Skip base64-like, hex, and PDF internal strings
+    if (/^[A-Za-z0-9+/=]+$/.test(r)) continue;
+    if (/^[0-9A-Fa-f]+$/.test(r)) continue;
+    if (r.includes('/Type') || r.includes('/Font') || r.includes('obj')) continue;
+    if (r.includes('endobj') || r.includes('xref') || r.includes('trailer')) continue;
+    chunks.push(r.trim());
+  }
 
-IMPORTANT: This is a PDF document rendered as an image. Please:
-1. Read ALL text from the document carefully
-2. Extract every field you can identify
-3. Return the structured JSON extraction
-
-Read the entire document and extract ALL information.`;
-
-  return ocrWithGemma4(base64, ocrPrompt);
+  return chunks.join('\n');
 }
 
 async function extractTextFromFile(file: File, systemPrompt: string): Promise<{ text: string; usedVision: boolean }> {
@@ -62,27 +66,30 @@ async function extractTextFromFile(file: File, systemPrompt: string): Promise<{ 
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  // PDF — use Gemma 4 vision for OCR extraction
+  // PDF — extract text, then send to K2.5 for structuring
   if (fileType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+    console.log(`[extract/rfp] PDF detected: ${file.name} (${buffer.length} bytes)`);
+
+    // Try text extraction first (fastest, works for text-based PDFs)
+    const pdfText = extractTextFromPdf(buffer);
+    if (pdfText.length > 100) {
+      console.log(`[extract/rfp] PDF text extracted: ${pdfText.length} chars`);
+      return { text: pdfText, usedVision: false };
+    }
+
+    // Fallback: try Gemma 4 vision (for scanned/image PDFs)
     try {
-      console.log(`[extract/rfp] PDF detected: ${file.name} (${buffer.length} bytes) — using Gemma 4 vision`);
-      const result = await extractFromPdfViaVision(buffer, systemPrompt);
+      const base64 = buffer.toString('base64');
+      const result = await ocrWithGemma4(base64, `${systemPrompt}\n\nThis is a PDF document. Read ALL text and extract structured data as JSON.`);
       if (result && result.length > 50) {
+        console.log(`[extract/rfp] Gemma 4 vision extracted: ${result.length} chars`);
         return { text: result, usedVision: true };
       }
     } catch (e) {
-      console.error('[extract/rfp] Gemma 4 vision extraction failed:', e);
+      console.error('[extract/rfp] Gemma 4 vision failed:', e);
     }
 
-    // Fallback: try raw text extraction
-    const rawText = buffer.toString('latin1');
-    const readable = rawText.match(/[\x20-\x7E]{20,}/g) || [];
-    const filtered = readable.filter(r => !/^[A-Za-z0-9+/=]+$/.test(r));
-    if (filtered.length > 5) {
-      return { text: filtered.join('\n'), usedVision: false };
-    }
-
-    return { text: `[PDF: ${file.name} — could not extract text. Please use the paste option.]`, usedVision: false };
+    return { text: `[PDF: ${file.name} — could not extract text. Please use the paste option instead.]`, usedVision: false };
   }
 
   // Images — send directly to Gemma 4 vision

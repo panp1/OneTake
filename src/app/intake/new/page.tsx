@@ -135,8 +135,10 @@ export default function NewIntakePage() {
         body: fd,
       });
 
-      if (!res.ok) throw new Error("Extraction failed");
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || `Extraction failed (${res.status})`);
+      }
       const ext = data.extraction as ExtractionResult;
       setExtraction(ext);
 
@@ -150,8 +152,9 @@ export default function NewIntakePage() {
       setFormData(merged);
 
       toast.success(`Extracted data from ${file.name}`);
-    } catch {
-      toast.error("Failed to process file. Please try again.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to process file: ${msg}`);
     } finally {
       setExtracting(false);
     }
