@@ -394,7 +394,7 @@ async def generate_campaign_strategy(
     raw = await generate_text(
         system,
         user_prompt,
-        max_tokens=8192,
+        max_tokens=16384,
         temperature=0.4,
     )
 

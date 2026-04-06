@@ -24,7 +24,7 @@ async def generate_text(
     system_prompt: str,
     user_prompt: str,
     model_name: str | None = None,
-    max_tokens: int = 8192,
+    max_tokens: int = 16384,
     temperature: float = 0.7,
     thinking: bool = True,
 ) -> str:
@@ -56,7 +56,7 @@ async def generate_text(
             if thinking:
                 payload["chat_template_kwargs"] = {"enable_thinking": True}
 
-            async with httpx.AsyncClient(timeout=300) as client:
+            async with httpx.AsyncClient(timeout=600) as client:
                 resp = await client.post(
                     f"{NVIDIA_NIM_BASE_URL}/chat/completions",
                     headers={
@@ -97,7 +97,7 @@ async def generate_text(
                 from nim_key_pool import get_nim_key
                 retry_key = get_nim_key() or NVIDIA_NIM_API_KEY
                 payload["temperature"] = min(temperature + 0.1, 1.0)  # Slight temp bump
-                async with httpx.AsyncClient(timeout=300) as client:
+                async with httpx.AsyncClient(timeout=600) as client:
                     resp = await client.post(
                         f"{NVIDIA_NIM_BASE_URL}/chat/completions",
                         headers={
@@ -167,7 +167,7 @@ async def generate_copy(
 
     for provider_name, url, key, model in providers:
         try:
-            async with httpx.AsyncClient(timeout=300) as client:
+            async with httpx.AsyncClient(timeout=600) as client:
                 payload = {
                     "model": model,
                     "messages": messages,
