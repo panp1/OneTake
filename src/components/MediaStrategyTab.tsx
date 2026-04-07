@@ -454,6 +454,44 @@ function CreativeThumbStrip({
   );
 }
 
+interface AdSetCardProps {
+  adSet: AdSet & { _campaign: Campaign };
+  channel: string;
+  assets: GeneratedAsset[];
+}
+
+function AdSetCard({ adSet, channel, assets }: AdSetCardProps) {
+  const tier = (adSet.targeting_tier ?? adSet.targeting_type ?? "broad").toString();
+  const borderColor = tier === "hyper" ? "#6B21A8" : tier === "hot" ? "#f59e0b" : "#22c55e";
+  const demo = adSet.demographics ?? {};
+  const dailyBudget = adSet.daily_budget;
+  const creatives = useMemo(() => matchCreatives(adSet, assets, channel), [adSet, assets, channel]);
+  const hookTypes = adSet.creative_assignment_rule?.hook_types ?? [];
+  const personaLabel = adSet.persona_key ? adSet.persona_key.replace(/_/g, " ") : "—";
+
+  return (
+    <div className="bg-white border border-[var(--border)] rounded-xl px-4 py-3.5" style={{ borderLeft: `3px solid ${borderColor}` }}>
+      <div className="flex items-start justify-between mb-1">
+        <div>
+          <h4 className="text-[13px] font-bold text-[var(--foreground)] m-0">{adSet.name ?? "Ad Set"}</h4>
+          <div className="text-[11px] text-[var(--muted-foreground)] mt-0.5">
+            {dailyBudget ? `$${Number(dailyBudget).toLocaleString()}/day` : "—"} · persona: <span className="capitalize">{personaLabel}</span>
+          </div>
+        </div>
+        <TierBadge tier={tier} />
+      </div>
+
+      <AgeBar min={demo.age_min} max={demo.age_max} gender={demo.gender} />
+      <InterestTags interests={adSet.interests ?? []} />
+      <GeoTags location={demo.location} />
+
+      <CreativeThumbStrip creatives={creatives} hookTypes={hookTypes} />
+
+      <RulesRow killRule={adSet.kill_rule} scaleRule={adSet.scale_rule} />
+    </div>
+  );
+}
+
 // ── Component (stub — filled in later tasks) ────────────────────────
 
 export default function MediaStrategyTab({ strategies, assets, briefData }: MediaStrategyTabProps) {
