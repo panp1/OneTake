@@ -121,7 +121,10 @@ export default function Dashboard() {
           {/* Right: preview panel */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white min-h-0">
             {selectedId ? (
-              <CampaignPreviewPanel requestId={selectedId} />
+              <CampaignPreviewPanel
+                requestId={selectedId}
+                canEdit={role === 'admin'}
+              />
             ) : (
               <div className="flex items-center justify-center h-full text-[#737373] text-sm">
                 Select a campaign to preview
