@@ -292,6 +292,91 @@ function ChannelMixBar({ mix, totalMonthly, isRatio }: ChannelMixBarProps) {
   );
 }
 
+function TierBadge({ tier }: { tier: string }) {
+  const color =
+    tier === "hyper" ? "bg-[rgba(107,33,168,0.1)] text-[#6B21A8]" :
+    tier === "hot" ? "bg-[rgba(245,158,11,0.12)] text-[#f59e0b]" :
+    "bg-[rgba(34,197,94,0.12)] text-[#22c55e]";
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${color}`}>
+      {tier}
+    </span>
+  );
+}
+
+function AgeBar({ min, max, gender }: { min?: number; max?: number; gender?: string }) {
+  const lo = min ?? 18;
+  const hi = max ?? 65;
+  const left = ((lo - 18) / (65 - 18)) * 100;
+  const width = ((hi - lo) / (65 - 18)) * 100;
+  const genderLabel = gender && gender !== "all" ? gender : "All genders";
+  return (
+    <div className="mt-2">
+      <div className="relative h-1 bg-[var(--muted)] rounded-sm">
+        <div
+          className="absolute h-full rounded-sm"
+          style={{ left: `${left}%`, width: `${width}%`, background: "linear-gradient(90deg, rgb(6,147,227), rgb(155,81,224))" }}
+        />
+      </div>
+      <div className="flex justify-between text-[9px] text-[var(--muted-foreground)] mt-0.5"><span>18</span><span>65+</span></div>
+      <div className="text-[11px] font-semibold mt-0.5 text-[var(--foreground)]">Age {lo}-{hi} · <span className="capitalize">{genderLabel}</span></div>
+    </div>
+  );
+}
+
+function InterestTags({ interests }: { interests: string[] }) {
+  if (interests.length === 0) return null;
+  return (
+    <>
+      <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] mt-3 mb-1">Interests</div>
+      <div className="flex flex-wrap gap-1">
+        {interests.map((i) => (
+          <span key={i} className="text-[11px] px-2 py-0.5 rounded-md bg-[rgba(6,147,227,0.08)] text-[rgb(6,147,227)] font-semibold">
+            {i}
+          </span>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function GeoTags({ location }: { location?: string | string[] }) {
+  const items: string[] = Array.isArray(location) ? location : location ? [location] : [];
+  if (items.length === 0) return null;
+  return (
+    <>
+      <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] mt-3 mb-1">Geographics</div>
+      <div className="flex flex-wrap gap-1">
+        {items.map((g) => (
+          <span key={g} className="text-[11px] px-2 py-0.5 rounded-md bg-[rgba(155,81,224,0.08)] text-[rgb(155,81,224)] font-semibold inline-flex items-center gap-1">
+            <span>📍</span>{g}
+          </span>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function RulesRow({ killRule, scaleRule }: { killRule?: string; scaleRule?: string }) {
+  if (!killRule && !scaleRule) return null;
+  return (
+    <div className="flex gap-3 mt-2.5 pt-2.5 border-t border-dashed border-[var(--border)] text-[10px]">
+      {killRule ? (
+        <div className="flex-1">
+          <div className="font-bold uppercase text-[9px] tracking-wider text-[#ef4444]">Kill</div>
+          <div className="text-[var(--muted-foreground)] leading-snug">{killRule}</div>
+        </div>
+      ) : null}
+      {scaleRule ? (
+        <div className="flex-1">
+          <div className="font-bold uppercase text-[9px] tracking-wider text-[#22c55e]">Scale</div>
+          <div className="text-[var(--muted-foreground)] leading-snug">{scaleRule}</div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 // ── Component (stub — filled in later tasks) ────────────────────────
 
 export default function MediaStrategyTab({ strategies, assets, briefData }: MediaStrategyTabProps) {
