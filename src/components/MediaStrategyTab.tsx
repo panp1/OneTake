@@ -377,6 +377,83 @@ function RulesRow({ killRule, scaleRule }: { killRule?: string; scaleRule?: stri
   );
 }
 
+function CreativeThumb({ asset }: { asset: GeneratedAsset }) {
+  const content = (asset.content ?? {}) as Record<string, unknown>;
+  const headline = String(content.headline ?? content.hook ?? "").slice(0, 60);
+  const hookType = String((content.hook_type ?? content.angle ?? "")).slice(0, 4);
+  if (asset.blob_url) {
+    return (
+      <div className="relative rounded-md overflow-hidden aspect-square bg-[var(--muted)] border border-[var(--border)]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={asset.blob_url} alt={headline || "creative"} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+        {hookType ? (
+          <span className="absolute top-1 right-1 bg-white/95 text-[var(--foreground)] text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase">
+            {hookType}
+          </span>
+        ) : null}
+        {headline ? (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5 text-white text-[9px] font-bold leading-tight">
+            {headline}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+  return (
+    <div className="relative rounded-md overflow-hidden aspect-square border border-[var(--border)] flex items-end p-1.5">
+      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgb(6,147,227), rgb(155,81,224))", opacity: 0.8 }} />
+      {hookType ? (
+        <span className="absolute top-1 right-1 bg-white/95 text-[var(--foreground)] text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase z-10">
+          {hookType}
+        </span>
+      ) : null}
+      <div className="relative z-10 text-white text-[9px] font-bold leading-tight" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.4)" }}>
+        {headline || "Creative"}
+      </div>
+    </div>
+  );
+}
+
+function CreativeThumbStrip({
+  creatives,
+  hookTypes,
+}: {
+  creatives: GeneratedAsset[];
+  hookTypes: string[];
+}) {
+  const visible = creatives.slice(0, 4);
+  const overflow = Math.max(0, creatives.length - 4);
+  return (
+    <div className="mt-2.5 pt-2.5 border-t border-dashed border-[var(--border)]">
+      <div className="flex justify-between items-center mb-2">
+        <div className="text-[11px] font-bold">
+          <span className="inline-block bg-[var(--foreground)] text-white px-2 py-0.5 rounded-full text-[11px] mr-1.5">{creatives.length}</span>
+          creatives
+        </div>
+        {hookTypes.length > 0 ? (
+          <span className="text-[10px] text-[var(--muted-foreground)]">Hook: {hookTypes.join(", ")}</span>
+        ) : null}
+      </div>
+      {creatives.length === 0 ? (
+        <div className="border border-dashed border-[var(--border)] rounded-md py-4 text-center text-[11px] text-[var(--muted-foreground)] italic">
+          No creatives generated yet
+        </div>
+      ) : (
+        <div className="grid grid-cols-4 gap-1.5">
+          {visible.map((a) => (
+            <CreativeThumb key={a.id} asset={a} />
+          ))}
+          {overflow > 0 ? (
+            <div className="aspect-square border border-dashed border-[var(--border)] rounded-md bg-white flex items-center justify-center text-[var(--muted-foreground)] text-[11px] font-bold">
+              +{overflow}
+            </div>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Component (stub — filled in later tasks) ────────────────────────
 
 export default function MediaStrategyTab({ strategies, assets, briefData }: MediaStrategyTabProps) {
