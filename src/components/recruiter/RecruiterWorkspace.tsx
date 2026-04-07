@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Download, Package, BarChart3, Info } from "lucide-react";
 import { getRecruiterStatus } from "@/lib/format";
 import { RecruiterOverviewTab } from "@/components/RecruiterDetailView";
+import CreativeLibrary from "./CreativeLibrary";
 import type {
   IntakeRequest,
   CreativeBrief,
@@ -97,11 +98,12 @@ export default function RecruiterWorkspace({
 
       {/* Active tab body */}
       {activeTab === "creatives" && (
-        <div className="px-4 md:px-6 py-6 max-w-[1100px] mx-auto">
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Creatives tab — placeholder until Task 16.
-          </p>
-        </div>
+        <CreativeLibrary
+          requestId={request.id}
+          campaignSlug={request.campaign_slug}
+          brief={brief}
+          assets={assets}
+        />
       )}
       {activeTab === "performance" && (
         <div className="px-4 md:px-6 py-6 max-w-[1100px] mx-auto">
