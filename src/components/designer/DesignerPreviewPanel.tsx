@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Download, ImageOff, AlertCircle, RefreshCw } from "lucide-react";
 import type { IntakeRequest, CreativeBrief, GeneratedAsset } from "@/lib/types";
 import CampaignContextCard from "@/components/designer/CampaignContextCard";
+import LandingPagesCard from "@/components/LandingPagesCard";
 import DownloadKit from "@/components/designer/DownloadKit";
 import { StatusBadge } from "@/components/StatusBadge";
 
@@ -302,6 +303,9 @@ export default function DesignerPreviewPanel({ requestId }: DesignerPreviewPanel
 
       {/* ── 2. Campaign Context Card */}
       <CampaignContextCard request={request} brief={brief} />
+
+      {/* ── Landing Pages — shared with marketing view */}
+      <LandingPagesCard requestId={requestId} canEdit={true} />
 
       {/* ── 3. Download Kit */}
       <DownloadKit requestId={requestId} token="" hasAssets={hasAssets} />

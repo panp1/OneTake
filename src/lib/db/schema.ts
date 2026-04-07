@@ -155,6 +155,24 @@ export async function createTables(): Promise<void> {
     )
   `;
 
+  // campaign_landing_pages — FK to intake_requests, unique per campaign
+  await sql`
+    CREATE TABLE IF NOT EXISTS campaign_landing_pages (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      request_id UUID NOT NULL UNIQUE REFERENCES intake_requests(id) ON DELETE CASCADE,
+      job_posting_url TEXT,
+      landing_page_url TEXT,
+      ada_form_url TEXT,
+      updated_by TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_campaign_landing_pages_request
+    ON campaign_landing_pages(request_id)
+  `;
+
   // 10. designer_uploads — FK to intake_requests + generated_assets
   await sql`
     CREATE TABLE IF NOT EXISTS designer_uploads (
