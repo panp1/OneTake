@@ -22,4 +22,8 @@ for (const [input, expected] of cases) {
   assert.equal(actual, expected, `slugify(${JSON.stringify(input)}) = ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
 }
 
+// Idempotence: applying slugify to its own output is a no-op
+const idempotentInput = 'Café Montréal';
+assert.equal(slugify(slugify(idempotentInput)), slugify(idempotentInput), 'slugify should be idempotent');
+
 console.log(`✓ ${cases.length} slugify assertions passed`);
