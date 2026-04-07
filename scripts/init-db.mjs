@@ -25,6 +25,12 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS idx_intake_task_type ON intake_requests(task_type)`,
   `CREATE INDEX IF NOT EXISTS idx_intake_created_at ON intake_requests(created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_compute_jobs_pending ON compute_jobs(status) WHERE status = 'pending'`,
+  `ALTER TABLE intake_requests ADD COLUMN IF NOT EXISTS campaign_slug TEXT`,
+  `CREATE INDEX IF NOT EXISTS idx_intake_campaign_slug ON intake_requests(campaign_slug) WHERE campaign_slug IS NOT NULL`,
+  `CREATE TABLE IF NOT EXISTS tracked_links (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), slug TEXT NOT NULL UNIQUE, request_id UUID NOT NULL REFERENCES intake_requests(id) ON DELETE CASCADE, asset_id UUID REFERENCES generated_assets(id) ON DELETE SET NULL, recruiter_clerk_id TEXT NOT NULL, destination_url TEXT NOT NULL, base_url TEXT NOT NULL, utm_campaign TEXT NOT NULL, utm_source TEXT NOT NULL, utm_medium TEXT NOT NULL DEFAULT 'social', utm_term TEXT NOT NULL, utm_content TEXT NOT NULL, click_count INT NOT NULL DEFAULT 0, last_clicked_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`,
+  `CREATE INDEX IF NOT EXISTS idx_tracked_links_slug ON tracked_links(slug)`,
+  `CREATE INDEX IF NOT EXISTS idx_tracked_links_request ON tracked_links(request_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_tracked_links_recruiter ON tracked_links(recruiter_clerk_id, request_id)`,
 ];
 
 async function init() {

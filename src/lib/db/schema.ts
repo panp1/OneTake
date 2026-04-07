@@ -75,6 +75,18 @@ export async function createTables(): Promise<void> {
     )
   `;
 
+  // Add campaign_slug column to existing intake_requests (idempotent)
+  await sql`
+    ALTER TABLE intake_requests
+      ADD COLUMN IF NOT EXISTS campaign_slug TEXT
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_intake_campaign_slug
+      ON intake_requests(campaign_slug)
+      WHERE campaign_slug IS NOT NULL
+  `;
+
   // 5. attachments — FK to intake_requests
   await sql`
     CREATE TABLE IF NOT EXISTS attachments (
@@ -171,6 +183,34 @@ export async function createTables(): Promise<void> {
   await sql`
     CREATE INDEX IF NOT EXISTS idx_campaign_landing_pages_request
     ON campaign_landing_pages(request_id)
+  `;
+
+  // tracked_links — self-hosted short link store for recruiter UTM builder
+  await sql`
+    CREATE TABLE IF NOT EXISTS tracked_links (
+      id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      slug                TEXT NOT NULL UNIQUE,
+      request_id          UUID NOT NULL REFERENCES intake_requests(id) ON DELETE CASCADE,
+      asset_id            UUID REFERENCES generated_assets(id) ON DELETE SET NULL,
+      recruiter_clerk_id  TEXT NOT NULL,
+      destination_url     TEXT NOT NULL,
+      base_url            TEXT NOT NULL,
+      utm_campaign        TEXT NOT NULL,
+      utm_source          TEXT NOT NULL,
+      utm_medium          TEXT NOT NULL DEFAULT 'social',
+      utm_term            TEXT NOT NULL,
+      utm_content         TEXT NOT NULL,
+      click_count         INT NOT NULL DEFAULT 0,
+      last_clicked_at     TIMESTAMPTZ,
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_tracked_links_slug ON tracked_links(slug)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_tracked_links_request ON tracked_links(request_id)`;
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_tracked_links_recruiter
+      ON tracked_links(recruiter_clerk_id, request_id)
   `;
 
   // 10. designer_uploads — FK to intake_requests + generated_assets
