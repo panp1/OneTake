@@ -914,6 +914,7 @@ async def research_all_regions(
     languages: list[str],
     demographic: str = "young adults 18-35",
     task_type: str = "data annotation",
+    intake_row: dict | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Research all target regions and return a dict keyed by region.
 
@@ -930,6 +931,10 @@ async def research_all_regions(
         Target demographic.
     task_type:
         The type of work being advertised.
+    intake_row:
+        The raw intake_requests row from Neon. Passed through to
+        ``research_region`` so context-aware dimension filtering and
+        ``work_tier_context`` injection work correctly.
 
     Returns
     -------
@@ -949,6 +954,7 @@ async def research_all_regions(
             language=language,
             demographic=demographic,
             task_type=task_type,
+            intake_row=intake_row,
         )
 
     return all_research

@@ -79,6 +79,7 @@ async def run_stage1(context: dict) -> dict:
                 languages=target_languages,
                 demographic=form_data.get("demographic", "young adults 18-35"),
                 task_type=task_type,
+                intake_row=request,  # enables context-aware dimension filtering + work_tier_context
             )
             logger.info("Cultural research complete: %s", list(cultural_research.keys()))
     else:
