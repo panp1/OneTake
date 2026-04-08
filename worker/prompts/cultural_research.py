@@ -325,6 +325,103 @@ RESEARCH_DIMENSIONS: dict[str, dict[str, Any]] = {
             "tier_specific_notes",
         ],
     },
+
+    # ─── Phase A additions (2026-04-08) — conditional dimensions ─────
+
+    "professional_community": {
+        "query_template": (
+            "CONTEXT: This campaign is recruiting for: {work_tier_context}. "
+            "What professional community platforms, forums, and networks are "
+            "actively used by people in this profession in {region}? Include: "
+            "professional association websites, medical networks (Doximity, "
+            "Sermo), legal networks (Justia, Martindale), specialty subreddits, "
+            "professional Twitter/X communities, LinkedIn groups, specialty "
+            "conferences with active online communities, and any locale-specific "
+            "professional platforms. Rank by active usage among practicing "
+            "professionals in {region}. Which platforms are free to post on? "
+            "Which have paid advertising?"
+        ),
+        "why_it_matters": (
+            "Credentialed professionals do not hang out on TikTok or generic "
+            "gig subreddits. They use professional community platforms that "
+            "generic gig research misses entirely."
+        ),
+        "activates_when": {
+            "qualifications_contain_any": [
+                "licensed", "certified", "board", "registered",
+                "MD", "DO", "PhD", "JD", "CFA", "CPA", "PE",
+                "credentialed", "professional", "specialist",
+            ],
+        },
+        "output_keys": [
+            "professional_platforms_ranked",
+            "free_post_platforms",
+            "paid_ad_platforms",
+            "credibility_markers",
+            "tier_specific_notes",
+        ],
+    },
+
+    "domain_trust_signals": {
+        "query_template": (
+            "CONTEXT: This campaign is recruiting for: {work_tier_context}. "
+            "What makes a work opportunity CREDIBLE to professionals in this "
+            "field in {region}? What credentials, affiliations, or endorsements "
+            "would establish legitimacy? What are the RED FLAGS that would make "
+            "a professional in this field immediately dismiss an offer "
+            "(e.g., vague compensation, no named client, no peer review, "
+            "questionable platforms)? What signals would make them take it "
+            "seriously (e.g., named institutional partners, published rates, "
+            "peer endorsements, clear data usage policies)?"
+        ),
+        "why_it_matters": (
+            "Credentialed professionals have high skepticism thresholds. "
+            "Generic 'earn extra income' framing is an instant red flag. "
+            "We need to know what CREDIBILITY looks like in their community."
+        ),
+        "activates_when": {
+            "credential_tier_at_or_above": "language_fluency",
+        },
+        "output_keys": [
+            "trust_signals",
+            "red_flags",
+            "credibility_builders",
+            "transparency_expectations",
+            "tier_specific_notes",
+        ],
+    },
+
+    "work_environment_norms": {
+        "query_template": (
+            "CONTEXT: This campaign is recruiting for: {work_tier_context}. "
+            "For this specific kind of work in {region}, describe the typical "
+            "PHYSICAL work environment: home office? clinical setting? "
+            "professional office? field work? studio? What does the typical "
+            "workspace look like for this credential tier in this region — "
+            "size, lighting, visible tools, background appropriateness? "
+            "What WARDROBE is expected or credible (casual, business-casual, "
+            "lab coat, scrubs, field gear)? What VISIBLE TOOLS would appear "
+            "in or near the worker (laptop, medical chart, EHR monitor, "
+            "dermatoscope, drawing tablet, microphone, etc.)? This dimension "
+            "directly feeds visual/creative direction downstream — be specific "
+            "and culturally grounded."
+        ),
+        "why_it_matters": (
+            "Stage 2 actor generation needs to know what the work environment "
+            "and wardrobe actually look like. Without this, we generate "
+            "generic home-office backdrops for every job, even credentialed "
+            "medical work."
+        ),
+        "activates_when": "always",
+        "output_keys": [
+            "work_environment",
+            "wardrobe",
+            "visible_tools",
+            "background_norms",
+            "cultural_environment_notes",
+            "tier_specific_notes",
+        ],
+    },
 }
 
 
@@ -686,6 +783,23 @@ async def research_region(
         demographic,
     )
 
+    # Filter dimensions by conditional activation triggers (Task 11).
+    # Dimensions with no 'activates_when' run always (back-compat); conditional
+    # dimensions are skipped when the intake doesn't match their trigger.
+    active_dimensions: list[tuple[str, dict]] = []
+    skipped_dimensions: list[str] = []
+    for dim_name, dim_config in RESEARCH_DIMENSIONS.items():
+        if should_run_dimension(dim_config, intake_row):
+            active_dimensions.append((dim_name, dim_config))
+        else:
+            skipped_dimensions.append(dim_name)
+            logger.info(
+                "Skipping dimension %s — not activated for this campaign "
+                "(activates_when=%s)",
+                dim_name,
+                dim_config.get("activates_when"),
+            )
+
     research: dict[str, Any] = {
         "_meta": {
             "region": region,
@@ -693,11 +807,12 @@ async def research_region(
             "demographic": demographic,
             "task_type": task_type,
             "work_tier_context": work_tier_context,
-            "dimensions_researched": list(RESEARCH_DIMENSIONS.keys()),
+            "dimensions_researched": [k for k, _ in active_dimensions],
+            "dimensions_skipped": skipped_dimensions,
         },
     }
 
-    # Research all 9 dimensions IN PARALLEL (they're independent)
+    # Research active dimensions IN PARALLEL (they're independent)
     import asyncio
 
     async def _research_one_dimension(dim_key: str, dim: dict) -> tuple[str, dict]:
@@ -711,7 +826,7 @@ async def research_region(
         return dim_key, result
 
     dim_results = await asyncio.gather(
-        *[_research_one_dimension(k, v) for k, v in RESEARCH_DIMENSIONS.items()],
+        *[_research_one_dimension(k, v) for k, v in active_dimensions],
         return_exceptions=True,
     )
     for r in dim_results:
@@ -725,9 +840,10 @@ async def research_region(
     validation = validate_research_against_priors(region, research)
     research["_validation"] = validation
     logger.info(
-        "Cultural research complete for %s — %d dimensions. Validation: %s",
+        "Cultural research complete for %s — %d dimensions (%d skipped). Validation: %s",
         region,
-        len(RESEARCH_DIMENSIONS),
+        len(active_dimensions),
+        len(skipped_dimensions),
         validation["summary"],
     )
 
