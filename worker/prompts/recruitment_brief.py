@@ -252,7 +252,7 @@ Return ONLY valid JSON (no markdown, no explanation):
       "persona_2": ["pain1", "pain2"],
       "persona_3": ["pain1", "pain2"]
     }},
-    "expertise_hooks_by_persona": {{
+    "psychology_hooks_by_persona": {{
       "persona_1": "The specific expertise + recognition hook that resonates",
       "persona_2": "The specific expertise + recognition hook that resonates",
       "persona_3": "The specific expertise + recognition hook that resonates"
