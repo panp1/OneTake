@@ -381,6 +381,37 @@ async def run_stage1(context: dict) -> dict:
     # ==================================================================
     # STEP 6: PERSIST TO NEON
     # ==================================================================
+
+    # Extract derived_requirements + pillar values from the brief JSON
+    derived = brief_data.get("derived_requirements") or None
+    pillar_weighting = (derived or {}).get("pillar_weighting") or {}
+    pillar_primary_raw = pillar_weighting.get("primary")
+    pillar_secondary_raw = pillar_weighting.get("secondary")
+
+    # Validate pillar values (defense in depth — DB CHECK constraint is primary)
+    VALID_PILLARS = {"earn", "grow", "shape"}
+    pillar_primary = (
+        pillar_primary_raw.lower()
+        if isinstance(pillar_primary_raw, str) and pillar_primary_raw.lower() in VALID_PILLARS
+        else None
+    )
+    if pillar_primary_raw and not pillar_primary:
+        logger.warning(
+            "[stage1] Invalid pillar_primary from LLM: %r, storing as NULL",
+            pillar_primary_raw,
+        )
+
+    pillar_secondary = (
+        pillar_secondary_raw.lower()
+        if isinstance(pillar_secondary_raw, str) and pillar_secondary_raw.lower() in VALID_PILLARS
+        else None
+    )
+    if pillar_secondary_raw and not pillar_secondary:
+        logger.warning(
+            "[stage1] Invalid pillar_secondary from LLM: %r, storing as NULL",
+            pillar_secondary_raw,
+        )
+
     await save_brief(
         request_id,
         {
@@ -393,6 +424,9 @@ async def run_stage1(context: dict) -> dict:
             "cultural_research": cultural_research,
             "content_languages": target_languages,
         },
+        pillar_primary=pillar_primary,
+        pillar_secondary=pillar_secondary,
+        derived_requirements=derived,
     )
 
     logger.info("Stage 1 complete: brief + %d personas + cultural research saved.", len(personas))
