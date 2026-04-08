@@ -22,7 +22,7 @@ import json
 import logging
 from typing import Any
 
-from worker.brand import (
+from brand import (
     TAGLINE,
     TONE_RULES,
     WORDS_TO_AVOID,

@@ -11,7 +11,7 @@ words cause automatic rejection downstream.
 """
 from __future__ import annotations
 
-from worker.brand import (
+from brand import (
     TAGLINE,
     POSITIONING,
     UNIQUE_VALUE,

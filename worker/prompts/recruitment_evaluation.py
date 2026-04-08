@@ -16,7 +16,7 @@ SEMANTIC MEANING has been rewritten for the new brand voice.
 """
 from __future__ import annotations
 
-from worker.brand import (
+from brand import (
     TAGLINE,
     TONE_RULES,
     WORDS_TO_AVOID,

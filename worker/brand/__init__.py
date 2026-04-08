@@ -4,11 +4,15 @@ OneForma Brand Voice — package entrypoint.
 Re-exports the constants and helper functions from oneforma.py so prompt files
 can import them concisely:
 
-    from worker.brand import TAGLINE, TONE_RULES, get_cta
+    from brand import TAGLINE, TONE_RULES, get_cta
+
+(The worker process launches with `cd worker && python main.py`, which puts
+`worker/` on sys.path[0]. So `brand/` is a top-level package — same convention
+as `config`, `pipeline`, `prompts`, etc. used throughout the worker.)
 
 See oneforma.py for the full content and governance policy.
 """
-from worker.brand.oneforma import (
+from .oneforma import (
     TAGLINE,
     POSITIONING,
     MISSION,

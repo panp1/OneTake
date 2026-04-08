@@ -27,7 +27,7 @@ from prompts.ethical_positioning import (
 )
 from prompts.persona_engine import build_persona_copy_prompt
 
-from worker.brand import (
+from brand import (
     TAGLINE,
     POSITIONING,
     TONE_RULES,
