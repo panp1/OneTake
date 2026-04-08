@@ -26,6 +26,71 @@ from config import NVIDIA_NIM_API_KEY, NVIDIA_NIM_BASE_URL, OPENROUTER_API_KEY
 
 logger = logging.getLogger(__name__)
 
+# ─── Context helpers (Phase A — 2026-04-08) ─────────────────────────
+
+def derive_work_tier_context(intake_row: dict) -> str:
+    """Produce a 1-sentence descriptor of the work tier from job requirements.
+
+    Used as the {work_tier_context} substitution in research query templates.
+    Keeps dimension queries aware of whether this is credentialed,
+    professional, or gig-tier work without hardcoded branching on specific
+    job types. See the spec at
+    docs/superpowers/specs/2026-04-08-intake-schema-persona-refactor-design.md
+    § 3 for the intent behind this helper.
+    """
+    parts: list[str] = []
+
+    quals = (intake_row.get("qualifications_required") or "").strip()
+    if quals:
+        first_sentence = quals.split(".")[0][:200]
+        parts.append(first_sentence)
+
+    location = (intake_row.get("location_scope") or "").strip()
+    if location:
+        first_sentence = location.split(".")[0][:120]
+        parts.append(first_sentence)
+
+    engagement = (intake_row.get("engagement_model") or "").strip()
+    if engagement:
+        first_sentence = engagement.split(".")[0][:120]
+        parts.append(first_sentence)
+
+    if not parts:
+        task_type = intake_row.get("task_type") or "data"
+        return f"{task_type} work described in the intake form"
+
+    return ". ".join(parts)
+
+
+def should_run_dimension(dimension_config: dict, intake_row: dict) -> bool:
+    """Decide whether a given research dimension should run for this campaign.
+
+    Dimensions with no 'activates_when' run always (backwards compat with
+    the existing 9 dimensions). New conditional dimensions use one of:
+
+    - 'always' (string) — run unconditionally
+    - {'qualifications_contain_any': [keywords]} — run if any keyword
+       appears in qualifications_required (case-insensitive)
+    - {'credential_tier_at_or_above': 'language_fluency'} — run for any
+       job with non-empty qualifications_required
+    """
+    trigger = dimension_config.get("activates_when")
+    if trigger is None or trigger == "always":
+        return True
+
+    if isinstance(trigger, dict):
+        quals = (intake_row.get("qualifications_required") or "").lower()
+
+        if "qualifications_contain_any" in trigger:
+            keywords = [k.lower() for k in trigger["qualifications_contain_any"]]
+            return any(kw in quals for kw in keywords)
+
+        if "credential_tier_at_or_above" in trigger:
+            return bool(quals.strip())
+
+    return True  # default to running if trigger syntax is unfamiliar
+
+
 # ---------------------------------------------------------------------------
 # RESEARCH_DIMENSIONS — what to research for each region
 # ---------------------------------------------------------------------------
