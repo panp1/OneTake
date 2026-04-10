@@ -201,10 +201,33 @@ async def run_stage3(context: dict) -> dict:
     request_id: str = context["request_id"]
     brief: dict = context.get("brief", {})
     design: dict = context.get("design_direction", {})
-    languages: list[str] = context.get("target_languages", []) or ["English"]
     regions: list[str] = context.get("target_regions", [])
+    languages: list[str] = derive_languages_from_regions(
+        regions,
+        context.get("target_languages", []),
+    )
     form_data: dict = context.get("form_data", {})
     personas: list[dict] = context.get("personas", brief.get("personas", []))
+
+    # Extract derived_requirements for pillar weighting (Phase A+B data)
+    derived_req = brief.get("derived_requirements", {})
+    if isinstance(derived_req, str):
+        try:
+            derived_req = json.loads(derived_req)
+        except (ValueError, TypeError):
+            derived_req = {}
+    pillar_weighting = derived_req.get("pillar_weighting", {}) if isinstance(derived_req, dict) else {}
+
+    # Cultural research — region-specific insights for copy adaptation
+    cultural_research: dict = context.get("cultural_research", {})
+
+    if pillar_weighting:
+        logger.info(
+            "Pillar weighting active: primary=%s, secondary=%s",
+            pillar_weighting.get("primary"), pillar_weighting.get("secondary"),
+        )
+    else:
+        logger.info("No pillar weighting — generating all 3 pillars (fallback)")
 
     # Determine channels from design direction or defaults.
     format_matrix: dict = design.get("format_matrix", {})
@@ -223,6 +246,29 @@ async def run_stage3(context: dict) -> dict:
             persona_channels = persona.get("best_channels", channels)
             all_channels = list(set(persona_channels + channels))
 
+            # Build cultural context for this persona's region
+            persona_region = persona.get("region", regions[0] if regions else "")
+            region_research = cultural_research.get(persona_region, {})
+            if isinstance(region_research, dict):
+                # Format research summary — truncate to avoid token bloat
+                research_lines = []
+                for dim_key, dim_data in region_research.items():
+                    if dim_key.startswith("_"):
+                        continue
+                    if isinstance(dim_data, dict):
+                        summary = dim_data.get("summary", dim_data.get("key_finding", ""))
+                    elif isinstance(dim_data, str):
+                        summary = dim_data
+                    else:
+                        continue
+                    if summary:
+                        research_lines.append(f"- {dim_key}: {summary[:200]}")
+                cultural_context = "\n".join(research_lines)[:2000] if research_lines else None
+            elif isinstance(region_research, str):
+                cultural_context = region_research[:2000]
+            else:
+                cultural_context = None
+
             for channel in all_channels:
                 for language in languages:
                     # Build 3 variation prompts — angles derived from persona's own psychology
@@ -233,6 +279,8 @@ async def run_stage3(context: dict) -> dict:
                         language=language,
                         regions=regions,
                         form_data=form_data,
+                        pillar_weighting=pillar_weighting,
+                        cultural_context=cultural_context,
                     )
 
                     for var in variations:
