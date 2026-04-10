@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 600">
+  <defs>
+    <clipPath id="mask_blob_organic">
+      <path d="M350 10C520 10 680 100 690 260C700 420 600 560 440 580C280 600 120 520 40 380C-40 240 80 60 220 20C260 12 310 10 350 10Z"/>
+    </clipPath>
+  </defs>
+  <rect width="700" height="600" clip-path="url(#mask_blob_organic)" fill="#ccc"/>
+</svg>

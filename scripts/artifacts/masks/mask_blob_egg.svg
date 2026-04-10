@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 700">
+  <defs>
+    <clipPath id="mask_blob_egg">
+      <path d="M300 20C460 20 570 140 580 300C590 460 520 620 380 670C240 720 100 640 40 480C-20 320 60 120 200 50C240 35 270 20 300 20Z"/>
+    </clipPath>
+  </defs>
+  <rect width="600" height="700" clip-path="url(#mask_blob_egg)" fill="#ccc"/>
+</svg>

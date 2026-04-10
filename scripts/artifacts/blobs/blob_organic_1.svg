@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 380" fill="none">
+  <path d="M320 40C380 80 400 180 360 260C320 340 220 380 140 360C60 340 0 280 20 200C40 120 80 60 160 30C240 0 260 0 320 40Z" fill="url(#g1)" opacity="0.4"/>
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="400" y2="380">
+      <stop offset="0%" stop-color="#6B21A8"/>
+      <stop offset="100%" stop-color="#E91E8C"/>
+    </linearGradient>
+  </defs>
+</svg>
