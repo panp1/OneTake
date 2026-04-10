@@ -192,6 +192,17 @@ async def run_stage2(context: dict) -> dict:
     design: dict = context.get("design_direction", {})
     regions: list[str] = context.get("target_regions", [])
     languages: list[str] = context.get("target_languages", [])
+
+    # Extract visual_direction from derived_requirements (Phase A+B data)
+    derived_req = brief.get("derived_requirements", {})
+    if isinstance(derived_req, str):
+        try:
+            import json as _json
+            derived_req = _json.loads(derived_req)
+        except (ValueError, TypeError):
+            derived_req = {}
+    visual_direction = derived_req.get("visual_direction", {}) if isinstance(derived_req, dict) else {}
+
     raw_personas = context.get("personas", brief.get("personas", []))
     logger.info("Stage 2 raw_personas: type=%s, len=%s, first_type=%s",
                 type(raw_personas).__name__, len(raw_personas) if raw_personas else 0,
@@ -225,6 +236,7 @@ async def run_stage2(context: dict) -> dict:
                     "language": persona.get("language", languages[0] if languages else "English"),
                     "persona": persona,
                     "actor_index": actor_idx,
+                    "visual_direction": visual_direction,
                 })
         logger.info(
             "Persona-driven actor generation: %d personas x %d actors = %d jobs",
@@ -310,7 +322,8 @@ async def _generate_actor_card(job, brief, request_id):
     persona = job["persona"]
 
     if persona:
-        actor_prompt = build_persona_actor_prompt(persona, region, language)
+        visual_direction = job.get("visual_direction", {})
+        actor_prompt = build_persona_actor_prompt(persona, region, language, visual_direction=visual_direction)
         actor_idx = job.get("actor_index", 0)
         if actor_idx > 0:
             actor_prompt += (
@@ -329,6 +342,7 @@ async def _generate_actor_card(job, brief, request_id):
         "face_lock": actor_data.get("face_lock", {}),
         "prompt_seed": actor_data.get("prompt_seed", ""),
         "outfit_variations": actor_data.get("outfit_variations", {}),
+        "scenes": actor_data.get("scenes", {}),
         "signature_accessory": actor_data.get("signature_accessory", "headphones"),
         "backdrops": actor_data.get("backdrops", []),
         "persona_key": persona.get("archetype_key") if persona else None,
