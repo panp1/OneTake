@@ -1019,6 +1019,65 @@ def test_multi_actor_scenes():
 
 
 # =========================================================================
+# Category 12: Stage 2 Visual Direction (2 tests)
+# =========================================================================
+
+def test_build_persona_actor_prompt_with_visual_direction():
+    """Actor prompt should include visual_direction when provided."""
+    from pipeline.stage2_images import build_persona_actor_prompt
+    persona = {
+        "name": "Dr. Sofia",
+        "archetype": "Clinical Specialist",
+        "matched_tier": "tier_3_credentialed",
+        "age_range": "30-40",
+        "lifestyle": "Urban medical professional in São Paulo",
+        "motivations": ["professional recognition", "career growth"],
+        "psychology_profile": {
+            "primary_bias": "authority",
+            "secondary_bias": "social_proof",
+            "messaging_angle": "Your clinical expertise is valued",
+        },
+        "jobs_to_be_done": {
+            "functional": "Document dermatology cases for AI training",
+            "emotional": "Feel recognized as a medical expert",
+        },
+    }
+    visual_direction = {
+        "work_environment": "clinical consultation room with examination equipment",
+        "wardrobe": "lab coat over smart business casual",
+        "visible_tools": "dermatoscope, clinical tablet, medical charts",
+        "emotional_tone": "professional confidence and focus",
+        "cultural_adaptations": "Brazilian medical professional setting",
+    }
+    result = build_persona_actor_prompt(persona, "BR", "Portuguese", visual_direction=visual_direction)
+    assert "clinical consultation room" in result, "work_environment should be in prompt"
+    assert "lab coat" in result, "wardrobe should be in prompt"
+    assert "dermatoscope" in result, "visible_tools should be in prompt"
+    assert "scenes" in result.lower(), "Should use scenes schema"
+    print("  ✓ test_build_persona_actor_prompt_with_visual_direction")
+
+
+def test_build_persona_actor_prompt_without_visual_direction():
+    """Actor prompt should work without visual_direction (fallback)."""
+    from pipeline.stage2_images import build_persona_actor_prompt
+    persona = {
+        "name": "Ana",
+        "archetype": "Language Expert",
+        "matched_tier": "tier_1_gig",
+        "age_range": "22-28",
+        "lifestyle": "University student in Helsinki",
+        "motivations": ["earn money for tuition"],
+        "psychology_profile": {"primary_bias": "practicality"},
+        "jobs_to_be_done": {"functional": "OCR annotation in Finnish"},
+    }
+    result = build_persona_actor_prompt(persona, "FI", "Finnish")
+    assert "Ana" in result or "Language Expert" in result, "Persona info should be in prompt"
+    assert "VISUAL DIRECTION" not in result, "No visual direction block when not provided"
+    assert "scenes" in result.lower(), "Should still use scenes schema"
+    print("  ✓ test_build_persona_actor_prompt_without_visual_direction")
+
+
+# =========================================================================
 # MAIN
 # =========================================================================
 
@@ -1137,6 +1196,11 @@ if __name__ == "__main__":
     runner.run("actor_prompt_returns_tuple", test_actor_prompt_returns_tuple)
     runner.run("region_settings_coverage", test_region_settings_coverage)
     runner.run("multi_actor_scenes", test_multi_actor_scenes)
+
+    # ------------------------------------------------------------------
+    print(f"\n\U0001f4cb Category 12: Stage 2 Visual Direction")
+    runner.run("build_persona_actor_prompt_with_visual_direction", test_build_persona_actor_prompt_with_visual_direction)
+    runner.run("build_persona_actor_prompt_without_visual_direction", test_build_persona_actor_prompt_without_visual_direction)
 
     # ------------------------------------------------------------------
     elapsed = time.time() - start
