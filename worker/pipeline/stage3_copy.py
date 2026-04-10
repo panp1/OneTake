@@ -25,6 +25,50 @@ from prompts.recruitment_copy import (
     build_variation_prompts,
 )
 
+# ── Region → Language mapping ─────────────────────────────────────────
+# Used when target_languages is empty but target_regions is populated.
+
+REGION_LANGUAGE_MAP: dict[str, str] = {
+    "BR": "Portuguese", "MX": "Spanish", "CO": "Spanish", "AR": "Spanish",
+    "CL": "Spanish", "PE": "Spanish", "JP": "Japanese", "KR": "Korean",
+    "CN": "Mandarin Chinese", "TW": "Traditional Chinese", "DE": "German",
+    "FR": "French", "IT": "Italian", "PT": "Portuguese", "MA": "French",
+    "EG": "Arabic", "SA": "Arabic", "AE": "Arabic", "IN": "Hindi",
+    "ID": "Indonesian", "PH": "Filipino", "TH": "Thai", "VN": "Vietnamese",
+    "TR": "Turkish", "PL": "Polish", "RO": "Romanian", "UA": "Ukrainian",
+    "RU": "Russian", "FI": "Finnish", "SE": "Swedish", "NO": "Norwegian",
+    "DK": "Danish", "NL": "Dutch", "BE": "Dutch", "GR": "Greek",
+    "IL": "Hebrew", "NG": "English", "KE": "English", "ZA": "English",
+    "US": "English", "GB": "English", "CA": "English", "AU": "English",
+    "NZ": "English",
+}
+
+
+def derive_languages_from_regions(
+    regions: list[str],
+    target_languages: list[str],
+) -> list[str]:
+    """Derive target languages from regions when target_languages is empty.
+
+    If target_languages is provided (non-empty), returns it as-is.
+    Otherwise, maps each region to its primary professional language,
+    deduplicating while preserving order.
+    """
+    if target_languages:
+        return target_languages
+    if not regions:
+        return ["English"]
+
+    languages: list[str] = []
+    seen: set[str] = set()
+    for region in regions:
+        lang = REGION_LANGUAGE_MAP.get(region.upper(), "English")
+        if lang not in seen:
+            languages.append(lang)
+            seen.add(lang)
+    return languages or ["English"]
+
+
 logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 2
