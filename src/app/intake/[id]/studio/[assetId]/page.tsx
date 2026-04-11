@@ -362,36 +362,36 @@ function StudioLayout({
         <div className="px-6 py-3.5 border-t border-[#f0f0f0] shrink-0 space-y-2">
           <div className="flex gap-2">
             {(content.creative_html || content.html) && (
-              <button className="btn-primary text-[11px] px-4 py-1.5 cursor-pointer flex items-center gap-1.5">
-                <Type size={13} /> Edit HTML
+              <button className="h-8 px-3.5 rounded-full bg-[#32373C] text-white text-[11px] font-semibold cursor-pointer hover:bg-[#444] transition-colors flex items-center gap-1.5 outline-none">
+                <Type size={12} /> Edit HTML
               </button>
             )}
             <button
               onClick={() =>
                 window.open(`/api/export/figma/${asset.id}`, "_blank")
               }
-              className="btn-primary text-[11px] px-4 py-1.5 cursor-pointer flex items-center gap-1.5"
+              className="h-8 px-3.5 rounded-full bg-[#32373C] text-white text-[11px] font-semibold cursor-pointer hover:bg-[#444] transition-colors flex items-center gap-1.5 outline-none"
             >
-              <ExternalLink size={13} /> Figma
+              <ExternalLink size={12} /> Figma
             </button>
             {asset.blob_url && (
               <button
                 onClick={() => window.open(asset.blob_url!, "_blank")}
-                className="btn-secondary text-[11px] px-4 py-1.5 cursor-pointer flex items-center gap-1.5"
+                className="h-8 px-3.5 rounded-full border border-[#E5E5E5] text-[#1A1A1A] text-[11px] font-medium cursor-pointer hover:bg-[#F5F5F5] transition-colors flex items-center gap-1.5 outline-none"
               >
-                <Download size={13} /> Download
+                <Download size={12} /> Download
               </button>
             )}
           </div>
           <div className="flex gap-2">
-            <button className="btn-secondary text-[11px] px-4 py-1.5 cursor-pointer flex items-center gap-1.5 flex-1 justify-center">
-              <Sparkles size={13} /> Regenerate
+            <button className="h-8 px-3.5 rounded-full border border-[#E5E5E5] text-[#1A1A1A] text-[11px] font-medium cursor-pointer hover:bg-[#F5F5F5] transition-colors flex items-center gap-1.5 flex-1 justify-center outline-none">
+              <Sparkles size={12} /> Regenerate
             </button>
             <button
               onClick={onDelete}
-              className="text-[11px] px-4 py-1.5 rounded-full border border-red-200 text-red-500 cursor-pointer hover:bg-red-50 transition-colors flex items-center gap-1.5"
+              className="h-8 px-3.5 rounded-full border border-red-200 text-red-500 text-[11px] font-medium cursor-pointer hover:bg-red-50 transition-colors flex items-center gap-1.5 outline-none"
             >
-              <Trash2 size={13} /> Delete
+              <Trash2 size={12} /> Delete
             </button>
           </div>
         </div>
