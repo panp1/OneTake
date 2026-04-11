@@ -41,6 +41,7 @@ const ROLE_NAV: Record<string, { title: string; links: NavItem[] }[]> = {
         { href: "/admin/users", label: "Users", Icon: Users },
         { href: "/admin/schemas", label: "Schemas", Icon: FileCode },
         { href: "/admin/pipeline", label: "Workers", Icon: Activity },
+        { href: "/admin/artifacts", label: "Artifacts", Icon: Palette },
       ],
     },
   ],
