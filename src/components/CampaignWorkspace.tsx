@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import {
   Users,
   Target,
@@ -9,33 +9,21 @@ import {
   ChevronDown,
   ChevronRight,
   Layers,
-  Download,
-  Pencil,
-  LayoutGrid,
-  Monitor,
-  X,
-  Sparkles,
-  RefreshCw,
   Languages,
-  Shield,
   Heart,
-  AlertTriangle,
   Trash2,
-  Type,
 } from "lucide-react";
 import MiniTabs from "@/components/MiniTabs";
-import MockupPreview from "@/components/MockupPreview";
 import EditableField from "@/components/EditableField";
 import CreativeHtmlEditor from "@/components/CreativeHtmlEditor";
 import MediaStrategyTab from "@/components/MediaStrategyTab";
-import { extractField } from "@/lib/format";
 import { toast } from "sonner";
 import type {
   GeneratedAsset,
   ActorProfile,
   CreativeBrief,
 } from "@/lib/types";
-import { getPlatformMeta, PlatformLogo, toChannel } from "@/lib/platforms";
+import { getPlatformMeta, PlatformLogo } from "@/lib/platforms";
 import ChannelCreativeGallery from "@/components/creative-gallery/ChannelCreativeGallery";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -229,177 +217,22 @@ function CreativeThumb({
   );
 }
 
-// ── Full-Screen Creative Editor Modal ────────────────────────────────
-
-function CreativeEditorModal({
-  asset,
-  onClose,
-  onRefine,
-  onDelete,
-  onChangeLayout,
-  onEditHtml,
-}: {
-  asset: GeneratedAsset;
-  onClose: () => void;
-  onRefine?: (asset: GeneratedAsset) => void;
-  onDelete?: (asset: GeneratedAsset) => void;
-  onChangeLayout?: (asset: GeneratedAsset) => void;
-  onEditHtml?: (asset: GeneratedAsset) => void;
-}) {
-  const content = (asset.content || {}) as Record<string, any>;
-  const copyData = (asset.copy_data || {}) as Record<string, any>;
-  const meta = getPlatformMeta(asset.platform);
-  const score = asset.evaluation_score || 0;
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      {/* 80vw centered 2-column modal */}
-      <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row" style={{ width: "80vw", maxWidth: "1400px", maxHeight: "90vh" }} onClick={e => e.stopPropagation()}>
-
-        {/* LEFT: Creative Preview */}
-        <div className="flex-1 bg-[#1a1a1a] relative flex items-center justify-center p-8 min-h-[400px]">
-          {/* Close button */}
-          <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-lg cursor-pointer transition-colors z-10">
-            <X size={18} className="text-white" />
-          </button>
-
-          {asset.blob_url ? (
-            <img src={asset.blob_url} alt="" className="max-w-full max-h-[75vh] rounded-lg shadow-2xl object-contain" />
-          ) : (
-            <div className="w-full max-w-[400px]">
-              <MockupPreview asset={asset} />
-            </div>
-          )}
-
-          {/* Bottom bar */}
-          <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <PlatformLogo brand={meta.brand} className="w-5 h-5" />
-              <span className="text-[12px] text-white/60">{meta.label} · {asset.format}</span>
-            </div>
-            {score > 0 && (
-              <span className={`text-[12px] font-bold px-2 py-0.5 rounded ${
-                score >= 0.85 ? "bg-green-500/20 text-green-300" : "bg-yellow-500/20 text-yellow-300"
-              }`}>
-                {(score * 100).toFixed(0)}% VQA
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT: Edit Fields + Actions */}
-        <div className="w-full md:w-[380px] flex flex-col border-l border-[var(--border)] overflow-y-auto">
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-[var(--border)] bg-[var(--muted)]">
-            <h3 className="text-[14px] font-semibold text-[var(--foreground)]">Creative Details</h3>
-            <p className="text-[12px] text-[var(--muted-foreground)] mt-0.5">{content.actor_name ? `${content.actor_name} · ` : ""}{meta.label}</p>
-          </div>
-
-          {/* Fields */}
-          <div className="p-6 space-y-5 flex-1">
-            <div>
-              <label className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Headline</label>
-              <EditableField
-                value={content.overlay_headline || copyData.headline || content.slide_headline || ""}
-                editable
-                onSave={(v) => toast.success("Headline updated")}
-                textClassName="text-[14px] font-semibold text-[var(--foreground)]"
-              />
-            </div>
-            <div>
-              <label className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Subheadline</label>
-              <EditableField
-                value={content.overlay_sub || copyData.description || ""}
-                editable
-                onSave={(v) => toast.success("Subheadline updated")}
-                textClassName="text-[13px] text-[var(--muted-foreground)] leading-relaxed"
-                multiline
-              />
-            </div>
-            <div>
-              <label className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">CTA</label>
-              <EditableField
-                value={content.overlay_cta || copyData.cta || "Apply Now"}
-                editable
-                onSave={(v) => toast.success("CTA updated")}
-                textClassName="text-[13px] font-medium text-[#6B21A8]"
-              />
-            </div>
-            {(copyData.caption || copyData.primary_text) && (
-              <div>
-                <label className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Caption</label>
-                <EditableField
-                  value={copyData.caption || copyData.primary_text || ""}
-                  editable
-                  onSave={(v) => toast.success("Caption updated")}
-                  textClassName="text-[12px] text-[var(--muted-foreground)] leading-relaxed"
-                  multiline
-                />
-              </div>
-            )}
-            {content.actor_name && (
-              <div className="pt-4 border-t border-[var(--border)]">
-                <label className="text-[12px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block mb-1">Actor</label>
-                <p className="text-[13px] text-[var(--foreground)]">{content.actor_name}</p>
-                {content.scene && <p className="text-[12px] text-[var(--muted-foreground)]">{content.scene.replace(/_/g, " ")}</p>}
-              </div>
-            )}
-          </div>
-
-          {/* Action buttons */}
-          <div className="px-6 py-4 border-t border-[var(--border)] bg-[var(--muted)] space-y-2">
-            <div className="flex gap-2">
-              {onEditHtml && (content.creative_html || content.html) && (
-                <button onClick={() => { onEditHtml(asset); onClose(); }} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#6B21A8] hover:bg-[#5B21B6] rounded-lg text-[12px] font-semibold text-white cursor-pointer transition-colors">
-                  <Type size={13} /> Edit Live
-                </button>
-              )}
-              {onChangeLayout && (
-                <button onClick={() => onChangeLayout(asset)} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 border border-[var(--border)] bg-white hover:bg-white/80 rounded-lg text-[12px] font-medium cursor-pointer transition-colors">
-                  <Sparkles size={13} /> Change Layout
-                </button>
-              )}
-            </div>
-            <div className="flex gap-2">
-              {asset.blob_url && (
-                <button onClick={() => window.open(asset.blob_url!, "_blank")} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 border border-[var(--border)] bg-white rounded-lg text-[12px] font-medium cursor-pointer hover:bg-white/80 transition-colors">
-                  <Download size={13} /> Download
-                </button>
-              )}
-              {onRefine && (
-                <button onClick={() => { onRefine(asset); onClose(); }} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 border border-[var(--border)] bg-white rounded-lg text-[12px] font-medium cursor-pointer hover:bg-white/80 transition-colors">
-                  <Pencil size={13} /> Revise
-                </button>
-              )}
-              {onDelete && (
-                <button onClick={() => { onDelete(asset); onClose(); }} className="flex items-center justify-center gap-1.5 px-3 py-2 border border-red-200 bg-white rounded-lg text-[12px] font-medium text-red-600 cursor-pointer hover:bg-red-50 transition-colors">
-                  <Trash2 size={13} />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Persona Section ──────────────────────────────────────────────────
 
 function PersonaSection({
   group,
   index,
   allAssets,
-  onAssetClick,
   onRefine,
   onDelete,
+  onEditHtml,
 }: {
   group: PersonaGroup;
   index: number;
   allAssets: GeneratedAsset[];
-  onAssetClick: (asset: GeneratedAsset) => void;
   onRefine?: (asset: GeneratedAsset) => void;
   onDelete?: (asset: GeneratedAsset) => void;
+  onEditHtml?: (asset: GeneratedAsset) => void;
 }) {
   const [showCopy, setShowCopy] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -456,9 +289,9 @@ function PersonaSection({
           {/* Show first 3 thumbnails */}
           <div className="flex gap-1 ml-auto">
             {group.assets.filter(a => a.blob_url).slice(0, 3).map(a => (
-              <button key={a.id} onClick={(e) => { e.stopPropagation(); onAssetClick(a); }} className="w-8 h-8 rounded-md overflow-hidden bg-[var(--muted)] cursor-pointer hover:ring-2 hover:ring-[#6B21A8]/40 transition-all">
+              <div key={a.id} className="w-8 h-8 rounded-md overflow-hidden bg-[var(--muted)]">
                 <img src={a.blob_url!} alt="" className="w-full h-full object-cover" loading="lazy" />
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -672,7 +505,9 @@ function PersonaSection({
           {/* ── Creative Gallery (Channel > Version > Formats) ── */}
           <ChannelCreativeGallery
             assets={group.assets}
-            onAssetClick={onAssetClick}
+            onRefine={onRefine}
+            onDelete={onDelete}
+            onEditHtml={onEditHtml}
           />
         </div>
       )}
@@ -786,7 +621,6 @@ export default function CampaignWorkspace({
   onRetry,
   onDelete,
 }: CampaignWorkspaceProps) {
-  const [selectedAsset, setSelectedAsset] = useState<GeneratedAsset | null>(null);
   const [htmlEditorAsset, setHtmlEditorAsset] = useState<GeneratedAsset | null>(null);
   const [translateMode, setTranslateMode] = useState(false);
 
@@ -1111,24 +945,12 @@ export default function CampaignWorkspace({
               group={group}
               index={i}
               allAssets={assets}
-              onAssetClick={setSelectedAsset}
               onRefine={onRefine}
               onDelete={onDelete}
+              onEditHtml={(asset) => setHtmlEditorAsset(asset)}
             />
           ))}
         </div>
-      )}
-
-      {/* Full-screen editor modal */}
-      {selectedAsset && !htmlEditorAsset && (
-        <CreativeEditorModal
-          asset={selectedAsset}
-          onClose={() => setSelectedAsset(null)}
-          onRefine={onRefine}
-          onDelete={onDelete}
-          onChangeLayout={handleChangeLayout}
-          onEditHtml={(asset) => { setHtmlEditorAsset(asset); setSelectedAsset(null); }}
-        />
       )}
 
       {/* Interactive HTML Editor — full-screen Pomelli-style */}
