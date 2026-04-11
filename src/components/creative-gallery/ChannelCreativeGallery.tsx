@@ -1,63 +1,52 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import type { GeneratedAsset } from "@/lib/types";
 import {
   getActiveChannels,
   groupCreativesByVersion,
   CHANNEL_DEFINITIONS,
-  type VersionGroup,
 } from "@/lib/channels";
 import ChannelTabBar from "./ChannelTabBar";
 import VersionCard from "./VersionCard";
-import CreativeSidePanel from "./CreativeSidePanel";
 
 interface ChannelCreativeGalleryProps {
   assets: GeneratedAsset[];
-  onAssetClick?: (asset: GeneratedAsset) => void;
-  onRefine?: (asset: GeneratedAsset) => void;
-  onDelete?: (asset: GeneratedAsset) => void;
-  onEditHtml?: (asset: GeneratedAsset) => void;
+  requestId: string;
 }
 
 export default function ChannelCreativeGallery({
   assets,
-  onRefine,
-  onDelete,
-  onEditHtml,
+  requestId,
 }: ChannelCreativeGalleryProps) {
+  const router = useRouter();
   const activeChannels = useMemo(() => getActiveChannels(assets), [assets]);
 
   const [activeChannel, setActiveChannel] = useState<string>(
     activeChannels[0] || "",
   );
-  const [selectedVersion, setSelectedVersion] = useState<{
-    version: VersionGroup;
-    initialAsset: GeneratedAsset;
-  } | null>(null);
 
   const resolvedChannel = activeChannels.includes(activeChannel)
     ? activeChannel
     : activeChannels[0] || "";
 
   const versions = useMemo(
-    () => resolvedChannel ? groupCreativesByVersion(assets, resolvedChannel) : [],
+    () =>
+      resolvedChannel
+        ? groupCreativesByVersion(assets, resolvedChannel)
+        : [],
     [assets, resolvedChannel],
   );
 
   const channelDef = CHANNEL_DEFINITIONS[resolvedChannel];
 
-  // When a thumbnail is clicked, find its version and open side panel
+  // Navigate to studio page on thumbnail click
   const handleAssetClick = useCallback(
     (asset: GeneratedAsset) => {
-      const version = versions.find((v) =>
-        v.assets.some((a) => a.id === asset.id),
-      );
-      if (version) {
-        setSelectedVersion({ version, initialAsset: asset });
-      }
+      router.push(`/intake/${requestId}/studio/${asset.id}`);
     },
-    [versions],
+    [router, requestId],
   );
 
   if (activeChannels.length === 0) {
@@ -91,22 +80,6 @@ export default function ChannelCreativeGallery({
             />
           ))}
         </div>
-      )}
-
-      {/* Side Panel */}
-      {selectedVersion && (
-        <CreativeSidePanel
-          version={selectedVersion.version}
-          channelDef={channelDef}
-          initialAsset={selectedVersion.initialAsset}
-          onClose={() => setSelectedVersion(null)}
-          onRefine={onRefine}
-          onDelete={(asset) => {
-            onDelete?.(asset);
-            setSelectedVersion(null);
-          }}
-          onEditHtml={onEditHtml}
-        />
       )}
     </div>
   );

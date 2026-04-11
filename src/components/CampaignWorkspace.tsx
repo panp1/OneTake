@@ -306,14 +306,12 @@ function PersonaSection({
   allAssets,
   onRefine,
   onDelete,
-  onEditHtml,
 }: {
   group: PersonaGroup;
   index: number;
   allAssets: GeneratedAsset[];
   onRefine?: (asset: GeneratedAsset) => void;
   onDelete?: (asset: GeneratedAsset) => void;
-  onEditHtml?: (asset: GeneratedAsset) => void;
 }) {
   const [showCopy, setShowCopy] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -565,9 +563,7 @@ function PersonaSection({
           {/* ── Creative Gallery (Channel > Version > Formats) ── */}
           <ChannelCreativeGallery
             assets={group.assets}
-            onRefine={onRefine}
-            onDelete={onDelete}
-            onEditHtml={onEditHtml}
+            requestId={group.assets[0]?.request_id || ""}
           />
         </div>
       )}
@@ -1007,7 +1003,6 @@ export default function CampaignWorkspace({
               allAssets={assets}
               onRefine={onRefine}
               onDelete={onDelete}
-              onEditHtml={(asset) => setHtmlEditorAsset(asset)}
             />
           ))}
         </div>
