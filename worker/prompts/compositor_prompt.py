@@ -105,6 +105,34 @@ def _section_archetype(archetype: str) -> str:
     return "\n".join(lines)
 
 
+def _section_project_context(project_context: str, design_intent: str) -> str:
+    """Build project context section with persona mini brief + design intent."""
+    return f"""PROJECT CONTEXT (understand WHO this creative is for and WHY):
+
+{project_context}
+
+DESIGN INTENT (from copy strategist — design to support this angle):
+{design_intent}
+
+Use this context to make CREATIVE design decisions:
+- Choose artifacts that match the persona's psychology type
+- Adjust visual weight based on emotional tone
+- A clinical professional should FEEL different from a gig worker
+- Let the persona's trigger words and motivations guide your aesthetic choices"""
+
+
+def filter_catalog(catalog: list[dict], pillar: str, platform: str) -> list[dict]:
+    """Filter artifact catalog by pillar and format affinity."""
+    filtered = []
+    for a in catalog:
+        pillar_match = not a.get("pillar_affinity") or pillar in a["pillar_affinity"]
+        format_match = not a.get("format_affinity") or platform in a["format_affinity"]
+        if pillar_match and format_match:
+            filtered.append(a)
+    # Always include at least the full catalog if filtering is too aggressive
+    return filtered if len(filtered) >= 4 else catalog
+
+
 def _section_inputs(
     platform: str,
     platform_spec: dict[str, Any],
@@ -136,7 +164,7 @@ def _section_inputs(
             f"SAFE ZONE: {m}px from all edges. ALL text, CTA, and the person's face must be inside this margin."
         )
 
-    return f"""CREATIVE INPUTS:
+    base = f"""CREATIVE INPUTS:
 Platform: {platform} ({platform_spec['width']}x{platform_spec['height']})
 {safe_zone_desc}
 Pillar: {pillar}
@@ -156,6 +184,19 @@ PERSON POSITIONING (CRITICAL — violations fail VQA):
   This keeps the face ABOVE the bottom dead zone (caption/nav bars).
 - The face must NOT be behind platform action buttons (right side on TikTok).
 - Do NOT center the person vertically — bias them UPWARD to stay in the safe zone."""
+
+    # 25% text overlay enforcement
+    text_rule = ""
+    if copy.get("overlay_headline"):
+        text_rule = f"""
+TEXT OVERLAY RULE (HARD LIMIT — 25% max):
+  The graphic copy has been pre-generated and length-optimized. Do NOT add extra text.
+  Headline: {copy.get('overlay_headline', '')}
+  Sub: {copy.get('overlay_sub', '')}
+  CTA: {copy.get('overlay_cta', '')}
+  Design around this text exactly as provided. Do NOT modify it."""
+
+    return base + text_rule
 
 
 def _section_brand_rules() -> str:
@@ -202,8 +243,10 @@ def build_compositor_prompt(
     actor: dict[str, Any],
     copy: dict[str, Any],
     visual_direction: dict[str, Any] | None = None,
+    project_context: str = "",
+    design_intent: str = "",
 ) -> str:
-    """Build the complete 6-section GLM-5 compositor prompt.
+    """Build the complete GLM-5 compositor prompt.
 
     Returns a single string to be used as the user message in the chat completion.
     """
@@ -211,11 +254,12 @@ def build_compositor_prompt(
         _section_role(),
         build_artifact_catalog_section(catalog),
         _section_archetype(archetype),
+        _section_project_context(project_context, design_intent) if project_context else "",
         _section_inputs(platform, platform_spec, pillar, actor, copy, visual_direction or {}),
         _section_brand_rules(),
         _section_output_format(platform_spec["width"], platform_spec["height"]),
     ]
-    return "\n\n---\n\n".join(sections)
+    return "\n\n---\n\n".join(s for s in sections if s)
 
 
 def inject_vqa_feedback(original_prompt: str, vqa_result: dict[str, Any]) -> str:
