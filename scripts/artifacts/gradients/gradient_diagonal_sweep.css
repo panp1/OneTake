@@ -1,0 +1,5 @@
+/* Diagonal sweep: 45° gradient from bottom-left fading to white top-right.
+   Editorial/modern feel. Person on the white side. */
+.gradient-diagonal-sweep {
+  background: linear-gradient(135deg, #3D1059 0%, #6B21A8 35%, #f8f5ff 65%, #ffffff 100%);
+}

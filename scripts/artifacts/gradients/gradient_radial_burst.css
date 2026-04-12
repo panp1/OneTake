@@ -1,0 +1,5 @@
+/* Radial burst: Spotlight from center fading to white at edges.
+   Draws eye to the person at center. */
+.gradient-radial-burst {
+  background: radial-gradient(ellipse at 50% 45%, #6B21A8 0%, #3D1059 30%, #f8f5ff 70%, #ffffff 100%);
+}

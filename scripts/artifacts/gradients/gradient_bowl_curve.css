@@ -1,0 +1,7 @@
+/* Bowl curve: SVG clip-path creating a curved divider at 55% from top.
+   Person sits in the gradient bowl, headline above. */
+.gradient-bowl-curve {
+  position: relative;
+  background: linear-gradient(135deg, #3D1059 0%, #6B21A8 50%, #E91E8C 100%);
+  clip-path: ellipse(80% 55% at 50% 45%);
+}
