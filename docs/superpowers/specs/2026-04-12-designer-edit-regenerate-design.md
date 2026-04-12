@@ -17,10 +17,48 @@ Give the designer in-platform creative control — quick edits via Flux 2, base 
 2. **Regenerate Base (Seedream 4.5)** — regenerate the underlying actor photo
 3. **Export for Figma** — download SVG with editable layers (already built, needs polish)
 
+## Two-Layer Architecture
+
+Every creative has two independent layers that require different edit tools:
+
+**Layer 1: Base Photo** (Seedream-generated pixels)
+- Scene Swap: pick from 4 existing scenes (instant, free)
+- Quick Edit: Flux 2 inpainting for small fixes ($0.03, ~5s)
+- Regenerate: Seedream 4.5 full regen with direction ($0.04, ~30s)
+- Color code: **Amber** throughout the UI
+
+**Layer 2: Graphic Overlay** (HTML/CSS composition)
+- Live text editing: headline, subheadline, CTA
+- Style controls: font size, text color, CTA color, text position
+- Re-renders via Playwright (free, ~2s)
+- Color code: **Green** throughout the UI
+
+**Layer Toggle** in the edit header lets the designer switch between layers. The canvas shows which layer is being edited with a color-coded badge.
+
+## Edit Mode 0: Scene Swap (Instant)
+
+### What It Does
+Stage 2 already generates 4 scenes per actor. The designer can instantly swap which scene is used for a version — no AI processing, no waiting. The 4 scenes are already rendered and stored.
+
+### UX Flow
+```
+Designer clicks "Swap Scene" on a version
+  → Horizontal strip of 4 scene thumbnails appears above the format grid
+  → Each thumbnail: scene name + small preview (80x80)
+  → Current scene highlighted with amber ring
+  → Click a different scene → immediately swaps ALL format cards in this version
+  → Stage 4 re-composes with the new base image (background, ~10s)
+```
+
+### Technical
+- No API call needed for the swap — the scene images are already in `actor.scene_images[]`
+- PATCH `/api/assets/[id]` to update the `content.scene_key` field
+- Trigger async Stage 4 re-composition for all formats in this version
+
 ## Edit Mode 1: Quick Edit (Flux 2)
 
 ### What It Does
-The designer selects an area of the creative and describes what to change. Flux 2 applies the edit in 5-10 seconds. For small fixes that don't require a full redesign.
+The designer selects an area of the creative and describes what to change. Flux 2 applies the edit in 5-10 seconds. For small fixes that don't require a full redesign. Optional — the designer may prefer scene swap or Figma for most edits.
 
 **Example uses:**
 - "Remove the scar on forehead"
@@ -237,6 +275,90 @@ When a base image is regenerated:
 - Returns a JSON array of SVG URLs for all assets in that version
 - Frontend downloads each, zips client-side
 
+## Edit Mode 4: Graphic Overlay Editor (Daily Driver)
+
+### What It Does
+Live HTML/CSS editing of the composition layer — change headline text, subheadline, CTA, font sizes, colors, text position. Preview updates instantly on the canvas. Re-renders via Playwright (free, ~2 seconds). This is the tool the designer will use MOST — faster than any Figma round-trip for text/layout changes.
+
+### UX Flow
+```
+Designer clicks layer toggle → "Graphic Overlay" (green)
+  → Canvas shows the creative with overlay elements highlighted
+  → "Live Preview" pulsing badge top-right
+  → Right panel shows:
+    ├── Overlay Text fields (headline + word count, sub + char count, CTA)
+    ├── Style controls:
+    │   ├── Headline size (Small 48px / Medium 60px / Large 72px)
+    │   ├── CTA color swatches (pink, purple, green, charcoal, white)
+    │   ├── Text position (Top / Center / Bottom / Left split / Right split)
+    │   └── Text color (white, dark, muted)
+    └── "Save & Re-render" button (green, free, ~2s)
+  → Text changes update the canvas preview LIVE (debounced 300ms)
+  → Save → Playwright re-renders the modified HTML → new PNG
+  → VQA re-evaluates (text overlay %, brand compliance)
+  → New PNG replaces old → gallery updates
+```
+
+### Technical Implementation
+
+**Frontend component:** `src/components/designer/GraphicEditor.tsx`
+
+**State:**
+```typescript
+interface GraphicEditorProps {
+  asset: GeneratedAsset;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+// Editable fields (from asset.content):
+overlayHeadline: string
+overlaySub: string
+overlayCta: string
+
+// Style controls:
+headlineSize: "small" | "medium" | "large"
+ctaColor: string  // hex
+textPosition: "top" | "center" | "bottom" | "left-split" | "right-split"
+textColor: string  // hex
+```
+
+**Live preview:** The component fetches the asset's HTML source (from `content.html_url`), modifies the text/style values in-memory, and renders the modified HTML in an iframe or via `dangerouslySetInnerHTML` inside a scaled container. Changes are debounced at 300ms.
+
+**Save flow:**
+1. PATCH `/api/assets/[id]` with updated `content` fields (overlay_headline, overlay_sub, overlay_cta, style overrides)
+2. Server re-renders the modified HTML via Playwright → new PNG
+3. New PNG uploaded to Blob, `blob_url` updated
+4. VQA re-evaluates
+5. Return new blob_url + VQA result
+
+**API route:** `PATCH /api/assets/[id]` (already exists — extend to support style overrides + re-render trigger)
+
+Add a `rerender: true` flag to the PATCH body that triggers Playwright re-render:
+```typescript
+{
+  content: {
+    overlay_headline: "New Headline",
+    overlay_sub: "New subheadline",
+    overlay_cta: "New CTA",
+    style_overrides: {
+      headline_size: "large",
+      cta_color: "#6D28D9",
+      text_position: "top",
+      text_color: "#FFFFFF"
+    }
+  },
+  rerender: true  // triggers Playwright re-render + VQA
+}
+```
+
+### Why This Is the Daily Driver
+| Task | Without graphic editor | With graphic editor |
+|---|---|---|
+| Change headline text | Download → Figma → edit → export → upload (5 min) | Type new text → Save (3 seconds) |
+| Swap CTA color | Download → Figma → find layer → change → export → upload | Click color swatch (1 second) |
+| Move text from top to bottom | Download → Figma → select all text → move → export → upload | Dropdown: "Bottom" (1 second) |
+
 ## Shared Components
 
 ### Edit History Dropdown
@@ -284,10 +406,13 @@ All edit/regenerate operations show:
 
 | Component | Purpose | Lines (est.) |
 |---|---|---|
+| `src/components/designer/SceneSwapper.tsx` | Horizontal scene thumbnail strip with instant swap | ~150 |
 | `src/components/designer/QuickEditor.tsx` | Inline Flux 2 edit with canvas mask tool | ~350 |
 | `src/components/designer/RegenerateModal.tsx` | Seedream 4.5 regen with change checkboxes | ~200 |
+| `src/components/designer/GraphicEditor.tsx` | Live HTML/CSS overlay editor with text + style controls | ~400 |
 | `src/components/designer/EditHistory.tsx` | History dropdown with revert | ~120 |
 | `src/components/designer/MaskCanvas.tsx` | Canvas overlay for brush/lasso mask drawing | ~250 |
+| `src/components/designer/LayerToggle.tsx` | Amber (photo) / Green (graphic) layer switcher | ~60 |
 
 ## Modified Components
 
