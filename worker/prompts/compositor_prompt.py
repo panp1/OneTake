@@ -196,7 +196,26 @@ TEXT OVERLAY RULE (HARD LIMIT — 25% max):
   CTA: {copy.get('overlay_cta', '')}
   Design around this text exactly as provided. Do NOT modify it."""
 
-    return base + text_rule
+    # Task contextualizer device mockup
+    device_block = ""
+    device_url = actor.get("device_mockup_url", "")
+    if device_url:
+        device_block = f"""
+
+TASK CONTEXTUALIZER (floating device showing what contributors DO — HIGH IMPACT):
+  Device mockup URL: {device_url}
+  This is a phone mockup showing the actual task interface.
+  Layer it alongside or overlapping the actor photo:
+  - Floating to the left or right of the actor
+  - Slightly rotated (2-5 degrees tilt for natural feel)
+  - 30-40% of canvas width
+  - Subtle drop shadow (0 8px 24px rgba(0,0,0,0.15))
+  - Can overlap the actor slightly for depth
+  Usage: <img src="{device_url}" style="position:absolute; ..." />
+  This element is OPTIONAL — skip if layout is too cramped.
+  But when used, it dramatically increases perceived quality."""
+
+    return base + text_rule + device_block
 
 
 def _section_brand_rules() -> str:

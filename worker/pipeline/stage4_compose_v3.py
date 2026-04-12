@@ -46,6 +46,7 @@ from config import (
 from neon_client import get_active_artifacts, get_actors, get_assets, save_asset
 from nim_key_pool import get_nim_key
 from pipeline.archetype_selector import select_archetype
+from pipeline.stage4_contextualizer import generate_task_contextualizer
 from pipeline.stage4_graphic_copy import generate_graphic_copy
 from prompts.compositor_prompt import build_compositor_prompt, filter_catalog, inject_vqa_feedback
 from prompts.design_base_knowledge import get_base_knowledge, classify_persona_type, get_template_recs
@@ -171,6 +172,17 @@ async def run_stage4(context: dict) -> dict:
     top_pillars = _get_top_pillars(pillar_weighting)
     logger.info("Top 2 pillars for composition: %s", top_pillars)
 
+    # ── Generate task contextualizer (once per campaign) ──────────
+    task_type = context.get("task_type", brief.get("task_type", ""))
+    form_data_ctx = context.get("form_data", {})
+    device_mockup_url = await generate_task_contextualizer(
+        task_type=task_type,
+        brief=brief,
+        form_data=form_data_ctx,
+    )
+    if device_mockup_url:
+        logger.info("Task contextualizer ready: %s", device_mockup_url[:60])
+
     # ── 7. Build composition matrix and dispatch ─────────────────────────
     semaphore = asyncio.Semaphore(COMPOSE_CONCURRENCY)
     matrix = _build_composition_matrix(actors, top_pillars, platforms)
@@ -198,6 +210,7 @@ async def run_stage4(context: dict) -> dict:
             cultural_research=cultural_research,
             personas=personas,
             strategies=strategies,
+            device_mockup_url=device_mockup_url,
         )
         for item in matrix
     ]
@@ -231,6 +244,7 @@ async def _compose_one(
     cultural_research: dict | None = None,
     personas: list[dict] | None = None,
     strategies: list[dict] | None = None,
+    device_mockup_url: str | None = None,
 ) -> int:
     """Compose one creative: prompt → LLM → render → VQA → save.
 
@@ -299,6 +313,8 @@ async def _compose_one(
         composition_actor = dict(actor)
         composition_actor["photo_url"] = scene.get("photo_url", actor.get("photo_url", ""))
         composition_actor["cutout_url"] = scene.get("cutout_url", actor.get("cutout_url", ""))
+        if device_mockup_url:
+            composition_actor["device_mockup_url"] = device_mockup_url
         logger.info(
             "  Scene selected for pillar=%s: %s",
             pillar, scene.get("scene", "default"),
