@@ -62,7 +62,7 @@ export default function StatusGroup({
           borderBottomWidth: "1px",
           borderBottomStyle: "solid" as const,
           borderBottomColor: theme.border,
-          background: hovered ? theme.surface : "transparent",
+          background: hovered ? theme.rowHover : "transparent",
           cursor: "pointer",
           textAlign: "left" as const,
           fontFamily: FONT.sans,

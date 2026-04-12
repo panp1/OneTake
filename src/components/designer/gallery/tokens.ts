@@ -6,6 +6,7 @@ export const DARK = {
   card: "#1A1A1E",
   border: "#2A2A2E",
   borderHover: "#3A3A3E",
+  rowHover: "#1A1A1E",
   text: "#E8E8EA",
   textMuted: "#8A8A8E",
   textDim: "#6A6A6E",
@@ -22,6 +23,7 @@ export const LIGHT = {
   card: "#FFFFFF",
   border: "#E8E8EA",
   borderHover: "#D0D0D4",
+  rowHover: "#F0F0F2",
   text: "#1A1A1A",
   textMuted: "#8A8A8E",
   textDim: "#B0B0B4",
@@ -38,6 +40,7 @@ export type Theme = {
   readonly card: string;
   readonly border: string;
   readonly borderHover: string;
+  readonly rowHover: string;
   readonly text: string;
   readonly textMuted: string;
   readonly textDim: string;

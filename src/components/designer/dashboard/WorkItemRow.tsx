@@ -80,7 +80,7 @@ export default function WorkItemRow({
         gap: "12px",
         padding: "12px 32px",
         alignItems: "center",
-        background: hovered ? theme.surface : "transparent",
+        background: hovered ? theme.rowHover : "transparent",
         opacity: dimmed ? 0.6 : 1,
         cursor: dimmed ? "default" : "pointer",
         transition: "background 0.15s ease, opacity 0.15s ease",
