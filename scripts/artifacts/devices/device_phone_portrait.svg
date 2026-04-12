@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="560" viewBox="0 0 280 560">
+  <defs>
+    <filter id="phone-shadow">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+  <!-- Phone body -->
+  <rect x="0" y="0" width="280" height="560" rx="36" ry="36" fill="#1a1a1a" filter="url(#phone-shadow)"/>
+  <!-- Screen bezel -->
+  <rect x="8" y="8" width="264" height="544" rx="28" ry="28" fill="#2a2a2a"/>
+  <!-- Screen area (transparent — screenshot composites here) -->
+  <rect x="12" y="40" width="256" height="480" rx="4" ry="4" fill="transparent" id="screen"/>
+  <!-- Notch -->
+  <rect x="90" y="8" width="100" height="24" rx="12" ry="12" fill="#1a1a1a"/>
+  <!-- Home indicator -->
+  <rect x="100" y="540" width="80" height="4" rx="2" ry="2" fill="#555"/>
+</svg>
