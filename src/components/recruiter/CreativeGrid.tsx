@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Copy, Download, Check } from "lucide-react";
 import { toast } from "sonner";
 import { extractField } from "@/lib/format";
@@ -30,10 +31,33 @@ function getHeadline(asset: GeneratedAsset): string {
   );
 }
 
+/** Split format string on "x" and return "W x H", or return raw format. */
+function getFormatLabel(asset: GeneratedAsset): string {
+  if (!asset.format) return "";
+  const lower = asset.format.toLowerCase();
+  const match = lower.match(/^(\d+)\s*x\s*(\d+)$/);
+  if (match) return `${match[1]} x ${match[2]}`;
+  return asset.format;
+}
+
+/** Extract persona name from content and shorten to "FirstName L." */
+function getPersonaName(asset: GeneratedAsset): string {
+  const raw =
+    (extractField(asset.content, "persona_name") as string | undefined) ||
+    (extractField(asset.content, "actor_name") as string | undefined) ||
+    "";
+  if (!raw) return "";
+  const parts = raw.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`;
+}
+
 export default function CreativeGrid({ assets, selectedAssetId, onSelect }: CreativeGridProps) {
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
   if (assets.length === 0) {
     return (
-      <div className="text-center py-12 text-sm text-[var(--muted-foreground)]">
+      <div style={{ textAlign: "center", padding: "48px 0", fontSize: 14, color: "#8A8A8E" }}>
         No creatives for this channel yet.
       </div>
     );
@@ -54,58 +78,180 @@ export default function CreativeGrid({ assets, selectedAssetId, onSelect }: Crea
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: 12,
+        padding: "16px 18px",
+      }}
+    >
       {assets.map((asset) => {
         const selected = asset.id === selectedAssetId;
+        const hovered = hoveredId === asset.id;
         const headline = getHeadline(asset);
         const caption = getOrganicCaption(asset);
+        const formatLabel = getFormatLabel(asset);
+        const personaName = getPersonaName(asset);
 
         return (
           <button
             key={asset.id}
+            type="button"
             onClick={() => onSelect(asset)}
-            className={[
-              "group text-left bg-white border rounded-xl overflow-hidden cursor-pointer transition-all",
-              selected
-                ? "border-[#9B51E0] ring-2 ring-[#9B51E0]/20 shadow-md"
-                : "border-[var(--border)] hover:border-[#32373C]",
-            ].join(" ")}
+            onMouseEnter={() => setHoveredId(asset.id)}
+            onMouseLeave={() => setHoveredId(null)}
+            style={{
+              textAlign: "left",
+              background: "#FFFFFF",
+              border: selected ? "1px solid #6D28D9" : "1px solid #E8E8EA",
+              borderRadius: 10,
+              overflow: "hidden",
+              cursor: "pointer",
+              transition: "transform 0.15s ease, box-shadow 0.15s ease",
+              transform: !selected && hovered ? "translateY(-1px)" : "translateY(0)",
+              boxShadow: selected
+                ? "0 0 0 2px rgba(109,40,217,0.1)"
+                : hovered
+                ? "0 2px 10px rgba(0,0,0,0.07)"
+                : "none",
+              padding: 0,
+            }}
           >
-            <div className="aspect-square bg-[var(--muted)] relative overflow-hidden">
+            {/* Thumbnail */}
+            <div
+              style={{
+                aspectRatio: "1",
+                background: "#EBEBEB",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
               {asset.blob_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={asset.blob_url}
                   alt={headline || "Creative"}
-                  className="w-full h-full object-cover"
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                   loading="lazy"
                 />
-              ) : (
-                <div className="flex items-center justify-center h-full text-xs text-[var(--muted-foreground)]">
-                  No preview
+              ) : null}
+
+              {/* Persona badge — top-left */}
+              {personaName && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 6,
+                    left: 6,
+                    background: "rgba(255,255,255,0.85)",
+                    backdropFilter: "blur(4px)",
+                    borderRadius: 6,
+                    padding: "2px 7px",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: "#1A1A1A",
+                    lineHeight: "16px",
+                    maxWidth: "60%",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {personaName}
                 </div>
               )}
+
+              {/* Selected checkmark — top-right */}
               {selected && (
-                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#9B51E0] text-white flex items-center justify-center shadow-sm">
-                  <Check size={14} strokeWidth={3} />
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 6,
+                    right: 6,
+                    width: 22,
+                    height: 22,
+                    borderRadius: "50%",
+                    background: "#6D28D9",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Check size={13} strokeWidth={3} color="#FFFFFF" />
+                </div>
+              )}
+
+              {/* Format badge — bottom-left */}
+              {formatLabel && (
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: 6,
+                    left: 6,
+                    background: "rgba(0,0,0,0.55)",
+                    backdropFilter: "blur(4px)",
+                    borderRadius: 6,
+                    padding: "2px 7px",
+                    fontSize: 10,
+                    fontWeight: 500,
+                    color: "#FFFFFF",
+                    lineHeight: "16px",
+                  }}
+                >
+                  {formatLabel}
                 </div>
               )}
             </div>
-            <div className="p-3 space-y-2">
+
+            {/* Card body */}
+            <div style={{ padding: "10px 10px 8px" }}>
               {headline && (
-                <p className="text-xs font-semibold text-[var(--foreground)] line-clamp-2">{headline}</p>
+                <p
+                  style={{
+                    margin: "0 0 8px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "#1A1A1A",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    lineHeight: "16px",
+                  }}
+                >
+                  {headline}
+                </p>
               )}
-              <div className="flex items-center gap-1 pt-1">
+
+              {/* Action buttons row */}
+              <div style={{ display: "flex", gap: 6 }}>
                 <button
                   type="button"
                   onClick={(e) => handleCopyCaption(e, caption)}
-                  className="flex-1 flex items-center justify-center gap-1 text-[10px] font-medium px-2 py-1.5 rounded-md border border-[var(--border)] hover:bg-[var(--muted)] cursor-pointer"
                   disabled={!caption}
                   title={caption || "No caption available"}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 4,
+                    fontSize: 10,
+                    fontWeight: 500,
+                    padding: "5px 8px",
+                    borderRadius: 6,
+                    border: "1px solid #E8E8EA",
+                    background: "#FFFFFF",
+                    color: "#8A8A8E",
+                    cursor: caption ? "pointer" : "default",
+                    opacity: caption ? 1 : 0.5,
+                  }}
                 >
                   <Copy size={11} />
                   Copy caption
                 </button>
+
                 {asset.blob_url && (
                   <a
                     href={asset.blob_url}
@@ -113,8 +259,19 @@ export default function CreativeGrid({ assets, selectedAssetId, onSelect }: Crea
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
                     download
-                    className="flex items-center justify-center gap-1 text-[10px] font-medium px-2 py-1.5 rounded-md border border-[var(--border)] hover:bg-[var(--muted)] cursor-pointer"
                     title="Download image"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "5px 8px",
+                      borderRadius: 6,
+                      border: "1px solid #E8E8EA",
+                      background: "#FFFFFF",
+                      color: "#8A8A8E",
+                      cursor: "pointer",
+                      textDecoration: "none",
+                    }}
                   >
                     <Download size={11} />
                   </a>
