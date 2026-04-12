@@ -201,6 +201,8 @@ Score this creative on a 0-1 scale across these dimensions, then give an overall
 
 7. PERSON VISIBILITY (0-1): Is the person's face FULLY visible and not cropped? Does the person occupy 50-55% of canvas height? Is the face in the UPPER 60% of the canvas (critical for vertical formats like Stories/TikTok where bottom 20-30% is covered by platform UI)? Score 0 if the face is cropped, hidden behind UI elements, or positioned in the bottom dead zone.
 
+8. TASK CONTEXT (0-1): Does the creative show what the contributor will actually DO? Look for a device mockup (phone/tablet showing a UI), a floating task card, or visual element that answers "what's the task?" Device mockup present and well-positioned = 0.9+. Task card or contextual element = 0.7+. No task context at all = cap at 0.5.
+
 Return ONLY valid JSON:
 {{
   "visual_hierarchy": 0.0,
@@ -210,13 +212,14 @@ Return ONLY valid JSON:
   "composition": 0.0,
   "headline_scene_match": 0.0,
   "person_visibility": 0.0,
+  "task_context": 0.0,
   "overall_score": 0.0,
   "issues": ["issue 1", "issue 2"],
   "strengths": ["strength 1"],
   "verdict": "pass|fail"
 }}
 
-The overall_score should be a weighted average: CTR_APPEAL (25%) + PERSON_VISIBILITY (20%) + DEPTH (20%) + COMPOSITION (15%) + BRAND (10%) + HEADLINE_MATCH (10%).
+The overall_score should be a weighted average: CTR_APPEAL (20%) + PERSON_VISIBILITY (20%) + TASK_CONTEXT (15%) + DEPTH (15%) + COMPOSITION (15%) + BRAND (10%) + HEADLINE_MATCH (5%).
 PERSON_VISIBILITY is critical — if the person's face is not fully visible or is in the dead zone, the overall score MUST be below 0.7.
 Score generously — 0.8+ means "would ship to client". 0.6-0.8 means "needs one more revision". Below 0.6 means "start over".
 """
