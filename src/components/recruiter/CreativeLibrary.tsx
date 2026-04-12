@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from "react";
 import ChannelMessagingCard from "./ChannelMessagingCard";
 import CreativeGrid from "./CreativeGrid";
-import LinkBuilderBar from "./LinkBuilderBar";
 import type { CreativeBrief, GeneratedAsset } from "@/lib/types";
 
 interface CreativeLibraryProps {
@@ -11,6 +10,7 @@ interface CreativeLibraryProps {
   campaignSlug: string | null;
   brief: CreativeBrief | null;
   assets: GeneratedAsset[];
+  onAssetSelect: (asset: GeneratedAsset | null) => void;
 }
 
 const CHANNEL_ORDER = ["linkedin", "facebook", "instagram", "reddit"];
@@ -36,6 +36,7 @@ export default function CreativeLibrary({
   campaignSlug,
   brief,
   assets,
+  onAssetSelect,
 }: CreativeLibraryProps) {
   const approvedAssets = useMemo(
     () => assets.filter((a) => a.evaluation_passed === true && a.blob_url),
@@ -53,17 +54,6 @@ export default function CreativeLibrary({
 
   const [activeChannel, setActiveChannel] = useState<string>(() => channels[0] ?? "");
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
-  const [recruiterInitials, setRecruiterInitials] = useState<string>("??");
-
-  // Fetch recruiter initials on mount
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.initials) setRecruiterInitials(data.initials);
-      })
-      .catch(() => {});
-  }, []);
 
   // Keep active channel valid when channels list changes
   useEffect(() => {
@@ -94,6 +84,11 @@ export default function CreativeLibrary({
   const selectedAsset =
     channelAssets.find((a) => a.id === selectedAssetId) ?? null;
 
+  // Notify parent when selectedAsset changes
+  useEffect(() => {
+    onAssetSelect(selectedAsset);
+  }, [selectedAsset, onAssetSelect]);
+
   if (channels.length === 0) {
     return (
       <div className="px-4 md:px-6 py-12 max-w-[1100px] mx-auto text-center text-sm text-[var(--muted-foreground)]">
@@ -103,52 +98,42 @@ export default function CreativeLibrary({
   }
 
   return (
-    <>
-      <div className="px-4 md:px-6 py-6 max-w-[1100px] mx-auto pb-32">
-        {/* Channel sub-tabs */}
-        <div className="flex gap-2 flex-wrap mb-5">
-          {channels.map((ch) => {
-            const label = CHANNEL_LABEL[ch] ?? ch;
-            const count = approvedAssets.filter(
-              (a) => a.platform?.toLowerCase() === ch
-            ).length;
-            const active = activeChannel === ch;
-            return (
-              <button
-                key={ch}
-                onClick={() => setActiveChannel(ch)}
-                className={[
-                  "text-xs font-medium px-4 py-2 rounded-full border transition-colors cursor-pointer",
-                  active
-                    ? "bg-[#32373C] text-white border-[#32373C]"
-                    : "bg-white text-[var(--muted-foreground)] border-[var(--border)] hover:border-[#32373C]",
-                ].join(" ")}
-              >
-                {label} · {count}
-              </button>
-            );
-          })}
-        </div>
-
-        <ChannelMessagingCard
-          brief={brief}
-          channel={CHANNEL_LABEL[activeChannel] ?? activeChannel}
-        />
-
-        <CreativeGrid
-          assets={channelAssets}
-          selectedAssetId={selectedAssetId}
-          onSelect={(a) => setSelectedAssetId(a.id)}
-        />
+    <div className="px-4 md:px-6 py-6 max-w-[1100px] mx-auto">
+      {/* Channel sub-tabs */}
+      <div className="flex gap-2 flex-wrap mb-5">
+        {channels.map((ch) => {
+          const label = CHANNEL_LABEL[ch] ?? ch;
+          const count = approvedAssets.filter(
+            (a) => a.platform?.toLowerCase() === ch
+          ).length;
+          const active = activeChannel === ch;
+          return (
+            <button
+              key={ch}
+              onClick={() => setActiveChannel(ch)}
+              className={[
+                "text-xs font-medium px-4 py-2 rounded-full border transition-colors cursor-pointer",
+                active
+                  ? "bg-[#32373C] text-white border-[#32373C]"
+                  : "bg-white text-[var(--muted-foreground)] border-[var(--border)] hover:border-[#32373C]",
+              ].join(" ")}
+            >
+              {label} · {count}
+            </button>
+          );
+        })}
       </div>
 
-      <LinkBuilderBar
-        requestId={requestId}
-        campaignSlug={campaignSlug}
-        activeChannel={activeChannel}
-        selectedAsset={selectedAsset}
-        recruiterInitials={recruiterInitials}
+      <ChannelMessagingCard
+        brief={brief}
+        channel={CHANNEL_LABEL[activeChannel] ?? activeChannel}
       />
-    </>
+
+      <CreativeGrid
+        assets={channelAssets}
+        selectedAssetId={selectedAssetId}
+        onSelect={(a) => setSelectedAssetId(a.id)}
+      />
+    </div>
   );
 }

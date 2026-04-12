@@ -1,20 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Package, BarChart3, Info } from "lucide-react";
+import { ArrowLeft, Download, Image, LayoutDashboard, FileText } from "lucide-react";
 import { getRecruiterStatus } from "@/lib/format";
 import { RecruiterOverviewTab } from "@/components/RecruiterDetailView";
 import CreativeLibrary from "./CreativeLibrary";
-import PerformanceTab from "./PerformanceTab";
+import LinkBuilderBar from "./LinkBuilderBar";
+import DashboardTab from "./DashboardTab";
+import MessagingAccordion from "./MessagingAccordion";
+import { StatsRow } from "./StatsRow";
 import type {
   IntakeRequest,
   CreativeBrief,
   GeneratedAsset,
   PipelineRun,
+  TrackedLinksSummary,
 } from "@/lib/types";
 
-type TabKey = "creatives" | "performance" | "overview";
+type TabKey = "creatives" | "dashboard" | "overview";
 
 interface RecruiterWorkspaceProps {
   request: IntakeRequest;
@@ -30,22 +34,66 @@ export default function RecruiterWorkspace({
   pipelineRuns,
 }: RecruiterWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("creatives");
+  const [selectedAsset, setSelectedAsset] = useState<GeneratedAsset | null>(null);
+  const [recruiterInitials, setRecruiterInitials] = useState<string>("??");
+  const [summary, setSummary] = useState<TrackedLinksSummary | null>(null);
+
   const statusInfo = getRecruiterStatus(request.status);
   const isApproved = request.status === "approved" || request.status === "sent";
-  const approvedAssets = assets.filter((a) => a.evaluation_passed === true);
 
-  function handleDownloadAll() {
+  const approvedAssets = useMemo(
+    () => assets.filter((a) => a.evaluation_passed === true && a.blob_url),
+    [assets]
+  );
+
+  const channelCount = useMemo(
+    () => new Set(approvedAssets.map((a) => a.platform?.toLowerCase()).filter(Boolean)).size,
+    [approvedAssets]
+  );
+
+  // Fetch recruiter initials on mount
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.initials) setRecruiterInitials(data.initials);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Fetch tracked links summary every 30s (only when approved)
+  useEffect(() => {
+    if (!isApproved) return;
+
+    function fetchSummary() {
+      fetch(`/api/tracked-links?request_id=${request.id}&limit=0`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.summary) setSummary(data.summary);
+        })
+        .catch(() => {});
+    }
+
+    fetchSummary();
+    const interval = setInterval(fetchSummary, 30000);
+    return () => clearInterval(interval);
+  }, [isApproved, request.id]);
+
+  const handleDownloadAll = useCallback(() => {
     for (const asset of approvedAssets) {
       if (asset.blob_url) window.open(asset.blob_url, "_blank");
     }
-  }
+  }, [approvedAssets]);
 
-  // Pre-approval: no tab bar, just render the overview body (which contains
-  // the pipeline progress UI). Tabs only make sense once creatives are approved.
+  const handleAssetSelect = useCallback((asset: GeneratedAsset | null) => {
+    setSelectedAsset(asset);
+  }, []);
+
+  // Pre-approval: no tabs, just overview
   if (!isApproved) {
     return (
-      <div className="flex-1 overflow-y-auto bg-[#FAFAFA]">
-        <div className="gradient-accent h-[3px]" />
+      <div style={{ flex: 1, overflowY: "auto", background: "#F7F7F8" }}>
+        <div style={{ height: 2, background: "linear-gradient(135deg, #7C3AED, #6D28D9)" }} />
         <HeaderBar
           request={request}
           statusInfo={statusInfo}
@@ -63,8 +111,11 @@ export default function RecruiterWorkspace({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#FAFAFA]">
-      <div className="gradient-accent h-[3px]" />
+    <div style={{ flex: 1, overflowY: "auto", background: "#F7F7F8" }}>
+      {/* Gradient bar */}
+      <div style={{ height: 2, background: "linear-gradient(135deg, #7C3AED, #6D28D9)" }} />
+
+      {/* Header */}
       <HeaderBar
         request={request}
         statusInfo={statusInfo}
@@ -73,51 +124,67 @@ export default function RecruiterWorkspace({
         onDownloadAll={handleDownloadAll}
       />
 
-      {/* Tab bar */}
-      <div className="bg-white border-b border-[var(--border)] sticky top-0 z-10">
-        <div className="max-w-[1100px] mx-auto px-4 md:px-6 flex items-center gap-1">
-          <TabButton
-            active={activeTab === "creatives"}
-            onClick={() => setActiveTab("creatives")}
-            icon={<Package size={15} />}
-            label="Creatives"
-          />
-          <TabButton
-            active={activeTab === "performance"}
-            onClick={() => setActiveTab("performance")}
-            icon={<BarChart3 size={15} />}
-            label="Performance"
-          />
-          <TabButton
-            active={activeTab === "overview"}
-            onClick={() => setActiveTab("overview")}
-            icon={<Info size={15} />}
-            label="Overview"
-          />
+      {/* Tab bar — sticky */}
+      <div style={{ background: "#FFFFFF", borderBottom: "1px solid #E8E8EA", position: "sticky", top: 0, zIndex: 50 }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px", display: "flex", gap: 0 }}>
+          <TabButton active={activeTab === "creatives"} onClick={() => setActiveTab("creatives")} icon={<Image size={14} />} label="Assets & Creatives" />
+          <TabButton active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} icon={<LayoutDashboard size={14} />} label="Dashboard" />
+          <TabButton active={activeTab === "overview"} onClick={() => setActiveTab("overview")} icon={<FileText size={14} />} label="Overview" />
         </div>
       </div>
 
-      {/* Active tab body */}
-      {activeTab === "creatives" && (
-        <CreativeLibrary
-          requestId={request.id}
-          campaignSlug={request.campaign_slug}
-          brief={brief}
-          assets={assets}
-        />
-      )}
-      {activeTab === "performance" && <PerformanceTab requestId={request.id} />}
-      {activeTab === "overview" && (
-        <RecruiterOverviewTab
-          request={request}
-          brief={brief}
-          assets={assets}
-          pipelineRuns={pipelineRuns}
-        />
-      )}
+      {/* Tab content */}
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 32px" }}>
+        {activeTab === "creatives" && (
+          <>
+            <StatsRow approvedCount={approvedAssets.length} channelCount={channelCount} summary={summary} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 18, alignItems: "start" }}>
+              {/* Left column */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                <MessagingAccordion brief={brief} />
+                <div style={{ background: "#FFFFFF", borderRadius: 10, border: "1px solid #E8E8EA", overflow: "hidden" }}>
+                  <div style={{ padding: "14px 18px", borderBottom: "1px solid #E8E8EA", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "#1A1A1A" }}>Creative Library</span>
+                    <span style={{ fontSize: 11, color: "#8A8A8E" }}>{approvedAssets.length} approved</span>
+                  </div>
+                  <CreativeLibrary
+                    requestId={request.id}
+                    campaignSlug={request.campaign_slug}
+                    brief={brief}
+                    assets={assets}
+                    onAssetSelect={handleAssetSelect}
+                  />
+                </div>
+              </div>
+              {/* Right column — sticky link builder */}
+              <div style={{ position: "sticky", top: 72 }}>
+                <LinkBuilderBar
+                  requestId={request.id}
+                  campaignSlug={request.campaign_slug}
+                  activeChannel=""
+                  selectedAsset={selectedAsset}
+                  recruiterInitials={recruiterInitials}
+                  onDetachCreative={() => setSelectedAsset(null)}
+                />
+              </div>
+            </div>
+          </>
+        )}
+        {activeTab === "dashboard" && <DashboardTab requestId={request.id} />}
+        {activeTab === "overview" && (
+          <RecruiterOverviewTab
+            request={request}
+            brief={brief}
+            assets={assets}
+            pipelineRuns={pipelineRuns}
+          />
+        )}
+      </div>
     </div>
   );
 }
+
+/* ─── HeaderBar (internal) ─── */
 
 function HeaderBar({
   request,
@@ -133,50 +200,69 @@ function HeaderBar({
   onDownloadAll?: () => void;
 }) {
   return (
-    <div className="bg-white border-b border-[var(--border)] px-4 pl-14 lg:pl-6 md:pr-10 py-4">
-      <div className="max-w-[1100px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+    <div style={{ background: "#FFFFFF", borderBottom: "1px solid #E8E8EA", padding: "18px 32px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
           <Link
             href="/"
-            className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer shrink-0"
+            style={{ color: "#8A8A8E", display: "flex", alignItems: "center" }}
             aria-label="Back to campaigns"
           >
             <ArrowLeft size={18} />
           </Link>
-          <div className="min-w-0">
-            <h1 className="text-lg font-semibold text-[var(--foreground)] truncate">
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ fontSize: 17, fontWeight: 700, color: "#1A1A1A", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {request.title}
             </h1>
-            <p className="text-sm text-[var(--muted-foreground)]">
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
               {request.campaign_slug && (
-                <span className="font-mono text-xs mr-2">{request.campaign_slug}</span>
+                <span style={{ fontFamily: "monospace", fontSize: 11, color: "#8A8A8E", background: "#F3F3F5", padding: "2px 7px", borderRadius: 4 }}>
+                  {request.campaign_slug}
+                </span>
               )}
-              {request.task_type.replace(/_/g, " ")}
-            </p>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: "2px 10px",
+                  borderRadius: 9999,
+                  color: statusInfo.color,
+                  background: statusInfo.bgColor,
+                  border: `1px solid ${statusInfo.borderColor}`,
+                }}
+              >
+                {statusInfo.label}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          <span
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border"
+        {showDownloadAll && approvedCount > 0 && onDownloadAll && (
+          <button
+            onClick={onDownloadAll}
             style={{
-              color: statusInfo.color,
-              background: statusInfo.bgColor,
-              borderColor: statusInfo.borderColor,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "9px 18px",
+              borderRadius: 9999,
+              background: "#32373C",
+              color: "#FFFFFF",
+              fontSize: 13,
+              fontWeight: 600,
+              border: "none",
+              cursor: "pointer",
             }}
           >
-            {statusInfo.label}
-          </span>
-          {showDownloadAll && approvedCount > 0 && onDownloadAll && (
-            <button onClick={onDownloadAll} className="btn-primary cursor-pointer">
-              <Download size={15} />
-              Download All
-            </button>
-          )}
-        </div>
+            <Download size={14} />
+            Download All
+          </button>
+        )}
       </div>
     </div>
   );
 }
+
+/* ─── TabButton (internal) ─── */
 
 function TabButton({
   active,
@@ -192,12 +278,23 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={[
-        "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 cursor-pointer transition-colors",
-        active
-          ? "text-[var(--foreground)] border-[#32373C]"
-          : "text-[var(--muted-foreground)] border-transparent hover:text-[var(--foreground)]",
-      ].join(" ")}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "11px 18px",
+        fontSize: 13,
+        fontWeight: 600,
+        color: active ? "#1A1A1A" : "#8A8A8E",
+        borderBottom: active ? "2px solid #32373C" : "2px solid transparent",
+        background: "none",
+        border: "none",
+        borderBottomStyle: "solid",
+        borderBottomWidth: 2,
+        borderBottomColor: active ? "#32373C" : "transparent",
+        cursor: "pointer",
+        transition: "color 0.15s ease",
+      }}
     >
       {icon}
       {label}
