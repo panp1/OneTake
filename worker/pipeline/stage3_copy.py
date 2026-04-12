@@ -218,6 +218,10 @@ async def run_stage3(context: dict) -> dict:
             derived_req = {}
     pillar_weighting = derived_req.get("pillar_weighting", {}) if isinstance(derived_req, dict) else {}
 
+    # Extract visual direction for emotional tone injection
+    visual_direction = derived_req.get("visual_direction", {}) if isinstance(derived_req, dict) else {}
+    emotional_tone = visual_direction.get("emotional_tone", "")
+
     # Cultural research — region-specific insights for copy adaptation
     cultural_research: dict = context.get("cultural_research", {})
 
@@ -281,6 +285,7 @@ async def run_stage3(context: dict) -> dict:
                         form_data=form_data,
                         pillar_weighting=pillar_weighting,
                         cultural_context=cultural_context,
+                        emotional_tone=emotional_tone,  # NEW
                     )
 
                     for var in variations:

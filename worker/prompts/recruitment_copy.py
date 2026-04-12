@@ -1309,6 +1309,7 @@ def build_variation_prompts(
     form_data: dict | None = None,
     pillar_weighting: dict | None = None,
     cultural_context: str | None = None,
+    emotional_tone: str = "",
 ) -> list[dict[str, str]]:
     """Build 3 copy prompts — one per brand pillar (Earn / Grow / Shape).
 
@@ -1406,6 +1407,16 @@ def build_variation_prompts(
             f'"{pillar_key}" in your JSON output.'
         )
 
+        # Emotional tone from visual direction (Stage 1)
+        tone_block = ""
+        if emotional_tone:
+            tone_block = (
+                f"\n\nEMOTIONAL TONE (from project visual direction): {emotional_tone}\n"
+                f"Write copy that FEELS {emotional_tone}. This persona is a "
+                f"{persona.get('archetype', 'contributor')} — adapt your word choice, "
+                f"sentence structure, and energy level to match this tone.\n"
+            )
+
         # Cultural context (if provided)
         cultural_block = ""
         if cultural_context:
@@ -1421,6 +1432,7 @@ def build_variation_prompts(
 {facts_block}
 
 {persona_block}
+{tone_block}
 {cultural_block}
 ---
 {base_prompt}""",
