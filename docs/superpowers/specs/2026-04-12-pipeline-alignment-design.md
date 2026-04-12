@@ -73,40 +73,88 @@ def build_project_context(
 ) -> str:
 ```
 
-Output format:
+Output format — **the diamond-level persona mini brief:**
 ```
-PROJECT CONTEXT:
+═══ CAMPAIGN CONTEXT ═══
 Campaign: {title} — {task_type}
 Regions: {regions} | Languages: {languages}
-Work mode: {onsite/remote} | Budget tier: {tier}
+Work mode: {onsite/remote} | Budget tier: Tier {tier}
+Narrative angle: {narrative_angle}
 
-PERSONA: {name} — {archetype description}
-Demographics: {age_range}, {region}, {occupation}
-Psychology: {primary_bias} (primary), {secondary_bias} (secondary)
-Trigger words: {trigger_words}
-Emotional tone: {emotional_tone}
-Motivations: {motivations}
-Pain points: {pain_points}
+═══ PERSONA MINI BRIEF: {name} ═══
+
+WHO THEY ARE:
+  Archetype: {archetype}
+  Matched tier: {matched_tier}
+  Age: {age_range} | Region: {region}
+  Lifestyle: {lifestyle}
+  Daily reality: {daily_reality — what their actual day looks like}
+
+WHAT DRIVES THEM:
+  Motivations: {motivations — why they'd do this work}
+  Pain points: {pain_points — what frustrates them right now}
+  Objections: {objections — what would make them NOT click}
+  Jobs to be done:
+    Functional: {jobs_to_be_done.functional}
+    Emotional: {jobs_to_be_done.emotional}
+    Social: {jobs_to_be_done.social}
+
+HOW TO REACH THEM:
+  Psychology: {primary_bias} (primary) + {secondary_bias} (secondary)
+  Messaging angle: {messaging_angle — how to speak to them}
+  Trigger words: {trigger_words — words that make them stop scrolling}
+  Digital habitat: {digital_habitat — where they spend time online}
+  Best channels: {best_channels}
+
+HOW THEY SHOULD FEEL:
+  Emotional tone: {emotional_tone — authoritative? casual? empathetic?}
+  Visual environment: {work_environment}
+  Wardrobe cues: {wardrobe}
+  Props/tools: {visible_tools}
+  Cultural adaptations: {cultural_adaptations}
 
 CULTURAL CONTEXT ({region}):
-{top 3 cultural research insights — language nuance, platform reality, gig perception}
-
-VISUAL DIRECTION:
-Work environment: {work_environment}
-Wardrobe: {wardrobe}
-Visible tools: {visible_tools}
-Emotional tone: {emotional_tone}
-Cultural adaptations: {cultural_adaptations}
+  Language nuance: {cultural_research.language_nuance — e.g., use Darija not MSA}
+  Gig perception: {cultural_research.gig_work_perception — how remote work is viewed}
+  Trust builders: {cultural_research.data_annotation_trust.trust_builders}
+  Platform reality: {cultural_research.platform_reality.top_platforms_ranked}
 
 CAMPAIGN STRATEGY:
-Pillar split: {earn}% Earn / {grow}% Grow / {shape}% Shape
-Split test: {split_test_variable}
+  Pillar split: {earn}% Earn / {grow}% Grow / {shape}% Shape
+  Split test: {split_test_variable}
 
-STAGE 3 AD COPY (complement this — same message, different format):
-Primary: {stage3_primary_text}
-Headline: {stage3_headline}
-Language: {language}
+STAGE 3 AD COPY (your overlay text must COMPLEMENT this):
+  Primary: {stage3_primary_text}
+  Headline: {stage3_headline}
+  Language: {language_code} ({language_name})
 ```
+
+**Why this is diamond-level:** Every field in this mini brief comes directly from Stage 1's persona engine output. The LLM doesn't get abstract psychology principles — it gets THIS specific person's lifestyle, daily reality, objections, trigger words, and cultural context. A creative for "Dr. Sarah Chen, 34, dermatology resident at Mount Sinai who's skeptical about side-gig platforms" will look fundamentally different from "Marcus, 23, freelance graphic designer in São Paulo who browses TikTok for 3 hours/day."
+
+**Data source mapping:**
+| Mini brief field | Source in Stage 1 output |
+|---|---|
+| archetype | `persona.archetype` |
+| matched_tier | `persona.matched_tier` |
+| lifestyle | `persona.lifestyle` |
+| motivations | `persona.motivations[]` |
+| pain_points | `persona.pain_points[]` |
+| objections | `persona.objections[]` |
+| psychology_profile | `persona.psychology_profile.{primary_bias, secondary_bias, messaging_angle, trigger_words}` |
+| digital_habitat | `persona.digital_habitat[]` |
+| jobs_to_be_done | `persona.jobs_to_be_done.{functional, emotional, social}` |
+| emotional_tone | `brief.derived_requirements.visual_direction.emotional_tone` |
+| work_environment | `brief.derived_requirements.visual_direction.work_environment` |
+| wardrobe | `brief.derived_requirements.visual_direction.wardrobe` |
+| visible_tools | `brief.derived_requirements.visual_direction.visible_tools` |
+| cultural_adaptations | `brief.derived_requirements.visual_direction.cultural_adaptations` |
+| language_nuance | `cultural_research[region].language_nuance` |
+| gig_perception | `cultural_research[region].gig_work_perception` |
+| trust_builders | `cultural_research[region].data_annotation_trust.trust_builders` |
+| platform_reality | `cultural_research[region].platform_reality.top_platforms_ranked` |
+| narrative_angle | `brief.target_audience.narrative_angle` |
+| pillar_split | `brief.campaign_strategies_summary[region].tier` + pillar_weighting |
+| stage3_copy | `copy_assets` matched by pillar + platform |
 
 ### Layer 3: Per-Composition Inputs
 Existing data: actor photo URL, platform spec, pillar, available artifacts.
