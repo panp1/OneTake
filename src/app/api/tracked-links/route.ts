@@ -175,6 +175,8 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const request_id = url.searchParams.get('request_id');
+  const limitParam = url.searchParams.get('limit');
+  const utmTermFilter = url.searchParams.get('utm_term');
   if (!request_id) {
     return Response.json({ error: 'request_id query param required' }, { status: 400 });
   }
@@ -231,7 +233,16 @@ export async function GET(request: Request) {
   const appOrigin = getAppOrigin(request);
   const links = typedRows.map((r) => ({ ...r, short_url: `${appOrigin}/r/${r.slug}` }));
 
-  // Compute summary aggregates
+  // Apply optional utm_term filter
+  let filteredLinks = links;
+  if (utmTermFilter) {
+    filteredLinks = links.filter((l) => l.utm_term === utmTermFilter);
+  }
+
+  // Apply optional limit
+  const limitedLinks = limitParam ? filteredLinks.slice(0, parseInt(limitParam, 10)) : filteredLinks;
+
+  // Compute summary aggregates (always from full unfiltered links for accuracy)
   const total_clicks = links.reduce((s, l) => s + l.click_count, 0);
   const total_links = links.length;
 
@@ -258,13 +269,27 @@ export async function GET(request: Request) {
     };
   }
 
+  // New summary fields
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const todayISO = today.toISOString();
+  const clicks_today = links.reduce((s, l) => {
+    if (l.last_clicked_at && l.last_clicked_at >= todayISO) return s + l.click_count;
+    return s;
+  }, 0);
+  const recruiter_count = new Set(links.map((l) => l.utm_term)).size;
+  const channel_count = channelTotals.size;
+
   return Response.json({
-    links,
+    links: limitedLinks,
     summary: {
       total_clicks,
       total_links,
       best_channel,
       top_creative,
+      clicks_today,
+      recruiter_count,
+      channel_count,
     },
   });
 }

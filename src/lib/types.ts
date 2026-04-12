@@ -467,6 +467,9 @@ export interface TrackedLinksSummary {
   total_links: number;
   best_channel: { name: string; clicks: number; pct: number } | null;
   top_creative: { name: string; clicks: number; asset_id: string | null } | null;
+  clicks_today: number;
+  recruiter_count: number;
+  channel_count: number;
 }
 
 export interface TrackedLinksResponse {
