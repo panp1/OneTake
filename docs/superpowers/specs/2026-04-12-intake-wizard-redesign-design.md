@@ -134,12 +134,33 @@ Sticky bottom bar with:
 
 ## New Fields to Add
 
-| Field | Key | Type | Required | Where |
-|---|---|---|---|---|
-| Ad Budget | `ad_budget` | number | Yes (all tasks) | Step 3 — Compensation section |
-| Rate/Amount | `compensation_rate` | number | Yes (all tasks) | Step 3 — Compensation section |
-| ADA Form URL | `ada_form_url` | text | Conditional (onsite only) | Step 4 — ADA section |
-| Work Mode | `work_mode` | enum (onsite/remote) | Yes | Step 2 — stored in form_data |
+| Field | `form_data` Key | Type | Required | Where | Pipeline Consumer |
+|---|---|---|---|---|---|
+| Monthly Ad Budget | `monthly_budget` | number | Yes | Step 3 — Compensation | `calculate_budget_cascade()` in Stage 1 |
+| Compensation Rate | `compensation_rate` | number | Yes | Step 3 — Compensation | Future — displayed in creatives |
+| Target Demographic | `demographic` | text | No (optional) | Step 3 — below regions | `research_all_regions()` in Stage 1. If empty, Stage 1 infers from task type + qualifications + location |
+| Work Mode | `work_mode` | enum (onsite/remote) | Yes | Step 2 — stored in form_data | Triggers ADA form requirement |
+| ADA Form URL | `ada_form_url` | text | Conditional (onsite) | Step 4 — ADA section | Saved to `campaign_landing_pages` |
+| Task Description | `task_description` | textarea | No (optional) | Step 3 — below title | Brief generation prompt context |
+
+## Pipeline Wiring Fixes
+
+### 1. `monthly_budget` key mapping
+The wizard's "Monthly Ad Budget" field MUST save as `form_data.monthly_budget` (not `ad_budget`). Stage 1 reads `form_data.get("monthly_budget")` for `calculate_budget_cascade()`.
+
+### 2. `demographic` — optional, inferred if empty
+Stage 1 currently hardcodes `"young adults 18-35"` as fallback. Update `stage1_intelligence.py` to infer demographic from:
+- `qualifications_required` (e.g., "licensed nurse" → professionals 28-55)
+- `task_type` (e.g., transcription → typically 20-40)
+- `location_scope` (e.g., university towns → students 18-25)
+
+If `form_data.get("demographic")` is provided, use it directly. If empty, build an inference string from the other fields and pass that to cultural research instead of the hardcoded default.
+
+### 3. `task_description` standardization
+Stage 1 inconsistently reads `form_data.get("description")` in one place and `form_data.get("task_description")` in another. Fix: standardize on `task_description` everywhere. Update `worker/pipeline/stage1_intelligence.py` line 229 to read `task_description` instead of `description`.
+
+### 4. `work_mode` → ADA form logic
+When `work_mode === "onsite"`, the wizard shows the ADA form section as required. On submit, save `ada_form_url` to the `campaign_landing_pages` table via PATCH `/api/intake/[id]/landing-pages`.
 
 ## Data Flow
 
@@ -167,7 +188,8 @@ Sticky bottom bar with:
 | File | Changes |
 |---|---|
 | `src/app/intake/new/page.tsx` | Replace DynamicForm render with IntakeWizard component |
-| `src/lib/seed-schemas.ts` | Add `ad_budget`, `compensation_rate` to base_fields |
+| `src/lib/seed-schemas.ts` | Add `monthly_budget`, `compensation_rate`, `demographic`, `task_description` to base_fields |
+| `worker/pipeline/stage1_intelligence.py` | Fix `demographic` inference fallback (replace hardcoded "young adults 18-35"), fix `description` → `task_description` key |
 
 ### Preserved
 - `DynamicForm.tsx` — not deleted, still used by admin schema editor
