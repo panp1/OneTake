@@ -46,9 +46,10 @@ Designer Workspace
 **The UI itself must be platinum.** This is what "no AI slop" means in the interface:
 
 **Typography:**
-- Headings: Georgia serif (matches the creative output — designer sees consistency)
-- Body: system sans-serif, proper line-height (1.6), letter-spacing (-0.01em on headings)
-- Monospace for technical metadata (VQA scores, dimensions)
+- ALL text: system sans-serif `-apple-system, system-ui, 'Segoe UI', Roboto, sans-serif` — consistent with Nova brand. NO Georgia serif anywhere.
+- Headings: system sans, `font-weight: 700`, `letter-spacing: -0.3px`
+- Body: system sans, proper `line-height: 1.6`
+- Monospace for technical metadata (VQA scores, dimensions): `'SF Mono', 'Fira Code', monospace`
 - NO generic "Untitled" or "Unknown" labels — every element has real data or is hidden
 
 **Color:**
@@ -64,6 +65,20 @@ Designer Workspace
 - Card gap: 16px
 - Section gap: 32px
 - The workspace should feel spacious, not cramped
+
+**Theme Toggle:**
+- Dark mode DEFAULT (dark canvas `#0F0F10` — creatives pop against dark)
+- Light mode toggleable via sun/moon icon in header
+- Light theme: white canvas `#FFFFFF`, card surfaces `#F7F7F8`, dark text `#1A1A1A`
+- Toggle state persists in localStorage
+- Transition: 200ms ease on background/color changes
+
+**Format Grid Layout:**
+- `justify-content: space-evenly` — thumbnails fill the panel width, no dead space pooling
+- Inner card padding: 6px between border and image for breathing room
+- Inner image `border-radius: 8px` for soft feel
+- Gap: 16px between cards
+- Real Figma logo SVG (5-color) for the export button — NOT a generic grid icon
 
 **Interactions:**
 - Hover on asset: subtle scale(1.02) + elevated shadow
