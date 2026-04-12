@@ -75,9 +75,26 @@ async function fetchAsBase64(url: string): Promise<string | null> {
   }
 }
 
+// Platform → native dimensions lookup (matches worker/ai/compositor.py PLATFORM_SPECS)
+const PLATFORM_DIMS: Record<string, { width: number; height: number }> = {
+  ig_feed: { width: 1080, height: 1080 },
+  ig_story: { width: 1080, height: 1920 },
+  ig_carousel: { width: 1080, height: 1350 },
+  linkedin_feed: { width: 1200, height: 627 },
+  facebook_feed: { width: 1200, height: 628 },
+  tiktok_feed: { width: 1080, height: 1920 },
+  telegram_card: { width: 1280, height: 720 },
+  twitter_post: { width: 1200, height: 675 },
+  google_display: { width: 1200, height: 628 },
+  indeed_banner: { width: 1200, height: 628 },
+  whatsapp_story: { width: 1080, height: 1920 },
+  wechat_moments: { width: 1080, height: 1080 },
+};
+
 function parseDimensions(
   format: string,
   content: AssetContent,
+  platform: string,
 ): { width: number; height: number } {
   // Try content metadata first
   if (content.width && content.height) {
@@ -87,6 +104,10 @@ function parseDimensions(
   const match = /^(\d+)x(\d+)$/i.exec(format?.trim() ?? "");
   if (match) {
     return { width: parseInt(match[1], 10), height: parseInt(match[2], 10) };
+  }
+  // Then try platform lookup
+  if (platform && PLATFORM_DIMS[platform]) {
+    return PLATFORM_DIMS[platform];
   }
   return { width: 1080, height: 1080 };
 }
@@ -124,7 +145,7 @@ function buildTextLayers(
     const fontSize = isVertical ? Math.round(width * 0.065) : Math.round(width * 0.055);
     layers.push(`  <g id="text-headline" data-figma-label="Headline (Editable)">
     <text x="${safeMargin}" y="${headlineY}"
-      font-family="-apple-system, system-ui, Segoe UI, Roboto, sans-serif"
+      font-family="-apple-system, system-ui, 'Segoe UI', Roboto, sans-serif"
       font-size="${fontSize}" font-weight="800" fill="#FFFFFF"
       opacity="0.95">
       ${escapeXml(headline)}
@@ -138,7 +159,7 @@ function buildTextLayers(
     const fontSize = isVertical ? Math.round(width * 0.038) : Math.round(width * 0.032);
     layers.push(`  <g id="text-subheadline" data-figma-label="Subheadline (Editable)">
     <text x="${safeMargin}" y="${subY}"
-      font-family="-apple-system, system-ui, Segoe UI, Roboto, sans-serif"
+      font-family="-apple-system, system-ui, 'Segoe UI', Roboto, sans-serif"
       font-size="${fontSize}" font-weight="500" fill="#FFFFFF"
       opacity="0.85">
       ${escapeXml(sub)}
@@ -162,10 +183,10 @@ function buildTextLayers(
       rx="${Math.round(pillHeight / 2)}" ry="${Math.round(pillHeight / 2)}"
       fill="#E91E8C" />
     <text x="${ctaX}" y="${Math.round(ctaY + fontSize * 0.35)}"
-      font-family="-apple-system, system-ui, Segoe UI, Roboto, sans-serif"
+      font-family="-apple-system, system-ui, 'Segoe UI', Roboto, sans-serif"
       font-size="${fontSize}" font-weight="700" fill="#FFFFFF"
-      text-anchor="middle" text-transform="uppercase">
-      ${escapeXml(cta)}
+      text-anchor="middle">
+      ${escapeXml(cta.toUpperCase())}
     </text>
   </g>`);
   }
@@ -236,7 +257,7 @@ export async function GET(
   }
 
   const content: AssetContent = asset.content ?? {};
-  const { width, height } = parseDimensions(asset.format, content);
+  const { width, height } = parseDimensions(asset.format, content, asset.platform);
 
   // Fetch the rendered PNG and convert to base64 for embedding
   let pngDataUri: string | null = null;
@@ -272,7 +293,9 @@ export async function GET(
      xmlns:xlink="http://www.w3.org/1999/xlink"
      viewBox="0 0 ${width} ${height}"
      width="${width}"
-     height="${height}">
+     height="${height}"
+     shape-rendering="geometricPrecision"
+     text-rendering="optimizeLegibility">
   <title>${escapeXml(headline)} — ${escapeXml(actorName)}</title>
   <desc>Archetype: ${escapeXml(archetype)}, Platform: ${escapeXml(platform)}, Pillar: ${escapeXml(pillar)}</desc>
 
