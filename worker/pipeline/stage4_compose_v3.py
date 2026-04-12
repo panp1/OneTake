@@ -294,6 +294,16 @@ async def _compose_one(
         # Filter artifact catalog for this pillar/platform
         filtered_catalog = filter_catalog(catalog, pillar, platform)
 
+        # Select best scene image for this pillar
+        scene = _select_scene_for_pillar(actor, pillar)
+        composition_actor = dict(actor)
+        composition_actor["photo_url"] = scene.get("photo_url", actor.get("photo_url", ""))
+        composition_actor["cutout_url"] = scene.get("cutout_url", actor.get("cutout_url", ""))
+        logger.info(
+            "  Scene selected for pillar=%s: %s",
+            pillar, scene.get("scene", "default"),
+        )
+
         # Select archetype
         archetype = select_archetype(pillar, visual_direction, platform)
 
@@ -304,7 +314,7 @@ async def _compose_one(
             platform=platform,
             platform_spec=spec,
             pillar=pillar,
-            actor=actor,
+            actor=composition_actor,  # uses pillar-matched scene photo
             copy=graphic_copy,
             visual_direction=visual_direction,
             project_context=project_ctx,
@@ -803,10 +813,11 @@ def _get_copy_for_pillar_platform(
 
 
 def _attach_photo_urls(actors: list[dict], image_assets: list[dict]) -> list[dict]:
-    """Attach photo_url and cutout_url to each actor dict from image assets.
+    """Attach ALL scene photo URLs to each actor dict from image assets.
 
-    Matches images to actors via actor_id. Takes the first available image
-    per actor. Actors with no matching image get an empty photo_url.
+    Matches images to actors via actor_id. Collects ALL images per actor
+    (not just the first) so Stage 4 can select the best scene per creative.
+    The first image is used as the default ``photo_url`` for backward compat.
 
     Parameters
     ----------
@@ -818,36 +829,88 @@ def _attach_photo_urls(actors: list[dict], image_assets: list[dict]) -> list[dic
     Returns
     -------
     list[dict]
-        Actors with ``photo_url`` and ``cutout_url`` fields added.
+        Actors with ``photo_url``, ``cutout_url``, and ``scene_images`` added.
     """
-    # Build actor_id → first image mapping
-    actor_image_map: dict[str, dict] = {}
+    # Build actor_id → ALL images mapping
+    actor_images: dict[str, list[dict]] = {}
     for asset in image_assets:
         aid = str(asset.get("actor_id", ""))
-        if aid and aid not in actor_image_map:
-            meta = asset.get("content") or {}
-            if isinstance(meta, str):
-                try:
-                    meta = json.loads(meta)
-                except json.JSONDecodeError:
-                    meta = {}
-            actor_image_map[aid] = {
-                "photo_url": asset.get("blob_url", ""),
-                "cutout_url": meta.get("cutout_url", asset.get("blob_url", "")),
-                "scene": meta.get("scene", "default"),
-            }
+        if not aid:
+            continue
+        meta = asset.get("content") or {}
+        if isinstance(meta, str):
+            try:
+                meta = json.loads(meta)
+            except json.JSONDecodeError:
+                meta = {}
+        img_entry = {
+            "photo_url": asset.get("blob_url", ""),
+            "cutout_url": meta.get("cutout_url", asset.get("blob_url", "")),
+            "scene": meta.get("scene", meta.get("outfit_key", "default")),
+            "ad_angle": meta.get("ad_angle", ""),
+            "emotion": meta.get("emotion", ""),
+        }
+        if aid not in actor_images:
+            actor_images[aid] = []
+        actor_images[aid].append(img_entry)
 
     enriched = []
     for actor in actors:
         actor_id = str(actor.get("id", ""))
-        img = actor_image_map.get(actor_id, {})
+        images = actor_images.get(actor_id, [])
         enriched_actor = dict(actor)
-        enriched_actor.setdefault("photo_url", img.get("photo_url", ""))
-        enriched_actor.setdefault("cutout_url", img.get("cutout_url", ""))
+        # Default photo_url = first image (backward compat)
+        if images:
+            enriched_actor.setdefault("photo_url", images[0]["photo_url"])
+            enriched_actor.setdefault("cutout_url", images[0]["cutout_url"])
+        else:
+            enriched_actor.setdefault("photo_url", "")
+            enriched_actor.setdefault("cutout_url", "")
+        # ALL scene images available for scene-aware composition
+        enriched_actor["scene_images"] = images
         enriched.append(enriched_actor)
 
     actors_with_photos = sum(1 for a in enriched if a.get("photo_url"))
+    total_scenes = sum(len(a.get("scene_images", [])) for a in enriched)
     logger.info(
-        "Actors enriched: %d total, %d with photos", len(enriched), actors_with_photos
+        "Actors enriched: %d total, %d with photos, %d scene images",
+        len(enriched), actors_with_photos, total_scenes,
     )
     return enriched
+
+
+def _select_scene_for_pillar(actor: dict, pillar: str) -> dict[str, str]:
+    """Select the best scene image for a given pillar/creative angle.
+
+    Matching priority:
+    1. Scene whose ad_angle contains the pillar keyword
+    2. Scene with matching emotional tone (earn→reward, shape→professional, grow→growth)
+    3. First available scene (fallback)
+
+    Returns dict with photo_url, cutout_url, scene keys.
+    """
+    scene_images: list[dict] = actor.get("scene_images", [])
+    if not scene_images:
+        return {
+            "photo_url": actor.get("photo_url", ""),
+            "cutout_url": actor.get("cutout_url", ""),
+        }
+
+    # Pillar → scene signal mapping
+    pillar_signals: dict[str, list[str]] = {
+        "earn": ["reward", "payment", "earning", "money", "celebration", "checking phone"],
+        "grow": ["growth", "learning", "transition", "preparing", "commuting", "different angle"],
+        "shape": ["professional", "work", "primary", "expert", "clinical", "focused"],
+    }
+    signals = pillar_signals.get(pillar, [])
+
+    # Try to match by ad_angle or scene name
+    for img in scene_images:
+        scene_text = f"{img.get('scene', '')} {img.get('ad_angle', '')} {img.get('emotion', '')}".lower()
+        if any(s in scene_text for s in signals):
+            return img
+
+    # Rotate through scenes by pillar index to ensure variety
+    pillar_idx = {"earn": 3, "grow": 2, "shape": 0}.get(pillar, 0)
+    selected = scene_images[pillar_idx % len(scene_images)]
+    return selected
