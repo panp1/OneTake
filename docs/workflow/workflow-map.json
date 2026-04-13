@@ -1,0 +1,393 @@
+{
+  "version": "2026-04-09",
+  "repository": "centric-intake",
+  "artifacts": [
+    {
+      "name": "end_to_end_workflow",
+      "type": "mermaid",
+      "path": "docs/workflow/end-to-end-workflow.mmd"
+    },
+    {
+      "name": "generation_pipeline",
+      "type": "mermaid",
+      "path": "docs/workflow/generation-pipeline.mmd"
+    }
+  ],
+  "roles": [
+    "recruiter",
+    "admin",
+    "marketing_manager",
+    "designer",
+    "agency",
+    "worker",
+    "database"
+  ],
+  "status_flow": [
+    {
+      "status": "draft",
+      "meaning": "initial or returned-for-changes state"
+    },
+    {
+      "status": "generating",
+      "meaning": "compute job queued or in progress"
+    },
+    {
+      "status": "review",
+      "meaning": "generation complete, awaiting marketing approval"
+    },
+    {
+      "status": "approved",
+      "meaning": "package approved and ready for designer/recruiter/agency handoff"
+    },
+    {
+      "status": "sent",
+      "meaning": "final package delivered downstream"
+    },
+    {
+      "status": "rejected",
+      "meaning": "request rejected"
+    },
+    {
+      "status": "split",
+      "meaning": "parent campaign split into child campaigns by worker"
+    }
+  ],
+  "end_to_end_workflow": {
+    "nodes": [
+      {
+        "id": "A",
+        "label": "Recruiter/Admin creates intake request",
+        "owner": [
+          "recruiter",
+          "admin"
+        ]
+      },
+      {
+        "id": "B",
+        "label": "Schema validation + job requirements extraction",
+        "owner": [
+          "database",
+          "worker"
+        ]
+      },
+      {
+        "id": "C",
+        "label": "Request saved in intake_requests",
+        "owner": [
+          "database"
+        ]
+      },
+      {
+        "id": "D",
+        "label": "Status set to generating",
+        "owner": [
+          "database"
+        ]
+      },
+      {
+        "id": "E",
+        "label": "compute_jobs row created",
+        "owner": [
+          "database"
+        ]
+      },
+      {
+        "id": "F",
+        "label": "Local Python worker claims job from Neon",
+        "owner": [
+          "worker"
+        ]
+      },
+      {
+        "id": "G",
+        "label": "Generation Pipeline",
+        "owner": [
+          "worker"
+        ]
+      },
+      {
+        "id": "H",
+        "label": "Status set to review",
+        "owner": [
+          "database"
+        ]
+      },
+      {
+        "id": "I",
+        "label": "Marketing Manager review in admin dashboard",
+        "owner": [
+          "marketing_manager",
+          "admin"
+        ]
+      },
+      {
+        "id": "J",
+        "label": "Approve?",
+        "owner": [
+          "marketing_manager",
+          "admin"
+        ],
+        "kind": "decision"
+      },
+      {
+        "id": "K",
+        "label": "Approval record: changes_requested",
+        "owner": [
+          "database"
+        ]
+      },
+      {
+        "id": "L",
+        "label": "Status reset to draft",
+        "owner": [
+          "database"
+        ]
+      },
+      {
+        "id": "M",
+        "label": "Regenerate full pipeline or specific stage",
+        "owner": [
+          "marketing_manager",
+          "admin",
+          "worker"
+        ]
+      },
+      {
+        "id": "N",
+        "label": "Approval record: approved",
+        "owner": [
+          "database"
+        ]
+      },
+      {
+        "id": "O",
+        "label": "Magic link created",
+        "owner": [
+          "database"
+        ]
+      },
+      {
+        "id": "P",
+        "label": "Status set to approved",
+        "owner": [
+          "database"
+        ]
+      },
+      {
+        "id": "Q",
+        "label": "Designer notified / designer portal opens",
+        "owner": [
+          "designer"
+        ]
+      },
+      {
+        "id": "R",
+        "label": "Designer reviews context, downloads kit, leaves notes, uploads replacements",
+        "owner": [
+          "designer"
+        ]
+      },
+      {
+        "id": "S",
+        "label": "Submit finals?",
+        "owner": [
+          "designer"
+        ],
+        "kind": "decision"
+      },
+      {
+        "id": "T",
+        "label": "Status set to sent",
+        "owner": [
+          "database"
+        ]
+      },
+      {
+        "id": "U",
+        "label": "Recruiter post-approval workspace unlocked",
+        "owner": [
+          "recruiter"
+        ]
+      },
+      {
+        "id": "V",
+        "label": "Recruiter uses approved creatives",
+        "owner": [
+          "recruiter"
+        ]
+      },
+      {
+        "id": "W",
+        "label": "Recruiter builds tracked links",
+        "owner": [
+          "recruiter"
+        ]
+      },
+      {
+        "id": "X",
+        "label": "Short-link redirects tracked",
+        "owner": [
+          "database"
+        ]
+      },
+      {
+        "id": "Y",
+        "label": "Agency link can be generated",
+        "owner": [
+          "marketing_manager",
+          "admin"
+        ]
+      },
+      {
+        "id": "Z",
+        "label": "Agency package view + ZIP export",
+        "owner": [
+          "agency"
+        ]
+      }
+    ],
+    "edges": [
+      ["A", "B"],
+      ["B", "C"],
+      ["C", "D"],
+      ["D", "E"],
+      ["E", "F"],
+      ["F", "G"],
+      ["G", "H"],
+      ["H", "I"],
+      ["I", "J"],
+      ["J", "K", "request_changes"],
+      ["K", "L"],
+      ["L", "M"],
+      ["M", "D"],
+      ["J", "N", "approve"],
+      ["N", "O"],
+      ["O", "P"],
+      ["P", "Q"],
+      ["Q", "R"],
+      ["R", "S"],
+      ["S", "R", "not_yet"],
+      ["S", "T", "submit_finals"],
+      ["P", "U"],
+      ["T", "U"],
+      ["U", "V"],
+      ["V", "W"],
+      ["W", "X"],
+      ["P", "Y"],
+      ["T", "Y"],
+      ["Y", "Z"]
+    ]
+  },
+  "generation_pipeline": {
+    "entrypoint": "compute_jobs claim",
+    "terminal_state": "review",
+    "stages": [
+      {
+        "stage_number": 1,
+        "name": "Strategic Intelligence",
+        "inputs": [
+          "intake request",
+          "target regions",
+          "target languages",
+          "form_data"
+        ],
+        "outputs": [
+          "cultural research",
+          "personas",
+          "campaign strategies",
+          "brief_data",
+          "design_direction",
+          "derived_requirements"
+        ],
+        "feeds_next_stage": [
+          "personas",
+          "design_direction",
+          "derived_requirements",
+          "brief_data",
+          "campaign_strategies"
+        ]
+      },
+      {
+        "stage_number": 2,
+        "name": "Character-Driven Image Generation",
+        "inputs": [
+          "personas",
+          "design_direction",
+          "regions",
+          "languages"
+        ],
+        "outputs": [
+          "actor profiles",
+          "validated seed image per actor",
+          "image variations",
+          "base_image assets"
+        ],
+        "feeds_next_stage": [
+          "actor profiles",
+          "base_image assets",
+          "validated visual identity"
+        ]
+      },
+      {
+        "stage_number": 3,
+        "name": "Copy Generation",
+        "inputs": [
+          "brief",
+          "personas",
+          "design_direction",
+          "regions",
+          "languages",
+          "channel strategy"
+        ],
+        "outputs": [
+          "persona x channel x language copy variants",
+          "copy assets"
+        ],
+        "feeds_next_stage": [
+          "approved copy variants by persona/platform/language"
+        ]
+      },
+      {
+        "stage_number": 4,
+        "name": "Layout Composition",
+        "inputs": [
+          "actors",
+          "base images",
+          "copy assets",
+          "brief",
+          "design direction",
+          "platform specs"
+        ],
+        "outputs": [
+          "composed_creative assets",
+          "carousel assets",
+          "overlay renders",
+          "final renders"
+        ],
+        "feeds_next_stage": [
+          "final creative direction",
+          "rendered creative assets",
+          "messaging context for video"
+        ]
+      },
+      {
+        "stage_number": 5,
+        "name": "Video Generation",
+        "optional": true,
+        "inputs": [
+          "personas",
+          "actors",
+          "brief",
+          "stage 2 images",
+          "stage 3/4 messaging context"
+        ],
+        "outputs": [
+          "short UGC-style video assets"
+        ],
+        "feeds_next_stage": [
+          "none"
+        ]
+      }
+    ]
+  }
+}

@@ -162,7 +162,7 @@ flowchart TD
     %% PIPELINE COMPLETE
     DB7 --> DONE["✅ All 6 stages complete"]
     DONE --> STATUS[("💾 intake_requests\nstatus → review")]
-    STATUS --> N1["📣 Teams Notification\n'Creatives ready for review'"]
+    STATUS --> N1["📣 Teams + Outlook Notification\n'Creatives ready for review'"]
 
     %% 3-STAGE APPROVAL
     N1 --> MKT{"🚦 Marketing Manager Review\nedits strategy, reviews creatives"}
@@ -177,7 +177,7 @@ flowchart TD
     FGATE -->|"Approve"| SENT[("💾 status → sent")]
 
     SENT --> MAGIC["🔗 Generate agency magic link\ntoken-authenticated URL"]
-    MAGIC --> N2["📣 Teams Notification\nmagic link sent to agency"]
+    MAGIC --> N2["📣 Teams + Outlook Notification\nmagic link sent to agency"]
     MAGIC --> AGENCY["Agency opens portal\n/agency/id?token=..."]
 
     %% LANDING PAGE SERVING

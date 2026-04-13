@@ -27,7 +27,7 @@ flowchart TD
 
     C --> D[Pipeline auto-triggers — status: generating]
     D --> E[⏳ Recruiter waits — sees progress on dashboard]
-    E --> F[📣 Teams notification: Creatives Ready]
+    E --> F[📣 Teams + Outlook Notification: Creatives Ready]
 
     F --> G[Recruiter opens Creative Library]
     G --> H[Views composed creatives per channel]
@@ -93,7 +93,7 @@ flowchart TD
     I --> J{Final Approval Gate}
     J -->|Approve| K[Status → sent]
     K --> L[🔗 Agency magic link auto-generated]
-    L --> M[📣 Teams notification to agency]
+    L --> M[📣 Teams + Outlook Notification to agency]
 ```
 
 **Access:** `/intake/[id]` (admin role)
@@ -168,7 +168,7 @@ What the agency receives via magic link — strategy, creatives, targeting, and 
 
 ```mermaid
 flowchart TD
-    A[📧 Agency receives magic link via Teams/email]
+    A[📧 Agency receives magic link via Teams + Outlook email]
     A --> B[Opens /agency/id?token=... — no login required]
 
     B --> C[Agency Portal — 2 tabs]
@@ -268,7 +268,7 @@ flowchart TD
 
     DB7 --> DONE[All stages complete]
     DONE --> STATUS[(intake_requests → status: review)]
-    STATUS --> NOTIFY1[📣 Teams notification: Creatives Ready]
+    STATUS --> NOTIFY1[📣 Teams + Outlook Notification: Creatives Ready]
 
     NOTIFY1 --> MKT{Marketing Manager Review}
     MKT -->|Approve| DESIGN[Designer works on creatives]
@@ -281,7 +281,7 @@ flowchart TD
 
     FINAL -->|Approve| SENT[(status → sent)]
     SENT --> MAGIC[🔗 Generate agency magic link]
-    MAGIC --> NOTIFY2[📣 Teams notification to agency]
+    MAGIC --> NOTIFY2[📣 Teams + Outlook Notification to agency]
     MAGIC --> AGENCY[Agency portal opens — /agency/id]
 
     DB7 --> SERVE[/lp/slug route serves landing pages]
@@ -290,4 +290,4 @@ flowchart TD
 
 **LLMs used:** Kimi K2.5 (Stage 1), Seedream 4.5 (Stage 2), Gemma 4 (Stage 3, 6), GLM-5 (Stage 4), Flux 2 (Stage 4 edit), Kling 3.0 (Stage 5)
 **Quality gates:** VQA (Stage 2, 4), Copy Quality (Stage 3), Drift Validation (Stage 6)
-**Notifications:** Microsoft Teams webhooks at pipeline completion and final approval
+**Notifications:** Microsoft Teams webhooks + Outlook email at pipeline completion and final approval

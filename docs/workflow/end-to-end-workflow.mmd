@@ -1,0 +1,36 @@
+flowchart TD
+    A["Recruiter/Admin creates intake request"] --> B["Schema validation + job requirements extraction"]
+    B --> C["Request saved in intake_requests"]
+    C --> D["Status set to generating"]
+    D --> E["compute_jobs row created"]
+    E --> F["Local Python worker claims job from Neon"]
+
+    F --> G["Generation Pipeline"]
+    G --> H["Status set to review"]
+    H --> I["Marketing Manager review in admin dashboard"]
+
+    I --> J{"Approve?"}
+    J -- "No, request changes" --> K["Approval record: changes_requested"]
+    K --> L["Status reset to draft"]
+    L --> M["Regenerate full pipeline or specific stage"]
+    M --> D
+
+    J -- "Yes" --> N["Approval record: approved"]
+    N --> O["Magic link created"]
+    O --> P["Status set to approved"]
+    P --> Q["Designer notified / designer portal opens"]
+
+    Q --> R["Designer reviews context, downloads kit, leaves notes, uploads replacements"]
+    R --> S{"Submit finals?"}
+    S -- "Not yet" --> R
+    S -- "Yes" --> T["Status set to sent"]
+
+    P --> U["Recruiter post-approval workspace unlocked"]
+    T --> U
+    U --> V["Recruiter uses approved creatives"]
+    V --> W["Recruiter builds tracked links"]
+    W --> X["Short-link redirects tracked"]
+
+    P --> Y["Agency link can be generated"]
+    T --> Y
+    Y --> Z["Agency package view + ZIP export"]
