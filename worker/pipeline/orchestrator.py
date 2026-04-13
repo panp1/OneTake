@@ -1,4 +1,4 @@
-"""Pipeline orchestrator -- runs stages 1-4 sequentially.
+"""Pipeline orchestrator -- runs stages 1-6 sequentially.
 
 Handles full generation and single-stage regeneration. Each stage
 receives a shared *context* dict that accumulates results. On failure
@@ -15,6 +15,7 @@ from pipeline.stage3_copy import run_stage3
 from pipeline.stage4_compose_v3 import run_stage4
 from pipeline.stage4_carousel import run_carousel_stage
 from pipeline.stage5_video import run_stage5 as run_video_stage
+from pipeline.stage6_landing_pages import run_stage6
 from teams_notify import notify_generation_complete, notify_generation_failed
 
 logger = logging.getLogger(__name__)
@@ -59,6 +60,7 @@ async def run_pipeline(job: dict) -> None:
         (3, "Copy Generation", run_stage3),
         (4, "Layout Composition", run_stage4),
         (5, "Video Generation", run_video_stage),
+        (6, "Landing Page Generation", run_stage6),
     ]
 
     # If regenerating a specific stage, only run that one.
