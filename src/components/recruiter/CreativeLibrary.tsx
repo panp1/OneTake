@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import ChannelMessagingCard from "./ChannelMessagingCard";
 import CreativeGrid from "./CreativeGrid";
 import type { CreativeBrief, GeneratedAsset } from "@/lib/types";
 
@@ -39,7 +38,7 @@ export default function CreativeLibrary({
   onAssetSelect,
 }: CreativeLibraryProps) {
   const approvedAssets = useMemo(
-    () => assets.filter((a) => a.evaluation_passed === true && a.blob_url),
+    () => assets.filter((a) => a.asset_type === "composed_creative" && a.evaluation_passed === true && a.blob_url),
     [assets]
   );
 
@@ -123,11 +122,6 @@ export default function CreativeLibrary({
           );
         })}
       </div>
-
-      <ChannelMessagingCard
-        brief={brief}
-        channel={CHANNEL_LABEL[activeChannel] ?? activeChannel}
-      />
 
       <CreativeGrid
         assets={channelAssets}

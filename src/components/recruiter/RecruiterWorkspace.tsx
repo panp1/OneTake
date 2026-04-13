@@ -42,7 +42,7 @@ export default function RecruiterWorkspace({
   const isApproved = request.status === "approved" || request.status === "sent";
 
   const approvedAssets = useMemo(
-    () => assets.filter((a) => a.evaluation_passed === true && a.blob_url),
+    () => assets.filter((a) => a.asset_type === "composed_creative" && a.evaluation_passed === true && a.blob_url),
     [assets]
   );
 
@@ -157,7 +157,7 @@ export default function RecruiterWorkspace({
                 </div>
               </div>
               {/* Right column — sticky link builder */}
-              <div style={{ position: "sticky", top: 72 }}>
+              <div style={{ position: "sticky", top: 56, alignSelf: "start", maxHeight: "calc(100vh - 72px)", overflowY: "auto" }}>
                 <LinkBuilderBar
                   requestId={request.id}
                   campaignSlug={request.campaign_slug}
