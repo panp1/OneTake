@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Image, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, Download, Image, LayoutDashboard, Megaphone } from "lucide-react";
 import { getRecruiterStatus } from "@/lib/format";
 import CreativeLibrary from "./CreativeLibrary";
 import LinkBuilderBar from "./LinkBuilderBar";
 import DashboardTab from "./DashboardTab";
+import OrganicTab from "./OrganicTab";
 import MessagingAccordion from "./MessagingAccordion";
 import { StatsRow } from "./StatsRow";
 import type {
@@ -17,7 +18,7 @@ import type {
   TrackedLinksSummary,
 } from "@/lib/types";
 
-type TabKey = "creatives" | "dashboard";
+type TabKey = "creatives" | "organic" | "dashboard";
 
 interface RecruiterWorkspaceProps {
   request: IntakeRequest;
@@ -128,6 +129,7 @@ export default function RecruiterWorkspace({
       <div style={{ background: "#FFFFFF", borderBottom: "1px solid #E8E8EA", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px", display: "flex", gap: 0 }}>
           <TabButton active={activeTab === "creatives"} onClick={() => setActiveTab("creatives")} icon={<Image size={14} />} label="Assets & Creatives" />
+          <TabButton active={activeTab === "organic"} onClick={() => setActiveTab("organic")} icon={<Megaphone size={14} />} label="Organic" />
           <TabButton active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} icon={<LayoutDashboard size={14} />} label="Dashboard" />
         </div>
       </div>
@@ -168,6 +170,9 @@ export default function RecruiterWorkspace({
               </div>
             </div>
           </>
+        )}
+        {activeTab === "organic" && (
+          <OrganicTab assets={assets} />
         )}
         {activeTab === "dashboard" && <DashboardTab requestId={request.id} />}
       </div>

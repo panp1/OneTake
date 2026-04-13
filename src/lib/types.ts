@@ -209,7 +209,7 @@ export interface ActorProfile {
 // GENERATED ASSET TYPES
 // ============================================================
 
-export type AssetType = 'base_image' | 'composed_creative' | 'carousel_panel';
+export type AssetType = 'base_image' | 'composed_creative' | 'carousel_panel' | 'landing_page' | 'organic_carousel';
 
 export interface GeneratedAsset {
   id: string;
