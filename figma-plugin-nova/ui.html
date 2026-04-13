@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  /* ── Reset + Base ─────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: #2c2c2c;
+    color: #e0e0e0;
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ── Typography ──────────────────────────────────────────── */
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: #999;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Inputs ──────────────────────────────────────────────── */
+  input, select {
+    width: 100%;
+    background: #383838;
+    border: 1px solid #4a4a4a;
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #e0e0e0;
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    margin-bottom: 10px;
+  }
+
+  input:focus, select:focus {
+    border-color: #0d99ff;
+  }
+
+  input::placeholder {
+    color: #666;
+  }
+
+  select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%23999' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+
+  /* ── Buttons ─────────────────────────────────────────────── */
+  button {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, background 0.15s;
+    outline: none;
+    width: 100%;
+  }
+
+  button:active { opacity: 0.85; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-primary {
+    background: #0d99ff;
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) { background: #0b87e3; }
+
+  .btn-secondary {
+    background: #383838;
+    color: #e0e0e0;
+    border: 1px solid #4a4a4a;
+  }
+  .btn-secondary:hover:not(:disabled) { background: #444; }
+
+  .btn-small {
+    padding: 6px 12px;
+    font-size: 11px;
+    margin-top: 6px;
+  }
+
+  .btn-loading {
+    position: relative;
+    color: transparent !important;
+    pointer-events: none;
+  }
+  .btn-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 14px; height: 14px;
+    margin: -7px 0 0 -7px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ── Header ──────────────────────────────────────────────── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: #252525;
+    border-bottom: 1px solid #4a4a4a;
+  }
+
+  .logo {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: #fff;
+  }
+
+  .status {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
+  .status-disconnected { background: #3a2a2a; color: #f24822; }
+  .status-pending { background: #3a3520; color: #f5a623; }
+  .status-connected { background: #1a3a2a; color: #1bc47d; }
+  .status-error { background: #3a2a2a; color: #f24822; }
+
+  /* ── Sections ────────────────────────────────────────────── */
+  .section {
+    padding: 14px;
+    border-top: 1px solid #4a4a4a;
+  }
+
+  /* ── Settings (collapsible) ──────────────────────────────── */
+  .section-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    color: #ccc;
+    transition: color 0.15s;
+  }
+  .section-toggle:hover { color: #fff; }
+
+  .settings-body {
+    margin-top: 12px;
+  }
+
+  /* ── Action Cards ────────────────────────────────────────── */
+  .action-card {
+    background: #333;
+    border: 1px solid #4a4a4a;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .action-card:last-child { margin-bottom: 0; }
+
+  .action-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .action-desc {
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 10px;
+  }
+
+  /* ── Info Text ───────────────────────────────────────────── */
+  .info-text {
+    font-size: 11px;
+    color: #999;
+    margin-top: 6px;
+  }
+
+  /* ── Progress ────────────────────────────────────────────── */
+  .progress-text {
+    font-size: 11px;
+    color: #ccc;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: #4a4a4a;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #0d99ff;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  /* ── Toast / Messages ────────────────────────────────────── */
+  .toast {
+    position: fixed;
+    bottom: 12px;
+    left: 14px;
+    right: 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    z-index: 100;
+    animation: toast-in 0.2s ease-out;
+    pointer-events: none;
+  }
+
+  .toast-success { background: #1a3a2a; color: #1bc47d; border: 1px solid #1bc47d33; }
+  .toast-error { background: #3a2a2a; color: #f24822; border: 1px solid #f2482233; }
+
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Empty State ─────────────────────────────────────────── */
+  .empty-state {
+    text-align: center;
+    padding: 20px 0;
+    color: #666;
+    font-size: 11px;
+  }
+
+  /* ── Hidden ──────────────────────────────────────────────── */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">&#9670; Nova Creative Studio</div>
+    <div class="status status-disconnected" id="connection-status">Not connected</div>
+  </div>
+
+  <!-- Settings (collapsible) -->
+  <div class="section settings" id="settings-section">
+    <div class="section-toggle" onclick="toggleSettings()">&#9881; Settings</div>
+    <div class="settings-body" id="settings-body" style="display:none;">
+      <label>Nova URL</label>
+      <input id="nova-url" placeholder="https://nova-intake.vercel.app" />
+      <label>Auth Token</label>
+      <input id="nova-token" type="password" placeholder="Clerk session token or magic link" />
+      <button onclick="connectNova()" class="btn-primary" id="connect-btn">Connect</button>
+    </div>
+  </div>
+
+  <!-- Campaign Selector -->
+  <div class="section hidden" id="campaign-section">
+    <label>Campaign</label>
+    <select id="campaign-select" onchange="onCampaignChange()">
+      <option value="">Select campaign...</option>
+    </select>
+    <div id="campaign-info" class="info-text"></div>
+  </div>
+
+  <!-- Actions -->
+  <div class="section hidden" id="actions-section">
+    <!-- Pull from Nova -->
+    <div class="action-card">
+      <div class="action-title">&#8595; Pull from Nova</div>
+      <div class="action-desc" id="pull-desc">Import creatives to canvas</div>
+      <button onclick="pullFromNova()" class="btn-primary" id="pull-btn">Import to Canvas</button>
+    </div>
+
+    <!-- Push to Nova -->
+    <div class="action-card">
+      <div class="action-title">&#8593; Push to Nova</div>
+      <div class="action-desc" id="push-desc">0 Nova frames selected</div>
+      <button onclick="pushToNova()" class="btn-secondary" id="push-btn" disabled>Push Selected</button>
+      <button onclick="pushAllToNova()" class="btn-secondary btn-small">Push All Nova Frames</button>
+    </div>
+
+    <!-- Sync -->
+    <div class="action-card">
+      <div class="action-title">&#8635; Sync</div>
+      <div class="action-desc" id="sync-desc">Check for pending updates</div>
+      <button onclick="syncCheck()" class="btn-secondary" id="sync-btn">Check for Changes</button>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="section hidden" id="progress-section">
+    <div class="progress-text" id="progress-text">Working...</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────
+let isPushing = false;
+let pendingExportFrames = [];
+let exportQueue = [];
+let exportedCount = 0;
+let exportTotal = 0;
+let toastTimer = null;
+
+// ── Settings Toggle ───────────────────────────────────────────
+function toggleSettings() {
+  const body = document.getElementById('settings-body');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+  } else {
+    body.style.display = 'none';
+  }
+}
+
+function hideSettings() {
+  document.getElementById('settings-body').style.display = 'none';
+}
+
+// ── Section Visibility ───────────────────────────────────────
+function showSection(id) {
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function hideSection(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+
+// ── Status Indicator ──────────────────────────────────────────
+function setStatus(text, state) {
+  var el = document.getElementById('connection-status');
+  el.textContent = text;
+  el.className = 'status';
+  switch (state) {
+    case 'connected':    el.classList.add('status-connected'); break;
+    case 'pending':      el.classList.add('status-pending'); break;
+    case 'error':        el.classList.add('status-error'); break;
+    case 'disconnected':
+    default:             el.classList.add('status-disconnected'); break;
+  }
+}
+
+// ── Toast Notifications ──────────────────────────────────────
+function showToast(message, type) {
+  // Remove existing toast
+  var existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  if (toastTimer) clearTimeout(toastTimer);
+
+  var toast = document.createElement('div');
+  toast.className = 'toast toast-' + type;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  toastTimer = setTimeout(function() {
+    if (toast.parentNode) toast.remove();
+    toastTimer = null;
+  }, 4000);
+}
+
+function showSuccess(message) { showToast(message, 'success'); }
+function showError(message) { showToast(message, 'error'); }
+
+// ── Progress Bar ──────────────────────────────────────────────
+function showProgress(text) {
+  showSection('progress-section');
+  document.getElementById('progress-text').textContent = text;
+  document.getElementById('progress-fill').style.width = '0%';
+}
+
+function updateProgress(text, fraction) {
+  document.getElementById('progress-text').textContent = text;
+  document.getElementById('progress-fill').style.width = Math.round(fraction * 100) + '%';
+}
+
+function hideProgress() {
+  hideSection('progress-section');
+}
+
+// ── Button Loading State ──────────────────────────────────────
+function setButtonLoading(id, loading) {
+  var btn = document.getElementById(id);
+  if (!btn) return;
+  if (loading) {
+    btn.classList.add('btn-loading');
+    btn.disabled = true;
+  } else {
+    btn.classList.remove('btn-loading');
+    btn.disabled = false;
+  }
+}
+
+// ── Nova Fetch Helper ────────────────────────────────────────
+function novaFetch(path, options) {
+  options = options || {};
+  var url = localStorage.getItem('nova-url');
+  var token = localStorage.getItem('nova-token');
+
+  if (!url || !token) {
+    return Promise.reject(new Error('Not connected to Nova'));
+  }
+
+  var headers = Object.assign({}, options.headers || {}, {
+    'Authorization': 'Bearer ' + token,
+  });
+
+  // Only set Content-Type for non-FormData requests
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  return fetch(url + path, Object.assign({}, options, {
+    headers: headers,
+    signal: options.signal || AbortSignal.timeout(30000),
+  }));
+}
+
+// ── Connect to Nova ──────────────────────────────────────────
+async function connectNova() {
+  var urlInput = document.getElementById('nova-url');
+  var tokenInput = document.getElementById('nova-token');
+  var url = urlInput.value.replace(/\/+$/, '').trim();
+  var token = tokenInput.value.trim();
+
+  if (!url) {
+    showError('Nova URL is required');
+    urlInput.focus();
+    return;
+  }
+  if (!token) {
+    showError('Auth token is required');
+    tokenInput.focus();
+    return;
+  }
+
+  setButtonLoading('connect-btn', true);
+  setStatus('Connecting...', 'pending');
+
+  try {
+    var res = await fetch(url + '/api/auth/me', {
+      headers: { 'Authorization': 'Bearer ' + token },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!res.ok) {
+      var errBody = null;
+      try { errBody = await res.json(); } catch (_e) { /* ignore */ }
+      throw new Error(errBody && errBody.error ? errBody.error : 'Invalid credentials (HTTP ' + res.status + ')');
+    }
+
+    var user = await res.json();
+
+    // Persist credentials
+    localStorage.setItem('nova-url', url);
+    localStorage.setItem('nova-token', token);
+
+    // Update UI
+    var displayName = user.firstName || user.email || 'User';
+    setStatus('Connected \u00B7 ' + displayName, 'connected');
+    hideSettings();
+    showSection('campaign-section');
+
+    // Load campaigns
+    await loadCampaigns();
+  } catch (e) {
+    setStatus('Connection failed', 'error');
+    showError(e.message || 'Connection failed');
+  } finally {
+    setButtonLoading('connect-btn', false);
+  }
+}
+
+// ── Load Campaigns ───────────────────────────────────────────
+async function loadCampaigns() {
+  try {
+    var res = await novaFetch('/api/intake', { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error('Failed to load campaigns (HTTP ' + res.status + ')');
+
+    var data = await res.json();
+    var campaigns = Array.isArray(data) ? data : (data.requests || data.campaigns || []);
+    var select = document.getElementById('campaign-select');
+    select.innerHTML = '<option value="">Select campaign...</option>';
+
+    campaigns
+      .filter(function(c) { return c.status !== 'draft'; })
+      .sort(function(a, b) { return new Date(b.created_at || 0) - new Date(a.created_at || 0); })
+      .forEach(function(c) {
+        var opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = (c.title || c.job_title || 'Untitled') + ' (' + (c.status || 'unknown') + ')';
+        select.appendChild(opt);
+      });
+
+    if (campaigns.length === 0) {
+      document.getElementById('campaign-info').textContent = 'No campaigns found';
+    }
+  } catch (e) {
+    showError('Failed to load campaigns: ' + e.message);
+  }
+}
+
+// ── Campaign Selection ───────────────────────────────────────
+function onCampaignChange() {
+  var campaignId = document.getElementById('campaign-select').value;
+  var infoEl = document.getElementById('campaign-info');
+
+  if (campaignId) {
+    showSection('actions-section');
+    infoEl.textContent = 'Campaign ID: ' + campaignId;
+    // Reset sync description
+    document.getElementById('sync-desc').textContent = 'Check for pending updates';
+    document.getElementById('sync-btn').textContent = 'Check for Changes';
+    document.getElementById('sync-btn').onclick = syncCheck;
+  } else {
+    hideSection('actions-section');
+    infoEl.textContent = '';
+  }
+}
+
+// ── Pull from Nova (Import) ──────────────────────────────────
+async function pullFromNova() {
+  var campaignId = document.getElementById('campaign-select').value;
+  if (!campaignId) {
+    showError('Select a campaign first');
+    return;
+  }
+
+  setButtonLoading('pull-btn', true);
+  showProgress('Fetching creatives...');
+
+  try {
+    // Fetch assets + brief in parallel
+    var results = await Promise.all([
+      novaFetch('/api/generate/' + campaignId + '/images', { signal: AbortSignal.timeout(15000) }),
+      novaFetch('/api/generate/' + campaignId + '/brief', { signal: AbortSignal.timeout(15000) }),
+    ]);
+
+    var assetsRes = results[0];
+    var briefRes = results[1];
+
+    if (!assetsRes.ok) throw new Error('Failed to fetch images (HTTP ' + assetsRes.status + ')');
+    if (!briefRes.ok) throw new Error('Failed to fetch brief (HTTP ' + briefRes.status + ')');
+
+    var assetsData = await assetsRes.json();
+    var briefData = await briefRes.json();
+
+    var allAssets = assetsData.assets || assetsData || [];
+    var assets = allAssets.filter(function(a) {
+      return a.asset_type === 'composed_creative' && a.blob_url;
+    });
+
+    var personas = [];
+    try {
+      personas = briefData.brief
+        ? (briefData.brief.brief_data || {}).personas || []
+        : (briefData.brief_data || {}).personas || [];
+    } catch (_e) { /* ignore */ }
+
+    if (assets.length === 0) {
+      hideProgress();
+      showError('No composed creatives found. Run the pipeline first.');
+      return;
+    }
+
+    updateProgress('Found ' + assets.length + ' creatives, downloading...', 0.1);
+
+    // Group by persona + version
+    var groups = groupByPersonaVersion(assets, personas);
+
+    // Download all images and build frame data
+    var frames = [];
+    var downloaded = 0;
+    var totalAssets = assets.length;
+
+    for (var gi = 0; gi < groups.length; gi++) {
+      var group = groups[gi];
+      for (var ai = 0; ai < group.assets.length; ai++) {
+        var asset = group.assets[ai];
+        downloaded++;
+        updateProgress(
+          'Downloading ' + downloaded + '/' + totalAssets + '...',
+          0.1 + (downloaded / totalAssets) * 0.8
+        );
+
+        try {
+          var imgRes = await fetch(asset.blob_url, { signal: AbortSignal.timeout(15000) });
+          if (!imgRes.ok) throw new Error('HTTP ' + imgRes.status);
+          var buffer = await imgRes.arrayBuffer();
+
+          var content = asset.content || {};
+          var formatParts = (asset.format || '').split('x');
+          var width = content.width || parseInt(formatParts[0]) || 1080;
+          var height = content.height || parseInt(formatParts[1]) || 1080;
+
+          frames.push({
+            name: buildFrameName(asset, group),
+            width: width,
+            height: height,
+            imageBytes: Array.from(new Uint8Array(buffer)),
+            sectionName: group.personaName,
+            groupName: group.versionLabel + ' \u2014 ' + (content.overlay_headline || content.headline || 'Untitled'),
+          });
+        } catch (dlErr) {
+          console.warn('Failed to download:', asset.blob_url, dlErr);
+          // Continue — don't block on a single image failure
+        }
+      }
+    }
+
+    if (frames.length === 0) {
+      hideProgress();
+      showError('Downloaded 0 images — all downloads failed');
+      return;
+    }
+
+    updateProgress('Creating ' + frames.length + ' frames in Figma...', 0.95);
+
+    // Send to code.ts
+    parent.postMessage({
+      pluginMessage: {
+        type: 'create-frames',
+        frames: frames,
+        layout: { personaGap: 200, versionGap: 100, formatGap: 60 },
+      },
+    }, '*');
+
+  } catch (e) {
+    hideProgress();
+    showError('Pull failed: ' + e.message);
+  } finally {
+    setButtonLoading('pull-btn', false);
+  }
+}
+
+// ── Push to Nova (Export) ────────────────────────────────────
+function pushToNova() {
+  var campaignId = document.getElementById('campaign-select').value;
+  if (!campaignId) {
+    showError('Select a campaign first');
+    return;
+  }
+
+  isPushing = true;
+  setButtonLoading('push-btn', true);
+
+  // Ask code.ts for selected Nova_ frames
+  parent.postMessage({ pluginMessage: { type: 'read-selection' } }, '*');
+  // Response handled in onmessage -> triggers exportAndUpload
+}
+
+function pushAllToNova() {
+  var campaignId = document.getElementById('campaign-select').value;
+  if (!campaignId) {
+    showError('Select a campaign first');
+    return;
+  }
+
+  isPushing = true;
+  setButtonLoading('push-btn', true);
+
+  // Ask code.ts for ALL Nova frames on the page
+  parent.postMessage({ pluginMessage: { type: 'read-all-nova-frames' } }, '*');
+  // Response handled via 'nova-frames-list' message
+}
+
+async function exportAndUpload(frameInfos) {
+  if (frameInfos.length === 0) {
+    isPushing = false;
+    setButtonLoading('push-btn', false);
+    showError('No Nova frames to push');
+    return;
+  }
+
+  exportQueue = [];
+  exportedCount = 0;
+  exportTotal = frameInfos.length;
+  showProgress('Exporting ' + exportTotal + ' frames...');
+
+  // Ask code.ts to export each frame as PNG
+  parent.postMessage({
+    pluginMessage: {
+      type: 'export-frames',
+      names: frameInfos.map(function(f) { return f.name; }),
+    },
+  }, '*');
+  // Each export-result message triggers uploadExportedFrame()
+}
+
+async function uploadExportedFrame(name, bytes) {
+  var campaignId = document.getElementById('campaign-select').value;
+  if (!campaignId) return;
+
+  exportedCount++;
+  updateProgress(
+    'Uploading ' + exportedCount + '/' + exportTotal + ': ' + name,
+    exportedCount / exportTotal
+  );
+
+  try {
+    // Create a Blob from the exported PNG bytes
+    var pngBlob = new Blob([new Uint8Array(bytes)], { type: 'image/png' });
+    var formData = new FormData();
+    formData.append('file', pngBlob, name + '.png');
+    formData.append('frame_name', name);
+    formData.append('request_id', campaignId);
+
+    var res = await novaFetch('/api/export/figma-package', {
+      method: 'POST',
+      body: formData,
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (!res.ok) {
+      var errData = null;
+      try { errData = await res.json(); } catch (_e) { /* ignore */ }
+      throw new Error(errData && errData.error ? errData.error : 'HTTP ' + res.status);
+    }
+
+    exportQueue.push({ name: name, success: true });
+  } catch (e) {
+    console.warn('Upload failed for', name, e);
+    exportQueue.push({ name: name, success: false, error: e.message });
+  }
+
+  // Check if all exports are done
+  if (exportedCount >= exportTotal) {
+    finishPush();
+  }
+}
+
+function finishPush() {
+  isPushing = false;
+  setButtonLoading('push-btn', false);
+  hideProgress();
+
+  var succeeded = exportQueue.filter(function(e) { return e.success; }).length;
+  var failed = exportQueue.filter(function(e) { return !e.success; }).length;
+
+  if (failed === 0) {
+    showSuccess('Pushed ' + succeeded + ' frame' + (succeeded !== 1 ? 's' : '') + ' to Nova');
+  } else if (succeeded > 0) {
+    showError('Pushed ' + succeeded + ', failed ' + failed + ' frame' + (failed !== 1 ? 's' : ''));
+  } else {
+    showError('All ' + failed + ' frame pushes failed');
+  }
+
+  exportQueue = [];
+  exportedCount = 0;
+  exportTotal = 0;
+}
+
+// ── Sync Check ───────────────────────────────────────────────
+async function syncCheck() {
+  var campaignId = document.getElementById('campaign-select').value;
+  if (!campaignId) {
+    showError('Select a campaign first');
+    return;
+  }
+
+  setButtonLoading('sync-btn', true);
+
+  try {
+    var res = await novaFetch('/api/figma/status/' + campaignId, {
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!res.ok) throw new Error('Sync check failed (HTTP ' + res.status + ')');
+
+    var data = await res.json();
+
+    if (data.connected && data.last_synced) {
+      var lastSynced = new Date(data.last_synced);
+      var timeAgo = formatTimeAgo(lastSynced);
+      document.getElementById('sync-desc').textContent =
+        'Last synced ' + timeAgo + (data.sync_enabled ? ' \u2014 auto-sync on' : '');
+      document.getElementById('sync-btn').textContent = 'Re-import from Nova';
+      document.getElementById('sync-btn').onclick = function() { pullFromNova(); };
+    } else if (data.connected) {
+      document.getElementById('sync-desc').textContent = 'Connected but never synced';
+      document.getElementById('sync-btn').textContent = 'Pull Now';
+      document.getElementById('sync-btn').onclick = function() { pullFromNova(); };
+    } else {
+      document.getElementById('sync-desc').textContent = 'Figma sync not configured for this campaign';
+      document.getElementById('sync-btn').textContent = 'Check for Changes';
+    }
+  } catch (e) {
+    showError('Sync check failed: ' + e.message);
+  } finally {
+    setButtonLoading('sync-btn', false);
+  }
+}
+
+// ── Grouping Helpers ─────────────────────────────────────────
+function groupByPersonaVersion(assets, personas) {
+  // Group composed creatives by (actor_name + pillar)
+  var groups = new Map();
+
+  for (var i = 0; i < assets.length; i++) {
+    var asset = assets[i];
+    var c = asset.content || {};
+    var key = (c.actor_name || 'unknown') + '::' + (c.pillar || 'earn');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(asset);
+  }
+
+  // Sort by creation time, label V1, V2...
+  var entries = Array.from(groups.entries());
+  entries.sort(function(a, b) {
+    var dateA = new Date(a[1][0].created_at || 0);
+    var dateB = new Date(b[1][0].created_at || 0);
+    return dateA - dateB;
+  });
+
+  return entries.map(function(entry, idx) {
+    var groupAssets = entry[1];
+    var c = groupAssets[0].content || {};
+    var personaKey = c.persona || (c.actor_name ? c.actor_name.split(' ')[0] : 'Unknown');
+
+    var persona = null;
+    for (var j = 0; j < personas.length; j++) {
+      var p = personas[j];
+      if (
+        p.archetype_key === personaKey ||
+        (p.persona_name && p.persona_name.split(' ')[0] === personaKey)
+      ) {
+        persona = p;
+        break;
+      }
+    }
+
+    return {
+      personaName: persona ? persona.persona_name : personaKey,
+      versionLabel: 'V' + (idx + 1),
+      pillar: c.pillar || 'earn',
+      assets: groupAssets,
+    };
+  });
+}
+
+function buildFrameName(asset, group) {
+  var c = asset.content || {};
+  var persona = group.personaName.split(' ')[0];
+  var platform = asset.platform || 'unknown';
+  var w = c.width || 1080;
+  var h = c.height || 1080;
+  return 'Nova_' + persona + '_' + group.versionLabel + '_' + platform + '_' + w + 'x' + h;
+}
+
+// ── Time Formatting ──────────────────────────────────────────
+function formatTimeAgo(date) {
+  var now = new Date();
+  var diffMs = now - date;
+  var diffSec = Math.floor(diffMs / 1000);
+  var diffMin = Math.floor(diffSec / 60);
+  var diffHr = Math.floor(diffMin / 60);
+  var diffDay = Math.floor(diffHr / 24);
+
+  if (diffSec < 60) return 'just now';
+  if (diffMin < 60) return diffMin + 'm ago';
+  if (diffHr < 24) return diffHr + 'h ago';
+  return diffDay + 'd ago';
+}
+
+// ── Message Handler from code.ts ─────────────────────────────
+window.onmessage = async function(event) {
+  var msg = event.data && event.data.pluginMessage;
+  if (!msg) return;
+
+  switch (msg.type) {
+    case 'frames-created':
+      hideProgress();
+      setButtonLoading('pull-btn', false);
+      var parts = [];
+      if (msg.created > 0) parts.push('Created ' + msg.created);
+      if (msg.updated > 0) parts.push('Updated ' + msg.updated);
+      var summary = parts.join(', ') + ' frame' + ((msg.created + msg.updated) !== 1 ? 's' : '');
+      if (msg.errors && msg.errors.length > 0) {
+        summary += ' (' + msg.errors.length + ' error' + (msg.errors.length !== 1 ? 's' : '') + ')';
+      }
+      showSuccess(summary);
+      break;
+
+    case 'frame-updated':
+      // Single frame update acknowledged
+      break;
+
+    case 'selection-result':
+      var count = msg.frames ? msg.frames.length : 0;
+      document.getElementById('push-desc').textContent = count + ' Nova frame' + (count !== 1 ? 's' : '') + ' selected';
+      document.getElementById('push-btn').disabled = count === 0;
+      pendingExportFrames = msg.frames || [];
+
+      if (isPushing && count > 0) {
+        exportAndUpload(msg.frames);
+      } else if (isPushing && count === 0) {
+        isPushing = false;
+        setButtonLoading('push-btn', false);
+        showError('No Nova frames selected. Select frames starting with "Nova_" first.');
+      }
+      break;
+
+    case 'nova-frames-list':
+      // For push-all functionality
+      var allFrames = msg.frames || [];
+      if (isPushing) {
+        if (allFrames.length > 0) {
+          exportAndUpload(allFrames);
+        } else {
+          isPushing = false;
+          setButtonLoading('push-btn', false);
+          showError('No Nova frames found on canvas. Import from Nova first.');
+        }
+      }
+      break;
+
+    case 'export-result':
+      await uploadExportedFrame(msg.name, msg.bytes);
+      break;
+
+    case 'export-error':
+      console.warn('Export failed:', msg.name, msg.message);
+      exportedCount++;
+      exportQueue.push({ name: msg.name, success: false, error: msg.message });
+      if (exportedCount >= exportTotal) {
+        finishPush();
+      }
+      break;
+
+    case 'error':
+      hideProgress();
+      setButtonLoading('pull-btn', false);
+      setButtonLoading('push-btn', false);
+      setButtonLoading('sync-btn', false);
+      isPushing = false;
+      showError(msg.message || 'Unknown error');
+      break;
+  }
+};
+
+// ── Auto-Connect on Load ─────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  var url = localStorage.getItem('nova-url');
+  var token = localStorage.getItem('nova-token');
+
+  if (url && token) {
+    document.getElementById('nova-url').value = url;
+    document.getElementById('nova-token').value = token;
+    connectNova();
+  } else {
+    // First run — show settings expanded
+    toggleSettings();
+  }
+
+  // Poll selection every 2s to keep push button state in sync
+  setInterval(function() {
+    if (!isPushing) {
+      parent.postMessage({ pluginMessage: { type: 'read-selection' } }, '*');
+    }
+  }, 2000);
+});
+</script>
+
+</body>
+</html>
