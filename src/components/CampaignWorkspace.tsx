@@ -18,7 +18,7 @@ import EditableField from "@/components/EditableField";
 import { useAutosave } from "@/hooks/useAutosave";
 import AutosaveStatus from "@/components/AutosaveStatus";
 import CreativeHtmlEditor from "@/components/CreativeHtmlEditor";
-import MediaStrategyTab from "@/components/MediaStrategyTab";
+import MediaStrategyEditor from "@/components/MediaStrategyEditor";
 import { toast } from "sonner";
 import type {
   GeneratedAsset,
@@ -38,6 +38,7 @@ interface CampaignWorkspaceProps {
   actors: ActorProfile[];
   assets: GeneratedAsset[];
   editable?: boolean;
+  requestId?: string;
   onRefine?: (asset: GeneratedAsset) => void;
   onRetry?: (asset: GeneratedAsset) => void;
   onDelete?: (asset: GeneratedAsset) => void;
@@ -697,6 +698,7 @@ export default function CampaignWorkspace({
   actors,
   assets,
   editable = false,
+  requestId,
   onRefine,
   onRetry,
   onDelete,
@@ -850,10 +852,9 @@ export default function CampaignWorkspace({
             key: "media",
             label: "Media Strategy",
             content: (
-              <MediaStrategyTab
+              <MediaStrategyEditor
                 strategies={campaignStrategies as any}
-                assets={assets}
-                briefData={briefData}
+                requestId={requestId ?? assets[0]?.request_id ?? ""}
               />
             ),
           },

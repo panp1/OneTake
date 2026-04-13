@@ -608,6 +608,7 @@ export default function IntakeDetailPage({
                     actors={data.actors}
                     assets={assets}
                     editable={role === "admin"}
+                    requestId={id}
                     onRefine={(asset) => setRefineAsset(asset)}
                     onRetry={(asset) => handleRetry(asset)}
                     onDelete={handleDeleteAsset}
@@ -634,6 +635,7 @@ export default function IntakeDetailPage({
                   actors={data.actors}
                   assets={assets}
                   editable={role === "admin"}
+                  requestId={id}
                   onRefine={(asset) => setRefineAsset(asset)}
                   onRetry={(asset) => handleRetry(asset)}
                   onDelete={handleDeleteAsset}
