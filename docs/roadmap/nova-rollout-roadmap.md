@@ -79,7 +79,40 @@ Nova is a working 6-stage autonomous creative operations pipeline deployed at no
 
 ---
 
-## Roadmap — Four Tracks
+### 4. VYRA Visualize Integration — Full SRC Command Center
+
+**What:** Port the full SRC Command Center (VYRA's analytics control plane) into Nova. Gives the marketing manager real-time campaign performance visibility — KPI dashboards, channel breakdowns, RevBrain AI recommendations, funnel visualization, exports, and share links.
+
+**Source:** Already built as standalone at `/Users/stevenjunop/src-command` — ~4,000 LOC across 3 apps (Next.js frontend, FastAPI API, async worker). Self-contained monorepo.
+
+**What it provides:**
+- **KPI Dashboard** — spend, revenue, conversions, ROAS, CTR, CPA per campaign/brand
+- **Channel Rollups** — performance breakdown per channel (Meta, LinkedIn, TikTok, Google)
+- **RevBrain** — materialized truth engine with multi-model attribution (platform-reported vs attributed vs MMM)
+- **Recommendations** — per-channel action packets (budget shifts, pauses, scale signals) with projected revenue lift
+- **Granular Funnel** — campaign → ad group → ad → creative → landing page drilldown
+- **Exports** — PDF/CSV reports for leadership presentations
+- **Share Links** — public tokens for sharing dashboards without auth
+- **Audience IQ** — audience health monitoring and suggestions
+
+**Integration approach:**
+- Port SRC Command Center API routes into Nova's Next.js API (or run as sidecar)
+- Data source: Nova's `tracked_links` clicks + GA4 API + ad platform APIs (Meta, LinkedIn, Google Ads)
+- Frontend: embed dashboard components in the Marketing Manager view
+- RevBrain worker runs alongside the existing Nova pipeline worker
+
+**Dependencies:**
+- GA4 property access (Google Analytics MCP or API key)
+- Ad platform API credentials (Meta Marketing API, LinkedIn Campaign Manager API, Google Ads API)
+- UTM tracking data flowing from Nova's tracked_links table
+
+**Effort:** ~2 weeks (port is mostly wiring — code already exists)
+
+**Priority:** Phase 2 — after core pipeline is validated with real campaigns
+
+---
+
+## Roadmap — Five Tracks
 
 ### Track 1: Pipeline Upgrades (Engineering — Steven + Claude)
 
@@ -109,6 +142,18 @@ Nova is a working 6-stage autonomous creative operations pipeline deployed at no
 3. Grant Microsoft Graph API permissions for Outlook send + SharePoint write
 4. Confirm SharePoint site structure for campaign folders
 
+### Track 5: VYRA Visualize — Campaign Analytics (Engineering — Steven)
+
+| Week | Milestone | Details |
+|---|---|---|
+| **Week 4-5** | Port SRC Command Center API | Adapt FastAPI routes for Nova's data model. Connect to tracked_links + GA4. |
+| **Week 5** | KPI Dashboard UI | Embed KPI cards + channel rollups in Marketing Manager view |
+| **Week 5** | RevBrain integration | Wire RevBrain worker for campaign-level recommendations |
+| **Week 6** | Granular Funnel | Campaign → ad → creative → LP drilldown visualization |
+| **Week 6** | Exports + Share Links | PDF/CSV reports for Adam pitch, public share tokens |
+
+**Blocked by:** Real campaign data flowing through UTM tracked links (needs 1-2 weeks of live campaigns first)
+
 ### Track 3: Team Enablement (Steven + Jenn + Miguel)
 
 | Week | Who | What |
@@ -135,8 +180,9 @@ Nova is a working 6-stage autonomous creative operations pipeline deployed at no
 2. **The Solution** — Nova: JD in → full campaign package out in 30 minutes. AI-generated, human-refined, agency-ready.
 3. **Live Demo** — Run a real JD through the pipeline live. Show all portals.
 4. **Results** — X campaigns completed, Y hours saved, Z cost reduction
-5. **The Bigger Picture** — This is VYRA. Nova is one vertical (recruitment). The platform generalizes to any marketing workflow at Centific.
-6. **Ask** — Resources to scale: dedicated Kling/video API budget, Azure AD SSO integration, 2 more recruitment teams onboarded.
+5. **Campaign Analytics** — Show VYRA Visualize integration: real-time KPI dashboards, channel performance, RevBrain recommendations, funnel visualization — all from production campaign data.
+6. **The Bigger Picture** — This is VYRA. Nova is one vertical (recruitment). The platform generalizes to any marketing workflow at Centific. Visualize is already built — it just needs data.
+7. **Ask** — Resources to scale: dedicated Kling/video API budget, Azure AD SSO integration, GA4 + ad platform API access, 2 more recruitment teams onboarded.
 
 ---
 
