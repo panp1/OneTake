@@ -77,13 +77,13 @@ flowchart TD
     D --> D2[Edit ad copy — inline with autosave]
     D --> D3[View HTML creative editor]
 
-    B --> LP[🟠 Landing Pages Card]
-    LP --> LP1[Enter Job Posting URL]
-    LP --> LP2[Enter Landing Page URL]
-    LP --> LP3[Enter AIDA Form URL]
-    LP --> LP4[View generated /lp/ URLs per persona]
+    B --> LP[🟠 Landing Pages — Review & URLs]
+    LP --> LP1[Preview generated LPs per persona]
+    LP --> LP2[Review LP copy accuracy + layout]
+    LP --> LP3[Enter/edit Job Posting + AIDA URLs]
+    LP --> LP4[View live WP URLs after designer deploys]
 
-    B --> E{Marketing Approval Gate}
+    B --> E{Marketing Approval Gate — includes LP review}
     E -->|Approve| F[Status → review — awaiting designer]
     E -->|Request changes| G[Trigger regeneration — full or per-stage]
     G --> A
@@ -147,10 +147,12 @@ flowchart TD
     H --> H3[🔗 Figma Connect — token + URL validation]
     H --> H4[🔄 Figma Sync Status — polling for changes]
 
-    C --> LP[🟠 Landing Pages — enter URLs]
-    LP --> LP1[Job Posting URL]
-    LP --> LP2[Landing Page URL]
-    LP --> LP3[AIDA Form URL]
+    C --> LP[🟠 Landing Pages]
+    LP --> LP1[Preview generated LP per persona]
+    LP --> LP2[Download HTML → edit in Dreamweaver]
+    LP --> LP3[Sync edited HTML back to Nova]
+    LP --> LP4[Deploy to WordPress via FTP]
+    LP4 --> LP5[LP URL auto-captured → inserted into campaign_landing_pages]
 
     C --> I[✅ Submit Finals]
     I --> J[Designer approval recorded]
@@ -158,7 +160,7 @@ flowchart TD
 ```
 
 **Access:** `/designer` portal (designer role), `/designer/[id]` per campaign
-**Tools:** Quick Edit (Flux 2), Graphic Editor (overlay), Regenerate (Seedream), Figma (export/push/sync)
+**Tools:** Quick Edit (Flux 2), Graphic Editor (overlay), Regenerate (Seedream), Figma (export/push/sync), LP Deploy (Dreamweaver → FTP → WP)
 
 ---
 

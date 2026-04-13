@@ -307,11 +307,84 @@ Landing pages use the OneForma brand system from the wireframe:
 
 These are the landing page brand colors (sapphire/pink/purple) which differ slightly from the Nova dashboard colors (charcoal/purple). The landing pages are public-facing OneForma recruitment pages, not internal tooling.
 
+## Marketing Manager — Landing Page Review
+
+Generated landing pages appear as a deliverable in the marketing manager's Campaign Workspace alongside creatives, copy, and strategy. The marketing manager reviews them before approval.
+
+### Where LPs Appear
+
+| Location | What Shows |
+|---|---|
+| Campaign Workspace → Landing Pages card | Per-persona LP previews with "Open Preview" button |
+| Personas & Creatives section | LP thumbnail per persona alongside composed creatives |
+| Approval flow | LPs are part of the marketing approval gate — reviewed before sign-off |
+
+### Preview Behavior
+
+- Click "Preview" → opens the generated LP in a new tab at `/lp/[slug]`
+- Marketing manager can review copy accuracy, visual layout, and section content
+- If changes needed → trigger Stage 6 regeneration (or flag for designer edits)
+
+## Designer — Dreamweaver Edit & Deploy Flow
+
+The designer (Miguel) can review the generated landing page, open it in Dreamweaver for pixel-perfect edits, sync changes back to Nova, and deploy directly to the WordPress instance via FTP.
+
+### Flow
+
+```
+1. Designer opens LP preview in Nova gallery
+2. Clicks "Open in Dreamweaver" → downloads HTML to local workspace
+3. Edits in Dreamweaver (copy tweaks, layout polish, image swaps)
+4. Clicks "Sync to Nova" → uploads edited HTML back to Nova (replaces blob_url)
+5. Clicks "Deploy to WordPress" → FTP push to WP root directory
+6. LP URL auto-captured → inserted into campaign_landing_pages.landing_page_url
+```
+
+### Deploy Button
+
+| Element | Behavior |
+|---|---|
+| "Preview LP" button | Opens `/lp/slug` in new tab |
+| "Download HTML" button | Downloads self-contained HTML file for Dreamweaver editing |
+| "Sync to Nova" button | Upload edited HTML → replaces stored blob, re-validates drift rules |
+| "Deploy to WP" button | FTP push to WordPress root → captures live URL → auto-inserts into landing_page_url field |
+
+### FTP Deploy Details
+
+- **Target:** WordPress instance root directory (e.g., `/var/www/html/lp/`)
+- **File naming:** `{campaign_slug}--{persona_key}.html`
+- **URL capture:** After FTP success, constructs the live URL from WP domain + file path
+- **Auto-insert:** Updates `campaign_landing_pages.landing_page_url` with the live WP URL
+- **Effect:** Recruiter's Link Builder and Agency portal immediately show the live WP URL instead of the Nova `/lp/` route
+
+### Sync Validation
+
+When the designer syncs an edited HTML back to Nova:
+1. Re-run drift validation (compensation, qualifications, CTA URLs must still match source)
+2. If validation passes → replace stored HTML in Vercel Blob
+3. If validation fails → show which hard facts were changed, block sync until fixed
+4. This prevents the designer from accidentally altering factual content
+
+### New Files (Designer Deploy)
+
+| File | Purpose | Lines (est.) |
+|---|---|---|
+| `src/components/designer/LandingPageActions.tsx` | Preview, Download, Sync, Deploy buttons per LP | ~150 |
+| `src/app/api/landing-pages/sync/route.ts` | POST — receive edited HTML, validate, update blob | ~80 |
+| `src/app/api/landing-pages/deploy/route.ts` | POST — FTP push to WP, capture URL, update DB | ~100 |
+
+### Modified Files (Designer Deploy)
+
+| File | Changes |
+|---|---|
+| `src/components/designer/gallery/DesignerGallery.tsx` | Add LP section with action buttons per persona |
+| `src/components/LandingPagesCard.tsx` | Show "Deployed" badge when WP URL is set, link to live page |
+| `src/app/api/intake/[id]/landing-pages/route.ts` | Handle auto-insert of WP URL after deploy |
+
 ## Out of Scope (v1)
 
-- WordPress REST API push (future — HTML artifact is portable)
 - A/B testing between template variants
-- Marketing manager template override UI
-- Landing page editor in the dashboard
+- Marketing manager template override UI in dashboard
 - Analytics/conversion tracking on landing pages
 - Multi-language page variants (v1 generates in primary target language only)
+- Dreamweaver MCP integration (v1 uses manual download/upload, future could auto-sync)
