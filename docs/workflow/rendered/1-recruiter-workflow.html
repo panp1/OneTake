@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova — Recruiter Workflow</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; background: #0a0a0f; color: #e2e8f0; padding: 40px 32px; max-width: 1400px; margin: 0 auto; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b; text-decoration: none; margin-bottom: 24px; }
+    .back:hover { color: #94a3b8; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+    h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; color: #fff; }
+    .subtitle { font-size: 14px; color: #64748b; margin-bottom: 32px; line-height: 1.6; }
+    .diagram { background: #111827; border: 1px solid rgba(59,130,246,0.2); border-radius: 16px; padding: 32px; overflow-x: auto; margin-bottom: 32px; }
+    .diagram .mermaid { display: flex; justify-content: center; }
+    .info { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+    .info-card { background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; }
+    .info-card h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+    .info-card ul { list-style: none; font-size: 13px; color: #94a3b8; line-height: 1.8; }
+    .info-card ul li::before { content: "→ "; color: #475569; }
+    .access { color: #60a5fa; }
+    .noaccess { color: #f87171; }
+    .footer { margin-top: 32px; text-align: center; font-size: 12px; color: #475569; }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back">&larr; All Workflows</a>
+  <div class="badge">Workflow 1 of 5</div>
+  <h1>Recruiter Workflow</h1>
+  <p class="subtitle">What the recruiter sees and does — from receiving a job description to sharing tracked links with candidates. The recruiter never touches strategy, raw assets, or pipeline stages. Their world is: submit → wait → share.</p>
+
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TD
+    A["📋 Recruiter receives JD / RFP from hiring team"]
+    A --> B{"🧙 5-Step Intake Wizard"}
+
+    B -->|"Step 1"| B1["Upload RFP document\nor paste text"]
+    B -->|"Skip"| B1a["Manual entry — no AI extraction"]
+    B1 --> B2["Gemma 4 extracts fields\ntask type, regions, quals, budget"]
+    B1a --> B3
+    B2 --> B3["Step 2: Select Task Type\n+ Work Mode (onsite/remote)"]
+    B3 --> B4["Step 3: Project Details\ntitle, volume, regions, languages, budget"]
+    B4 --> B5["Step 4: Requirements\nqualifications, engagement, AIDA form URL"]
+    B5 --> B6["Step 5: Review & Submit\nall fields visible, edit buttons per section"]
+    B6 --> C["🚀 Request Created\nstatus: draft → generating"]
+
+    C --> D["⚡ Pipeline auto-triggers\n6-stage generation begins"]
+    D --> E["⏳ Dashboard shows progress\nstage indicators update in real-time"]
+    E --> F["📣 Teams Notification\n'Creatives ready for review'"]
+
+    F --> G["📂 Recruiter opens Creative Library\n/intake/id or /r/campaign-slug"]
+
+    G --> H["🖼️ Composed Creatives\nfiltered by channel tabs\nMeta · LinkedIn · TikTok · Google"]
+    G --> I["🔗 Sticky Link Builder\nalways visible on right side"]
+    I --> I1["Select base URL\nlanding page, job posting, or AIDA form"]
+    I1 --> I2["Auto-generates UTM short link\ncampaign + source + medium + content"]
+    I2 --> I3["📋 Copy link\nshare with candidates via email/social"]
+
+    G --> LP["🟠 Landing Pages\nper-persona /lp/ URLs visible"]
+    LP --> LP1["Copy landing page URL\nuse as ad destination"]
+
+    G --> J["⬇️ Download creatives\nindividual or batch"]
+
+    style A fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
+    style C fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
+    style F fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
+    style G fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
+    style LP fill:#422006,stroke:#fb923c,color:#fdba74
+    style LP1 fill:#422006,stroke:#fb923c,color:#fdba74
+    </pre>
+  </div>
+
+  <div class="info">
+    <div class="info-card">
+      <h3 class="access">Has Access To</h3>
+      <ul>
+        <li>5-step intake wizard with AI pre-fill</li>
+        <li>Dashboard with request status tracking</li>
+        <li>Creative Library — composed creatives only</li>
+        <li>UTM Link Builder — tracked short links</li>
+        <li>Generated landing page URLs</li>
+        <li>Creative downloads (individual + batch)</li>
+        <li>Teams notifications</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3 class="noaccess">No Access To</h3>
+      <ul>
+        <li>Media strategy editing (budgets, interests)</li>
+        <li>Raw/base actor images</li>
+        <li>Pipeline stages or regeneration</li>
+        <li>Designer tools (edit, Figma)</li>
+        <li>Agency portal or magic links</li>
+        <li>Admin panel or user management</li>
+        <li>Approval controls</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">Nova Creative Operations &middot; OneForma &middot; 2026-04-13</div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'dark', themeVariables: { darkMode: true, background: '#111827', primaryColor: '#1e3a5f', primaryTextColor: '#e2e8f0', primaryBorderColor: '#3b82f6', lineColor: '#475569', fontSize: '13px', fontFamily: '-apple-system, system-ui, sans-serif' }, flowchart: { htmlLabels: true, curve: 'basis', padding: 14, nodeSpacing: 30, rankSpacing: 45 } });
+  </script>
+</body>
+</html>

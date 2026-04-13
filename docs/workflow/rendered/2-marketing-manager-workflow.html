@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova — Marketing Manager Workflow</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; background: #0a0a0f; color: #e2e8f0; padding: 40px 32px; max-width: 1400px; margin: 0 auto; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b; text-decoration: none; margin-bottom: 24px; }
+    .back:hover { color: #94a3b8; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; background: rgba(168,85,247,0.15); color: #a78bfa; border: 1px solid rgba(168,85,247,0.3); }
+    h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; color: #fff; }
+    .subtitle { font-size: 14px; color: #64748b; margin-bottom: 32px; line-height: 1.6; }
+    .diagram { background: #111827; border: 1px solid rgba(168,85,247,0.2); border-radius: 16px; padding: 32px; overflow-x: auto; margin-bottom: 32px; }
+    .diagram .mermaid { display: flex; justify-content: center; }
+    .info { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+    .info-card { background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; }
+    .info-card h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+    .info-card ul { list-style: none; font-size: 13px; color: #94a3b8; line-height: 1.8; }
+    .info-card ul li::before { content: "→ "; color: #475569; }
+    .edit { color: #4ade80; }
+    .readonly { color: #60a5fa; }
+    .footer { margin-top: 32px; text-align: center; font-size: 12px; color: #475569; }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back">&larr; All Workflows</a>
+  <div class="badge">Workflow 2 of 5</div>
+  <h1>Marketing Manager Workflow</h1>
+  <p class="subtitle">The command center. Review AI-generated strategy, edit media budgets and targeting inline, manage landing page URLs, approve for designer, then give final sign-off to generate the agency package.</p>
+
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TD
+    A["📥 Request lands on Dashboard\nstatus: review"]
+    A --> B["Open Campaign Detail\n/intake/id"]
+
+    B --> WS["Campaign Workspace — 3 tabs"]
+
+    WS --> T1["📊 Campaign Brief"]
+    T1 --> T1a["Messaging strategy\nvalue props, tone, hooks"]
+    T1 --> T1b["Channel recommendations\nfrom cultural research"]
+    T1 --> T1c["Persona summaries\ndemographics + psychology"]
+
+    WS --> T2["📈 Media Strategy — EDITABLE"]
+    T2 --> E1["✏️ Channel mix %\nclick → edit → auto-rebalance to 100%"]
+    T2 --> E2["✏️ Ad set daily budgets\nclick $45 → type → blur saves"]
+    T2 --> E3["✏️ Targeting interests\nadd/remove per tier (hyper/hot/broad)"]
+    T2 --> E4["✏️ Split test variable\ndropdown: Creative / Audience / Placement"]
+    T2 --> E5["✏️ Campaign objective\ndropdown: Lead Gen / Traffic / Conversions"]
+    E1 & E2 & E3 & E4 & E5 --> SAVE["💾 Autosave\n800ms debounce → PATCH strategy_data JSONB"]
+
+    WS --> T3["🌍 Regional Intelligence"]
+    T3 --> T3a["Language, formality, dialect notes"]
+    T3 --> T3b["Cultural guardrails"]
+
+    B --> PC["Personas & Creatives Section"]
+    PC --> PC1["Review composed creatives\nper persona, per channel"]
+    PC --> PC2["✏️ Edit ad copy inline\nautosave per field"]
+    PC --> PC3["HTML creative editor\nfull preview"]
+
+    B --> LP["🟠 Landing Pages Card"]
+    LP --> LP1["Enter Job Posting URL"]
+    LP --> LP2["Enter Landing Page URL"]
+    LP --> LP3["Enter AIDA Form URL"]
+    LP --> LP4["View generated /lp/ URLs\nper persona"]
+
+    B --> G1{"🚦 Marketing Approval Gate"}
+    G1 -->|"Approve"| WAIT["Status → review\nawaiting designer"]
+    G1 -->|"Request changes"| REGEN["Trigger regeneration\nfull pipeline or specific stage"]
+    REGEN --> A
+
+    WAIT --> DW["⏳ Designer works\nedits, retouches, Figma"]
+    DW --> DS["Designer submits finals"]
+    DS --> G2{"🚦 Designer Approval"}
+    G2 -->|"Approved"| G3{"🚦 Final Approval Gate"}
+
+    G3 -->|"Approve"| SENT["✅ Status → sent"]
+    SENT --> MAGIC["🔗 Agency magic link generated\nauto-creates /agency/id URL"]
+    MAGIC --> NOTIFY["📣 Teams notification\nsent to agency contact"]
+
+    style A fill:#2d1b4e,stroke:#a78bfa,color:#e2e8f0
+    style B fill:#2d1b4e,stroke:#a78bfa,color:#e2e8f0
+    style SENT fill:#2d1b4e,stroke:#a78bfa,color:#e2e8f0
+    style MAGIC fill:#2d1b4e,stroke:#a78bfa,color:#e2e8f0
+    style LP fill:#422006,stroke:#fb923c,color:#fdba74
+    style LP1 fill:#422006,stroke:#fb923c,color:#fdba74
+    style LP2 fill:#422006,stroke:#fb923c,color:#fdba74
+    style LP3 fill:#422006,stroke:#fb923c,color:#fdba74
+    style LP4 fill:#422006,stroke:#fb923c,color:#fdba74
+    style G1 fill:#451a1a,stroke:#f87171,color:#fca5a5
+    style G2 fill:#451a1a,stroke:#f87171,color:#fca5a5
+    style G3 fill:#451a1a,stroke:#f87171,color:#fca5a5
+    </pre>
+  </div>
+
+  <div class="info">
+    <div class="info-card">
+      <h3 class="edit">Can Edit (Autosave)</h3>
+      <ul>
+        <li>Channel mix percentages — auto-rebalance</li>
+        <li>Ad set daily budgets — inline number input</li>
+        <li>Targeting interests — add/remove per tier</li>
+        <li>Split test variables — dropdown</li>
+        <li>Campaign objectives — dropdown</li>
+        <li>Ad copy — headline, body, CTA per creative</li>
+        <li>Landing page URLs — job posting, LP, AIDA</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3 class="readonly">Controls (Actions)</h3>
+      <ul>
+        <li>Marketing approval — first gate</li>
+        <li>Final approval — after designer sign-off</li>
+        <li>Trigger pipeline regeneration (full or per-stage)</li>
+        <li>Agency magic link generation (auto on final approve)</li>
+        <li>View all pipeline stages and progress</li>
+        <li>Access admin panel (user management, schemas)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">Nova Creative Operations &middot; OneForma &middot; 2026-04-13</div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'dark', themeVariables: { darkMode: true, background: '#111827', primaryColor: '#2d1b4e', primaryTextColor: '#e2e8f0', primaryBorderColor: '#a78bfa', lineColor: '#475569', fontSize: '13px', fontFamily: '-apple-system, system-ui, sans-serif' }, flowchart: { htmlLabels: true, curve: 'basis', padding: 14, nodeSpacing: 30, rankSpacing: 45 } });
+  </script>
+</body>
+</html>

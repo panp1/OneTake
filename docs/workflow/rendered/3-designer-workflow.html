@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova — Designer Workflow</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; background: #0a0a0f; color: #e2e8f0; padding: 40px 32px; max-width: 1400px; margin: 0 auto; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b; text-decoration: none; margin-bottom: 24px; }
+    .back:hover { color: #94a3b8; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; background: rgba(236,72,153,0.15); color: #f472b6; border: 1px solid rgba(236,72,153,0.3); }
+    h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; color: #fff; }
+    .subtitle { font-size: 14px; color: #64748b; margin-bottom: 32px; line-height: 1.6; }
+    .diagram { background: #111827; border: 1px solid rgba(236,72,153,0.2); border-radius: 16px; padding: 32px; overflow-x: auto; margin-bottom: 32px; }
+    .diagram .mermaid { display: flex; justify-content: center; }
+    .tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+    .tool-card { background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; }
+    .tool-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+    .tool-card p { font-size: 12px; color: #94a3b8; line-height: 1.6; }
+    .tool-tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .tag-amber { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .tag-green { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .tag-blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .tag-purple { background: rgba(168,85,247,0.15); color: #a78bfa; }
+    .footer { margin-top: 32px; text-align: center; font-size: 12px; color: #475569; }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back">&larr; All Workflows</a>
+  <div class="badge">Workflow 3 of 5</div>
+  <h1>Designer Workflow</h1>
+  <p class="subtitle">Miguel's full toolkit. Dark canvas gallery with persona context, three edit modes (photo retouching, graphic overlays, full regeneration), Figma bidirectional integration, and final submission with approval recording.</p>
+
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TD
+    A["🔐 Designer Sign-In\n/designer/sign-in"]
+    A --> B["📋 Designer Dashboard\nLinear-style workboard"]
+    B --> B1["Status Groups\nNeeds Attention · In Progress · Completed"]
+    B --> B2["Campaign Cards\npriority · VQA scores · progress bars"]
+    B --> B3["🌓 Dark/Light Theme Toggle\npersists in localStorage"]
+
+    B2 --> C["🎨 Designer Gallery\nopen campaign"]
+
+    C --> C1["Persona Tabs\ncontext cards with psychology + demographics"]
+    C --> C2["Version Accordions\nV1 through V5 per persona"]
+    C --> C3["Format Cards\ntrue aspect ratio · VQA score overlay"]
+    C --> C4["🔍 Lightbox\nfullscreen · keyboard nav (←→ Esc)"]
+    C --> C5["📋 Design Notes\ncurated metadata · never shows empty"]
+
+    C3 --> D{"Select Edit Mode"}
+
+    D -->|"Amber Layer"| E["🟡 Quick Edit\nFlux 2 Inpainting"]
+    E --> E1["Mask Canvas\nbrush tool to paint selection area"]
+    E --> E2["Quick Actions\nfix face · remove object · change background"]
+    E --> E3["Before/After toggle\nside-by-side comparison"]
+    E --> E4["Save → replaces asset\nupdates blob_url"]
+
+    D -->|"Green Layer"| F["🟢 Graphic Editor\nLive Overlay Controls"]
+    F --> F1["Edit Text\nheadline · CTA · body copy"]
+    F --> F2["Style Controls\nfont · size · color · position · opacity"]
+    F --> F3["Live Canvas Preview\nreal-time overlay rendering"]
+    F --> F4["Save → updates overlay HTML\nre-renders composed creative"]
+
+    D -->|"Regenerate"| G["🔄 Regenerate Modal\nSeedream 4.5"]
+    G --> G1["Change Checkboxes\nscene · lighting · pose · expression · outfit"]
+    G --> G2["Submit → creates compute_job\ntriggers Stage 2 or Stage 4 regen"]
+
+    C --> H["Figma Integration"]
+    H --> H1["📦 Export to Figma\nZIP all SVGs + auto-open Figma file"]
+    H --> H2["⬆️ Push to Figma — 3 Levels"]
+    H2 --> H2a["Push entire campaign\nall personas, all versions"]
+    H2 --> H2b["Push single persona\nall versions for one persona"]
+    H2 --> H2c["Push single version\none specific creative set"]
+    H --> H3["🔗 Figma Connect\ntoken + URL validation modal"]
+    H --> H4["🔄 Sync Status\npolling bar · detects Figma changes"]
+
+    C --> LP["🟠 Landing Pages\nenter external URLs"]
+    LP --> LP1["Job Posting URL"]
+    LP --> LP2["Landing Page URL"]
+    LP --> LP3["AIDA Form URL"]
+
+    C --> I["✅ Submit Finals\ndesigner approval recorded"]
+    I --> J["Status → approved\nawaiting marketing manager final sign-off"]
+
+    style A fill:#3b1a2e,stroke:#f472b6,color:#e2e8f0
+    style B fill:#3b1a2e,stroke:#f472b6,color:#e2e8f0
+    style C fill:#3b1a2e,stroke:#f472b6,color:#e2e8f0
+    style H fill:#3b1a2e,stroke:#f472b6,color:#e2e8f0
+    style I fill:#3b1a2e,stroke:#f472b6,color:#e2e8f0
+    style D fill:#451a1a,stroke:#f87171,color:#fca5a5
+    style LP fill:#422006,stroke:#fb923c,color:#fdba74
+    style LP1 fill:#422006,stroke:#fb923c,color:#fdba74
+    style LP2 fill:#422006,stroke:#fb923c,color:#fdba74
+    style LP3 fill:#422006,stroke:#fb923c,color:#fdba74
+    </pre>
+  </div>
+
+  <div class="tools">
+    <div class="tool-card">
+      <div class="tool-tag tag-amber">Amber Layer</div>
+      <h3>Quick Edit — Flux 2</h3>
+      <p>Photo-level retouching. Paint a mask over any area, describe the fix, and Flux 2 inpaints it. Great for fixing faces, removing artifacts, swapping backgrounds. Before/after comparison built in.</p>
+    </div>
+    <div class="tool-card">
+      <div class="tool-tag tag-green">Green Layer</div>
+      <h3>Graphic Editor — Overlay</h3>
+      <p>Edit the text overlay live on the canvas. Change headlines, CTAs, font sizes, colors, positions. The daily driver for copy tweaks. Renders in real-time without regenerating the base image.</p>
+    </div>
+    <div class="tool-card">
+      <div class="tool-tag tag-blue">Regenerate</div>
+      <h3>Seedream 4.5 — Full Regen</h3>
+      <p>Start fresh with a new base image. Select what to change (scene, lighting, pose, expression, outfit) via checkboxes. Creates a compute job that runs Stage 2 or 4 again.</p>
+    </div>
+    <div class="tool-card">
+      <div class="tool-tag tag-purple">Figma Export</div>
+      <h3>ZIP SVGs + Auto-Open</h3>
+      <p>Downloads all creatives as SVGs in a ZIP file, organized by persona and version. Automatically opens the connected Figma file for drag-and-drop placement.</p>
+    </div>
+    <div class="tool-card">
+      <div class="tool-tag tag-purple">Figma Push</div>
+      <h3>3-Level Push</h3>
+      <p>Push creatives directly into Figma frames. Three granularity levels: entire campaign, single persona, or single version. Uses Nova frame naming convention.</p>
+    </div>
+    <div class="tool-card">
+      <div class="tool-tag tag-purple">Figma Sync</div>
+      <h3>Bidirectional Status</h3>
+      <p>Polling status bar detects when frames have been modified in Figma. Connect modal validates token and URL. Sync state persists across sessions.</p>
+    </div>
+  </div>
+
+  <div class="footer">Nova Creative Operations &middot; OneForma &middot; 2026-04-13</div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'dark', themeVariables: { darkMode: true, background: '#111827', primaryColor: '#3b1a2e', primaryTextColor: '#e2e8f0', primaryBorderColor: '#f472b6', lineColor: '#475569', fontSize: '13px', fontFamily: '-apple-system, system-ui, sans-serif' }, flowchart: { htmlLabels: true, curve: 'basis', padding: 14, nodeSpacing: 30, rankSpacing: 45 } });
+  </script>
+</body>
+</html>
