@@ -11,6 +11,7 @@ import PersonaContextCard from "./PersonaContextCard";
 import VersionGroup from "./VersionGroup";
 import AssetLightbox from "./AssetLightbox";
 import EditWorkspace from "../edit/EditWorkspace";
+import LandingPagesCard from "@/components/LandingPagesCard";
 import FigmaExportButton from "../figma/FigmaExportButton";
 import PushToFigmaButton from "../figma/PushToFigmaButton";
 import FigmaConnectModal from "../figma/FigmaConnectModal";
@@ -380,6 +381,17 @@ export default function DesignerGallery({
           />
         ) : (
           <>
+            {/* Landing Pages — designer manages URLs */}
+            <div style={{
+              background: theme.surface,
+              border: `1px solid ${theme.border}`,
+              borderRadius: 10,
+              padding: 16,
+              marginBottom: 18,
+            }}>
+              <LandingPagesCard requestId={request.id} canEdit={true} />
+            </div>
+
             <PersonaContextCard persona={activePersona} theme={theme} requestId={request.id} />
 
             {versions.length === 0 ? (
