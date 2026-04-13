@@ -290,8 +290,16 @@ flowchart TD
     SERVE --> PUBLIC[Public landing page — no auth]
 ```
 
-**LLMs used:** Kimi K2.5 (Stage 1), Seedream 4.5 (Stage 2), Gemma 4 (Stage 3, 6), GLM-5 (Stage 4), Flux 2 (Stage 4 edit), Kling 3.0 (Stage 5)
-**Quality gates:** VQA (Stage 2, 4), Copy Quality (Stage 3), Drift Validation (Stage 6)
+**Models per stage:**
+| Stage | Primary Model | Supporting Models | Gate |
+|---|---|---|---|
+| 1 Intelligence | **Qwen 3.5 397B** (reasoning, thinking mode) | Kimi K2.5 (cultural research, web search) | 8-dimension eval rubric (Qwen 3.5) |
+| 2 Images | **Seedream 4.5** (image gen) | Qwen 3.5 (actor descriptions), Flux 2 Pro (cleanup), Qwen3-VL 8B (local VQA) | VQA gate — face quality, hex artifacts, dirty rooms. Retry 3x then Flux cleanup |
+| 3 Copy | **Gemma 3 27B** (creative writing specialist) | Fallback: Kimi K2.5 | Copy quality gate — brand voice, factual accuracy, tone |
+| 4 Composition | **GLM-5** (HTML/CSS design) | Gemma 4 31B (graphic copy + VQA Phase 2), Playwright (render), Flux 2 Pro (edit loop) | Creative VQA ≥ 0.85 — person visible, text legible, no artifacts |
+| 5 Video | **Kling V3 Omni** (multi-shot video) | Gemma 4 31B (storyboard), Seedream 4.5 (scene images), Sedeo 2.0 (alt) | No automated gate (designer review) |
+| 6 Landing Pages | **Gemma 4 31B** (LP copy) + **GLM-5** (HTML page) | Jinja2 (template variables) | Drift validation (deterministic) — compensation, quals, URLs, work_mode |
+
 **Notifications:** Microsoft Teams webhooks + Outlook email at pipeline completion and final approval
 
 ---
@@ -320,6 +328,8 @@ flowchart TD
     N2 --> D1[🎨 Designer opens campaign in gallery]
     D1 --> D2[Reviews all creatives per persona, version, format]
     D2 --> D3[Edits: quick retouch, overlay text, regenerate, Figma export]
+    D2 --> D3a[Edits landing pages in Dreamweaver → syncs to Nova → deploys to WP via FTP]
+    D3a --> D3b[LP URL auto-captured → inserted into campaign_landing_pages]
 
     D3 --> DG{Designer satisfied?}
     DG -->|Needs more work| D3

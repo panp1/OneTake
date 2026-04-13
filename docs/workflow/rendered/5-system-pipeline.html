@@ -13,219 +13,224 @@
     .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
     h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; color: #fff; }
     .subtitle { font-size: 14px; color: #64748b; margin-bottom: 32px; line-height: 1.6; }
-    .diagram { background: #111827; border: 1px solid rgba(16,185,129,0.2); border-radius: 16px; padding: 32px; overflow-x: auto; margin-bottom: 32px; }
-    .diagram .mermaid { display: flex; justify-content: center; }
 
-    .stages { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 32px; }
-    .stage-card { background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 16px; text-align: center; }
+    .stages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stage-card { background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 16px; }
     .stage-card.new { border-color: rgba(251,146,60,0.4); background: #1a1407; }
-    .stage-num { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
-    .stage-name { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px; }
-    .stage-llm { font-size: 11px; color: #64748b; margin-bottom: 6px; }
-    .stage-out { font-size: 10px; color: #94a3b8; line-height: 1.5; }
-    .stage-gate { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 6px; }
+    .stage-num { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .stage-name { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .stage-models { font-size: 11px; color: #94a3b8; margin-bottom: 6px; line-height: 1.5; }
+    .stage-models strong { color: #60a5fa; font-weight: 600; }
+    .stage-out { font-size: 10px; color: #64748b; line-height: 1.5; }
+    .stage-gate { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 8px; }
     .gate-vqa { background: rgba(239,68,68,0.15); color: #f87171; }
     .gate-copy { background: rgba(168,85,247,0.15); color: #a78bfa; }
     .gate-drift { background: rgba(251,146,60,0.15); color: #fb923c; }
+    .gate-eval { background: rgba(59,130,246,0.15); color: #60a5fa; }
 
-    .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; padding: 16px 20px; background: #111827; border: 1px solid #1e293b; border-radius: 12px; }
-    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #94a3b8; }
-    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+    .section { margin-bottom: 24px; }
+    .section h2 { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+
+    .gate-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .gate-table th { text-align: left; padding: 10px 14px; background: #1e293b; color: #94a3b8; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+    .gate-table td { padding: 10px 14px; border-bottom: 1px solid #1e293b; color: #e2e8f0; }
+    .gate-table tr:last-child td { border-bottom: none; }
+    .gate-table .model { color: #60a5fa; font-weight: 600; font-family: ui-monospace, monospace; font-size: 11px; }
+    .gate-table .pass { color: #34d399; }
+    .gate-table .fail { color: #f87171; }
 
     .footer { margin-top: 32px; text-align: center; font-size: 12px; color: #475569; }
   </style>
 </head>
 <body>
   <a href="index.html" class="back">&larr; All Workflows</a>
-  <div class="badge">Workflow 5 of 5</div>
-  <h1>Full System Pipeline</h1>
-  <p class="subtitle">The complete technical flow — all 6 generation stages with quality gates, data stores, LLM routing, the 3-stage approval flow, notifications, and delivery. This is how Nova actually works under the hood.</p>
-
-  <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background: #60a5fa;"></div> Pipeline Stage</div>
-    <div class="legend-item"><div class="legend-dot" style="background: #f87171;"></div> Quality Gate</div>
-    <div class="legend-item"><div class="legend-dot" style="background: #a78bfa;"></div> Database Write</div>
-    <div class="legend-item"><div class="legend-dot" style="background: #fbbf24;"></div> Notification</div>
-    <div class="legend-item"><div class="legend-dot" style="background: #34d399;"></div> Human Action</div>
-    <div class="legend-item"><div class="legend-dot" style="background: #fb923c;"></div> NEW — Stage 6</div>
-  </div>
+  <div class="badge">Workflow 5 of 6</div>
+  <h1>Full System Pipeline — All 6 Stages</h1>
+  <p class="subtitle">Exact models, verification gates, and retry logic for each stage. Every model name matches the production config.</p>
 
   <!-- Stage overview cards -->
   <div class="stages">
     <div class="stage-card">
       <div class="stage-num" style="color: #60a5fa;">1</div>
-      <div class="stage-name">Intelligence</div>
-      <div class="stage-llm">Kimi K2.5</div>
-      <div class="stage-out">Brief, personas, cultural research, design direction, derived requirements</div>
+      <div class="stage-name">Strategic Intelligence</div>
+      <div class="stage-models">
+        <strong>Kimi K2.5</strong> — cultural research, web search<br>
+        <strong>Qwen 3.5 397B</strong> — personas, brief, design direction (thinking mode)
+      </div>
+      <div class="stage-out">Output: brief, personas, cultural research, campaign strategy, design direction</div>
+      <div class="stage-gate gate-eval">8-dimension eval gate (Qwen 3.5)</div>
     </div>
     <div class="stage-card">
       <div class="stage-num" style="color: #60a5fa;">2</div>
-      <div class="stage-name">Images</div>
-      <div class="stage-llm">Seedream 4.5</div>
-      <div class="stage-out">Actor profiles, seed images, base_image assets</div>
-      <div class="stage-gate gate-vqa">VQA Gate</div>
+      <div class="stage-name">Character-Driven Images</div>
+      <div class="stage-models">
+        <strong>Qwen 3.5 397B</strong> — actor descriptions<br>
+        <strong>Seedream 4.5</strong> — image generation (10 dimensions)<br>
+        <strong>Flux 2 Pro</strong> — artifact cleanup (optional)<br>
+        <strong>Qwen3-VL 8B</strong> — local VQA scoring
+      </div>
+      <div class="stage-out">Output: actor profiles, base_image assets</div>
+      <div class="stage-gate gate-vqa">VQA gate — face quality, hex artifacts, dirty rooms</div>
     </div>
     <div class="stage-card">
       <div class="stage-num" style="color: #60a5fa;">3</div>
-      <div class="stage-name">Copy</div>
-      <div class="stage-llm">Gemma 4</div>
-      <div class="stage-out">Headlines, hooks, body, CTAs per persona x channel x language</div>
-      <div class="stage-gate gate-copy">Copy Gate</div>
+      <div class="stage-name">Multilingual Ad Copy</div>
+      <div class="stage-models">
+        <strong>Gemma 3 27B</strong> — ad copy (creative writing specialist)<br>
+        Fallback: <strong>Kimi K2.5</strong>
+      </div>
+      <div class="stage-out">Output: headlines, hooks, body, CTAs per persona × channel × language</div>
+      <div class="stage-gate gate-copy">Copy quality gate — brand voice, accuracy, tone</div>
     </div>
     <div class="stage-card">
       <div class="stage-num" style="color: #60a5fa;">4</div>
-      <div class="stage-name">Composition</div>
-      <div class="stage-llm">GLM-5 + Flux 2</div>
-      <div class="stage-out">Composed creatives, carousel panels, overlay renders</div>
-      <div class="stage-gate gate-vqa">VQA Gate 85%</div>
+      <div class="stage-name">Layout Composition</div>
+      <div class="stage-models">
+        <strong>Gemma 4 31B</strong> — graphic overlay copy<br>
+        <strong>GLM-5</strong> — HTML/CSS design generation<br>
+        <strong>Playwright</strong> — headless render → PNG<br>
+        <strong>Gemma 4 31B</strong> — creative VQA Phase 2<br>
+        <strong>Flux 2 Pro</strong> — edit loop (up to 3 iterations)
+      </div>
+      <div class="stage-out">Output: composed_creative, carousel_panel assets</div>
+      <div class="stage-gate gate-vqa">VQA gate ≥ 0.85 — person visible, text legible, no artifacts</div>
     </div>
     <div class="stage-card">
       <div class="stage-num" style="color: #60a5fa;">5</div>
-      <div class="stage-name">Video</div>
-      <div class="stage-llm">Kling 3.0</div>
-      <div class="stage-out">12-15s vertical UGC, multi-shot, lip sync</div>
+      <div class="stage-name">Video Generation</div>
+      <div class="stage-models">
+        <strong>Gemma 4 31B</strong> — storyboard prompts<br>
+        <strong>Seedream 4.5</strong> — scene images<br>
+        <strong>Kling V3 Omni</strong> — multi-shot video + lip sync<br>
+        Alt: <strong>Sedeo 2.0</strong> — UGC video
+      </div>
+      <div class="stage-out">Output: 12-15s vertical UGC video</div>
     </div>
     <div class="stage-card new">
       <div class="stage-num" style="color: #fb923c;">6</div>
       <div class="stage-name">Landing Pages</div>
-      <div class="stage-llm">Gemma 4 + Jinja2</div>
-      <div class="stage-out">Per-persona HTML pages, 5 template variants</div>
-      <div class="stage-gate gate-drift">Drift Gate</div>
+      <div class="stage-models">
+        <strong>Gemma 4 31B</strong> — LP copy (why, activities, FAQ)<br>
+        <strong>GLM-5</strong> — HTML page generation<br>
+        <strong>Jinja2</strong> — template rendering with hard facts
+      </div>
+      <div class="stage-out">Output: per-persona HTML landing pages, 5 template variants</div>
+      <div class="stage-gate gate-drift">Drift validation — compensation, quals, URLs, work_mode</div>
     </div>
   </div>
 
-  <div class="diagram">
-    <pre class="mermaid">
-flowchart TD
-    START["👤 Recruiter submits intake form\n5-step wizard with AI pre-fill"]
-    START --> DB1[("💾 intake_requests\nstatus: draft")]
-    DB1 --> JOB["compute_job created\ntype: generate"]
-    JOB --> WORKER["🔧 Python Worker\nclaims job atomically via SELECT FOR UPDATE"]
+  <!-- Verification / Gating table -->
+  <div class="section">
+    <h2>Verification Gates — Per Stage</h2>
+    <table class="gate-table" style="background: #111827; border-radius: 12px; overflow: hidden;">
+      <thead>
+        <tr>
+          <th>Stage</th>
+          <th>Gate Name</th>
+          <th>Model</th>
+          <th>What It Checks</th>
+          <th>Pass</th>
+          <th>Fail Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>Brief Evaluation</td>
+          <td class="model">qwen/qwen3.5-397b</td>
+          <td>8-dimension rubric: clarity, specificity, cultural fit, persona depth, messaging coherence, channel logic, budget rationale, brief completeness</td>
+          <td class="pass">Score ≥ threshold</td>
+          <td class="fail">Re-generate brief with feedback</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Image VQA</td>
+          <td class="model">Qwen3-VL-8B (local)</td>
+          <td>Face quality (no deformities), no hex color artifacts, no dirty rooms/pools, correct aspect ratio, person clearly visible</td>
+          <td class="pass">All checks pass</td>
+          <td class="fail">Retry with adjusted prompt (up to 3x), then Flux 2 cleanup</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Copy Quality</td>
+          <td class="model">google/gemma-3-27b</td>
+          <td>Brand voice compliance, factual accuracy (compensation, quals), tone match per persona, no AI slop</td>
+          <td class="pass">Quality threshold met</td>
+          <td class="fail">Retry with feedback, fallback to Kimi K2.5</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Creative VQA Phase 2</td>
+          <td class="model">google/gemma-4-31b</td>
+          <td>Person visible in hero area, text legible (≤25% overlay), no rendering artifacts, brand consistency, CTR appeal, text zone safety</td>
+          <td class="pass">Score ≥ 0.85</td>
+          <td class="fail">Flux 2 edit loop — inpaint problems (up to 3 iterations)</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>—</td>
+          <td class="model">—</td>
+          <td>No automated gate (video quality reviewed by designer)</td>
+          <td class="pass">—</td>
+          <td class="fail">—</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>Drift Validation</td>
+          <td class="model">Deterministic (no LLM)</td>
+          <td>Compensation matches intake, qualifications are verbatim subset, all CTA URLs match apply_url, work_mode sections correct, page lang attribute correct</td>
+          <td class="pass">ALL facts match source</td>
+          <td class="fail">Log error, mark evaluation_passed: false, skip upload</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-    %% STAGE 1
-    WORKER --> S1["━━ Stage 1: Strategic Intelligence ━━"]
-    S1 --> S1a["Kimi K2.5 — analyze RFP/intake data"]
-    S1a --> S1b["Generate:\n• Creative brief\n• Dynamic personas (2-5)\n• Cultural research per region\n• Design direction\n• Derived requirements"]
-    S1b --> S1c["Campaign strategy\nbudgets, channels, ad sets, targeting"]
-    S1c --> DB2[("💾 creative_briefs\n+ campaign_strategies")]
-
-    %% STAGE 2
-    DB2 --> S2["━━ Stage 2: Character-Driven Images ━━"]
-    S2 --> S2a["Create actor profiles\n1 per persona, scene-aware prompts"]
-    S2a --> S2b["Seedream 4.5\ngenerate 4 scenes per actor"]
-    S2b --> S2c{"🛡️ VQA Gate\nface quality · artifacts\nhex colors · dirty rooms"}
-    S2c -->|"PASS"| S2d["Upload to Vercel Blob\nbase_image assets"]
-    S2c -->|"FAIL"| S2e["Retry with adjusted prompt\nup to 3 attempts"]
-    S2e --> S2b
-    S2d --> DB3[("💾 actor_profiles\n+ generated_assets: base_image")]
-
-    %% STAGE 3
-    DB3 --> S3["━━ Stage 3: Copy Generation ━━"]
-    S3 --> S3a["Gemma 4 — layered context\n2K base knowledge + 1K project context"]
-    S3a --> S3b["Per persona × channel × language\n3 pillar variations each"]
-    S3b --> S3c["Output: headlines, hooks,\nbody, CTAs, descriptions"]
-    S3c --> S3d{"🛡️ Copy Quality Gate\nbrand voice · accuracy · tone"}
-    S3d -->|"PASS"| DB4[("💾 generated_assets: copy")]
-    S3d -->|"FAIL"| S3e["Retry with feedback"]
-    S3e --> S3a
-
-    %% STAGE 4
-    DB4 --> S4["━━ Stage 4: Layout Composition ━━"]
-    S4 --> S4a["GLM-5 designs HTML compositions\nusing reference templates"]
-    S4a --> S4b["Scene-aware actor placement\npillar-matched scene selection"]
-    S4b --> S4c["Graphic copy overlay\nper-language, 25% budget"]
-    S4c --> S4d["Playwright render → PNG\nheadless Chrome screenshot"]
-    S4d --> S4e{"🛡️ Creative VQA Gate\nperson visible · text legible\nno artifacts · score ≥ 0.85"}
-    S4e -->|"PASS 85%+"| S4f["Upload composed creatives\nto Vercel Blob"]
-    S4e -->|"FAIL"| S4g["Flux 2 edit loop\ninpaint problems, up to 3 iterations"]
-    S4g --> S4d
-    S4f --> DB5[("💾 generated_assets:\ncomposed_creative + carousel_panel")]
-
-    %% STAGE 5
-    DB5 --> S5["━━ Stage 5: Video Generation ━━"]
-    S5 --> S5a["Kling 3.0 — 12-15s vertical\nUGC-style talking head"]
-    S5a --> S5b["Multi-shot with native\nlip sync + voice"]
-    S5b --> DB6[("💾 generated_assets: video")]
-
-    %% STAGE 6 — NEW
-    DB6 --> S6["━━ 🟠 Stage 6: Landing Pages ━━"]
-    S6 --> S6a["Select template variant\nbased on task_type + persona"]
-    S6a --> S6b["Extract hard facts\ncompensation · quals · locations · URLs\nINJECTED, never LLM-written"]
-    S6b --> S6c["Pull best Stage 3 copy\nhero H1 from best headline\nCTA from best call-to-action"]
-    S6c --> S6d["Gemma 4 — fresh sections\nwhy cards · activities · sessions · FAQ"]
-    S6d --> S6e["Jinja2 render\nfull self-contained HTML\nwith images from Stage 2+4"]
-    S6e --> S6f{"🛡️ Drift Validation Gate\ncompensation match · qual match\nCTA URL match · work_mode check\nlanguage check"}
-    S6f -->|"ALL MATCH"| S6g["Upload HTML to Vercel Blob"]
-    S6f -->|"MISMATCH"| S6h["❌ Log error\nmark evaluation_passed: false"]
-    S6g --> DB7[("💾 generated_assets: landing_page\n+ /lp/slug route ready")]
-
-    %% PIPELINE COMPLETE
-    DB7 --> DONE["✅ All 6 stages complete"]
-    DONE --> STATUS[("💾 intake_requests\nstatus → review")]
-    STATUS --> N1["📣 Teams + Outlook Notification\n'Creatives ready for review'"]
-
-    %% 3-STAGE APPROVAL
-    N1 --> MKT{"🚦 Marketing Manager Review\nedits strategy, reviews creatives"}
-    MKT -->|"Approve"| DWORK["🎨 Designer works\nedits · retouches · Figma"]
-    MKT -->|"Reject"| REGEN["🔄 Trigger regeneration\nfull or per-stage"]
-    REGEN --> WORKER
-
-    DWORK --> DSUB["Designer submits finals"]
-    DSUB --> DGATE{"🚦 Designer Approval\nrecorded in approvals table"}
-
-    DGATE -->|"Approved"| FGATE{"🚦 Final Approval\nMarketing Manager sign-off"}
-    FGATE -->|"Approve"| SENT[("💾 status → sent")]
-
-    SENT --> MAGIC["🔗 Generate agency magic link\ntoken-authenticated URL"]
-    MAGIC --> N2["📣 Teams + Outlook Notification\nmagic link sent to agency"]
-    MAGIC --> AGENCY["Agency opens portal\n/agency/id?token=..."]
-
-    %% LANDING PAGE SERVING
-    DB7 --> SERVE["🌐 /lp/slug serves pages\npublic, no auth required"]
-
-    style S1 fill:#1e3a5f,stroke:#3b82f6,color:#93c5fd
-    style S2 fill:#1e3a5f,stroke:#3b82f6,color:#93c5fd
-    style S3 fill:#1e3a5f,stroke:#3b82f6,color:#93c5fd
-    style S4 fill:#1e3a5f,stroke:#3b82f6,color:#93c5fd
-    style S5 fill:#1e3a5f,stroke:#3b82f6,color:#93c5fd
-    style S6 fill:#422006,stroke:#fb923c,color:#fdba74
-    style S6a fill:#422006,stroke:#fb923c,color:#fdba74
-    style S6b fill:#422006,stroke:#fb923c,color:#fdba74
-    style S6c fill:#422006,stroke:#fb923c,color:#fdba74
-    style S6d fill:#422006,stroke:#fb923c,color:#fdba74
-    style S6e fill:#422006,stroke:#fb923c,color:#fdba74
-    style S6f fill:#451a1a,stroke:#f87171,color:#fca5a5
-    style S6g fill:#422006,stroke:#fb923c,color:#fdba74
-    style S6h fill:#451a1a,stroke:#ef4444,color:#fca5a5
-    style DB7 fill:#1e1a2e,stroke:#a78bfa,color:#c4b5fd
-    style SERVE fill:#422006,stroke:#fb923c,color:#fdba74
-    style S2c fill:#451a1a,stroke:#f87171,color:#fca5a5
-    style S3d fill:#451a1a,stroke:#f87171,color:#fca5a5
-    style S4e fill:#451a1a,stroke:#f87171,color:#fca5a5
-    style MKT fill:#451a1a,stroke:#f87171,color:#fca5a5
-    style DGATE fill:#451a1a,stroke:#f87171,color:#fca5a5
-    style FGATE fill:#451a1a,stroke:#f87171,color:#fca5a5
-    style DB1 fill:#1e1a2e,stroke:#a78bfa,color:#c4b5fd
-    style DB2 fill:#1e1a2e,stroke:#a78bfa,color:#c4b5fd
-    style DB3 fill:#1e1a2e,stroke:#a78bfa,color:#c4b5fd
-    style DB4 fill:#1e1a2e,stroke:#a78bfa,color:#c4b5fd
-    style DB5 fill:#1e1a2e,stroke:#a78bfa,color:#c4b5fd
-    style DB6 fill:#1e1a2e,stroke:#a78bfa,color:#c4b5fd
-    style STATUS fill:#1e1a2e,stroke:#a78bfa,color:#c4b5fd
-    style SENT fill:#1e1a2e,stroke:#a78bfa,color:#c4b5fd
-    style N1 fill:#2e2a1a,stroke:#fbbf24,color:#fde68a
-    style N2 fill:#2e2a1a,stroke:#fbbf24,color:#fde68a
-    style START fill:#0a2e1a,stroke:#34d399,color:#a7f3d0
-    style DONE fill:#0a2e1a,stroke:#34d399,color:#a7f3d0
-    style MAGIC fill:#0a2e1a,stroke:#34d399,color:#a7f3d0
-    style AGENCY fill:#0a2e1a,stroke:#34d399,color:#a7f3d0
-    </pre>
+  <!-- Post-pipeline -->
+  <div class="section">
+    <h2>Post-Pipeline — Approval & Deploy</h2>
+    <table class="gate-table" style="background: #111827; border-radius: 12px; overflow: hidden;">
+      <thead>
+        <tr>
+          <th>Step</th>
+          <th>Who</th>
+          <th>What</th>
+          <th>Notification</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Gate 1</td>
+          <td>Marketing Manager</td>
+          <td>Reviews all outputs including landing pages, edits strategy inline, approves for designer</td>
+          <td>Teams + Outlook to Designer</td>
+        </tr>
+        <tr>
+          <td>Gate 2</td>
+          <td>Designer</td>
+          <td>Polishes creatives, edits LPs in Dreamweaver, deploys to WP via FTP, submits finals</td>
+          <td>Teams + Outlook to Marketing</td>
+        </tr>
+        <tr>
+          <td>Gate 3</td>
+          <td>Marketing Manager</td>
+          <td>Final review of polished work, signs off, generates agency magic link</td>
+          <td>Teams + Outlook to Recruiter + Agency</td>
+        </tr>
+        <tr>
+          <td>LP Deploy</td>
+          <td>Designer</td>
+          <td>FTP push to WordPress root → LP URL auto-captured → inserted into campaign_landing_pages</td>
+          <td>URL auto-populates in recruiter Link Builder + agency portal</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <div class="footer">Nova Creative Operations &middot; OneForma &middot; 2026-04-13</div>
 
   <script>
-    mermaid.initialize({ startOnLoad: true, theme: 'dark', themeVariables: { darkMode: true, background: '#111827', primaryColor: '#1a2332', primaryTextColor: '#e2e8f0', primaryBorderColor: '#34d399', lineColor: '#475569', fontSize: '12px', fontFamily: '-apple-system, system-ui, sans-serif' }, flowchart: { htmlLabels: true, curve: 'basis', padding: 12, nodeSpacing: 25, rankSpacing: 40 } });
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
   </script>
 </body>
 </html>

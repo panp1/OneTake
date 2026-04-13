@@ -45,58 +45,58 @@
     </div>
     <div class="c c-blue" style="left:346px; top:30px;">
       <h3>Stage 1: Intelligence</h3>
-      <p>Kimi K2.5 — RFP analysis</p>
+      <p>Kimi K2.5 + Qwen 3.5 397B</p>
       <ul>
-        <li>Brief, personas, research</li>
-        <li>Design direction</li>
-        <li>Campaign strategy</li>
+        <li>Research (Kimi) + reasoning (Qwen)</li>
+        <li>Personas, brief, design direction</li>
+        <li>🛡️ 8-dim eval gate (Qwen 3.5)</li>
       </ul>
     </div>
     <div class="c c-blue" style="left:656px; top:30px;">
       <h3>Stage 2: Images</h3>
-      <p>Seedream 4.5 — actor generation</p>
+      <p>Qwen 3.5 + Seedream 4.5</p>
       <ul>
-        <li>4 scenes per persona</li>
-        <li>VQA gate (face + artifacts)</li>
-        <li>Retry up to 3x on fail</li>
+        <li>Actor desc (Qwen) → images (Seedream)</li>
+        <li>Cleanup: Flux 2 Pro (optional)</li>
+        <li>🛡️ VQA gate (Qwen3-VL local)</li>
       </ul>
     </div>
     <div class="c c-blue" style="left:966px; top:30px;">
       <h3>Stage 3: Copy</h3>
-      <p>Gemma 4 — per persona × channel</p>
+      <p>Gemma 3 27B (creative specialist)</p>
       <ul>
-        <li>Headlines, hooks, CTAs</li>
-        <li>3 pillar variations</li>
-        <li>Copy quality gate</li>
+        <li>Per persona × channel × language</li>
+        <li>3 pillar variations each</li>
+        <li>🛡️ Copy quality gate</li>
       </ul>
     </div>
 
     <!-- ROW 2 (R→L) y=230 — Stages 4-6 + completion -->
     <div class="c c-blue" style="left:966px; top:230px;">
       <h3>Stage 4: Composition</h3>
-      <p>GLM-5 + Flux 2</p>
+      <p>GLM-5 (design) + Gemma 4 (VQA)</p>
       <ul>
-        <li>HTML layouts → Playwright PNG</li>
-        <li>Scene-aware placement</li>
-        <li>VQA gate ≥ 0.85</li>
+        <li>HTML/CSS → Playwright → PNG</li>
+        <li>Flux 2 edit loop (up to 3x)</li>
+        <li>🛡️ VQA ≥ 0.85 (Gemma 4 31B)</li>
       </ul>
     </div>
     <div class="c c-blue" style="left:656px; top:230px;">
       <h3>Stage 5: Video</h3>
-      <p>Kling 3.0 — UGC-style</p>
+      <p>Gemma 4 + Seedream + Kling V3</p>
       <ul>
-        <li>12-15s vertical format</li>
-        <li>Multi-shot with lip sync</li>
-        <li>Native voice generation</li>
+        <li>Storyboard (Gemma 4 31B)</li>
+        <li>Scenes (Seedream 4.5)</li>
+        <li>Video (Kling V3 Omni / Sedeo)</li>
       </ul>
     </div>
     <div class="c c-purp" style="left:346px; top:230px;">
       <h3>Stage 6: Landing Pages</h3>
-      <p>Gemma 4 + Jinja2</p>
+      <p>Gemma 4 (copy) + GLM-5 (HTML)</p>
       <ul>
-        <li>Per-persona HTML pages</li>
-        <li>5 template variants</li>
-        <li>Drift validation gate</li>
+        <li>Per-persona, 5 templates</li>
+        <li>Hard facts injected (Jinja2)</li>
+        <li>🛡️ Drift validation (deterministic)</li>
       </ul>
     </div>
     <div class="c c-dash" style="left:36px; top:230px;">
@@ -105,29 +105,29 @@
       <div class="m">📩 Teams + Outlook: Creatives ready</div>
     </div>
 
-    <!-- ROW 3 (L→R) y=430 — Approval flow -->
+    <!-- ROW 3 (L→R) y=430 — Approval + LP deploy flow -->
     <div class="c c-blue" style="left:36px; top:430px;">
-      <h3>Marketing approval</h3>
-      <p>Reviews output, edits strategy inline, approves for designer</p>
-      <div class="m">Gate 1 of 3</div>
+      <h3>Marketing reviews all</h3>
+      <p>Strategy, creatives, copy, AND landing pages — edits inline</p>
+      <div class="m">Gate 1 — includes LP review</div>
     </div>
     <div class="c c-pink" style="left:346px; top:430px;">
-      <h3>Designer approval</h3>
-      <p>Polishes creatives, exports to Figma, submits finals</p>
-      <div class="m">Gate 2 of 3</div>
+      <h3>Designer polishes + deploys</h3>
+      <p>Creatives + Figma + LP edits in Dreamweaver → FTP to WordPress</p>
+      <div class="m">Gate 2 — LP URL auto-captured</div>
     </div>
     <div class="c c-blue" style="left:656px; top:430px;">
       <h3>Final approval</h3>
       <p>Marketing Manager signs off — status → sent</p>
-      <div class="m">Gate 3 of 3 — ✓ Approved</div>
+      <div class="m">Gate 3 — ✓ Approved</div>
     </div>
     <div class="c c-dash" style="left:966px; top:430px;">
       <h3>Delivery</h3>
-      <p>Magic link → agency portal. /lp/ routes → public landing pages. Library → recruiter</p>
+      <p>Agency magic link + recruiter library + live WP landing pages</p>
       <div class="m">📩 Teams + Outlook to all</div>
     </div>
 
-    <span class="note" style="left:36px; top:592px;">LLMs: Kimi K2.5 (S1) · Seedream 4.5 (S2) · Gemma 4 (S3, S6) · GLM-5 (S4) · Flux 2 (S4 edit) · Kling 3.0 (S5)</span>
+    <span class="note" style="left:36px; top:592px;">Kimi K2.5 (research) · Qwen 3.5 397B (reasoning) · Gemma 3 27B (copy) · Gemma 4 31B (VQA/storyboard) · GLM-5 (design/HTML) · Seedream 4.5 (images) · Flux 2 Pro (edit) · Kling V3 (video)</span>
 
     <!-- ARROWS -->
     <svg class="arr" viewBox="0 0 1432 742">
