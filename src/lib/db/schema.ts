@@ -99,6 +99,12 @@ export async function createTables(): Promise<void> {
       ADD COLUMN IF NOT EXISTS context_notes            TEXT
   `;
 
+  // Figma sync state — stores token, file_key, frame hashes, last sync time
+  await sql`
+    ALTER TABLE intake_requests
+      ADD COLUMN IF NOT EXISTS figma_sync JSONB DEFAULT NULL
+  `;
+
   // 5. attachments — FK to intake_requests
   await sql`
     CREATE TABLE IF NOT EXISTS attachments (
