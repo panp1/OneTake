@@ -1,16 +1,25 @@
 /**
- * Figma REST API client wrapper for Nova.
+ * Figma REST API client wrapper for Nova — SERVER-ONLY.
  *
  * Uses `figma-api` npm package for typed API calls.
- * Provides Nova-specific helpers: frame name parsing, diff detection,
- * image export, and sync state management.
+ * For client-safe helpers (parseFrameName, buildFrameName, extractFileKey),
+ * import from `@/lib/figma-helpers` instead.
+ *
+ * This module re-exports the helpers for backward compat with server routes.
  */
 
 import { Api } from "figma-api";
+import { parseFrameName } from "./figma-helpers";
+
+// Re-export pure helpers so server routes can import from either module
+export {
+  parseFrameName,
+  buildFrameName,
+  extractFileKey,
+} from "./figma-helpers";
+export type { NovaFrameRouting } from "./figma-helpers";
 
 // ── Minimal Figma type interfaces ────────────────────────────
-// The @figma/rest-api-spec package is a transitive dependency not
-// directly importable in pnpm. We define the subset we need here.
 
 interface FigmaNode {
   id: string;
@@ -26,47 +35,11 @@ interface FigmaFileResponse {
   document: FigmaNode;
 }
 
-// ── Frame Name Convention ────────────────────────────────────
-// Nova_{PersonaFirstName}_{Version}_{Platform}_{Width}x{Height}
-// Example: Nova_Maria_V1_ig_feed_1080x1080
-
-export interface NovaFrameRouting {
-  persona: string;
-  version: string;
-  platform: string;
-  width: number;
-  height: number;
-}
-
 export interface NovaFrame {
   nodeId: string;
   name: string;
-  routing: NovaFrameRouting;
+  routing: import("./figma-helpers").NovaFrameRouting;
   lastModified?: string;
-}
-
-/**
- * Parse a Figma frame name into routing metadata.
- * Returns null if the name doesn't match the Nova convention.
- */
-export function parseFrameName(name: string): NovaFrameRouting | null {
-  // Nova_Maria_V1_ig_feed_1080x1080
-  const match = /^Nova_(\w+)_(V\d+)_([a-z_]+)_(\d+)x(\d+)$/.exec(name);
-  if (!match) return null;
-  return {
-    persona: match[1],
-    version: match[2],
-    platform: match[3],
-    width: parseInt(match[4], 10),
-    height: parseInt(match[5], 10),
-  };
-}
-
-/**
- * Build a Nova frame name from routing metadata.
- */
-export function buildFrameName(routing: NovaFrameRouting): string {
-  return `Nova_${routing.persona}_${routing.version}_${routing.platform}_${routing.width}x${routing.height}`;
 }
 
 /**
@@ -74,15 +47,6 @@ export function buildFrameName(routing: NovaFrameRouting): string {
  */
 export function createFigmaClient(token: string) {
   return new Api({ personalAccessToken: token });
-}
-
-/**
- * Extract the file key from a Figma URL.
- * Supports: https://www.figma.com/file/KEY/Name and https://www.figma.com/design/KEY/Name
- */
-export function extractFileKey(url: string): string | null {
-  const match = /figma\.com\/(file|design)\/([a-zA-Z0-9]+)/.exec(url);
-  return match ? match[2] : null;
 }
 
 /**

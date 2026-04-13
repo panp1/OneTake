@@ -3,8 +3,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { Upload, Check, AlertTriangle, X, Loader2 } from "lucide-react";
-import { parseFrameName } from "@/lib/figma-client";
-import type { NovaFrameRouting } from "@/lib/figma-client";
+import { parseFrameName } from "@/lib/figma-helpers";
+import type { NovaFrameRouting } from "@/lib/figma-helpers";
 import type { Theme } from "../gallery/tokens";
 import { FONT } from "../gallery/tokens";
 import type { GeneratedAsset } from "@/lib/types";
