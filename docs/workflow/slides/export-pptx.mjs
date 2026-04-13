@@ -2,12 +2,10 @@
 /**
  * Export workflow HTML slides → editable PPTX for Canva import.
  *
- * Strategy (from TailoredVets pattern):
- *   1. Hide text → screenshot each slide as background-only PNG (300 DPI)
- *   2. Extract text element positions + computed styles from live DOM
+ * Strategy (from TailoredVets export-canva.mjs):
+ *   1. Extract text element positions + computed styles from live DOM
+ *   2. Hide text → screenshot each slide as background-only PNG (300 DPI)
  *   3. Build PPTX: PNG background + transparent editable text overlays
- *
- * Result: pixel-perfect backgrounds with fully editable text in Canva/PowerPoint.
  *
  * Usage:
  *   node export-pptx.mjs
@@ -24,10 +22,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 16:9 widescreen slide
 const SLIDE_W_IN = 13.333;
 const SLIDE_H_IN = 7.5;
-const CSS_PPI = 96;
 const SLIDE_W_PX = 1440;
 const SLIDE_H_PX = 810;
 const DPI = 300;
+const CSS_PPI = 96;
 const SCALE = DPI / CSS_PPI;
 
 const SLIDE_FILES = [
@@ -39,7 +37,6 @@ const SLIDE_FILES = [
   { file: "6-team-process.html", name: "Team Process" },
 ];
 
-// CSS → PPTX font mapping
 const FONT_MAP = {
   "-apple-system": "Helvetica Neue",
   "system-ui": "Helvetica Neue",
@@ -74,6 +71,8 @@ async function main() {
 
     console.log(`\nProcessing: ${name}`);
     const page = await browser.newPage();
+
+    // Set viewport to EXACTLY the slide dimensions — no centering, no flex
     await page.setViewport({
       width: SLIDE_W_PX,
       height: SLIDE_H_PX,
@@ -85,18 +84,47 @@ async function main() {
       timeout: 15000,
     });
 
-    // Wait for fonts
     await page.evaluate(() => document.fonts.ready);
 
-    // ── Extract text element positions + styles ──
+    // Force the slide to fill the viewport exactly — remove centering/padding
+    await page.addStyleTag({
+      content: `
+        body {
+          display: block !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          background: transparent !important;
+          min-height: auto !important;
+          overflow: hidden !important;
+        }
+        .slide {
+          width: 1440px !important;
+          height: 810px !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          position: absolute !important;
+          top: 0 !important;
+          left: 0 !important;
+        }
+      `,
+    });
+
+    // Give layout a tick to settle
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+
+    // ── Extract text elements ──
     console.log("  Extracting text...");
-    const texts = await page.evaluate((slideW, slideH) => {
-      const SELECTOR = "h3, p, li, .m, .note, .title, .tag, .leg span";
+
+    const TEXT_SELECTOR =
+      ".c h3, .c p, .c li, .c .m, .note, .title, .tag, .leg span, " +
+      ".nova-tag, .card-title, .card-sub, .card-desc, .card-meta, .card-badge";
+
+    const texts = await page.evaluate((selector, slideW, slideH) => {
       const slideEl = document.querySelector(".slide");
       if (!slideEl) return [];
 
       const slideRect = slideEl.getBoundingClientRect();
-      const candidates = slideEl.querySelectorAll(SELECTOR);
+      const candidates = slideEl.querySelectorAll(selector);
       const seen = new Set();
       const result = [];
 
@@ -104,19 +132,19 @@ async function main() {
         const text = el.textContent?.trim();
         if (!text || text.length === 0) return;
 
-        // Skip if has children matching our selector (prefer leaf nodes)
-        if (el.querySelector(SELECTOR) && el.tagName !== "LI") return;
+        // Prefer leaf nodes — skip if has child matches
+        const hasTextChildren = el.querySelector(selector);
+        if (hasTextChildren) return;
 
         const rect = el.getBoundingClientRect();
         if (rect.width < 5 || rect.height < 5) return;
 
-        // Dedup by position
+        // Dedup
         const key = `${Math.round(rect.x)}-${Math.round(rect.y)}-${text.slice(0, 15)}`;
         if (seen.has(key)) return;
         seen.add(key);
 
         const style = getComputedStyle(el);
-
         const x = rect.left - slideRect.left;
         const y = rect.top - slideRect.top;
 
@@ -139,26 +167,38 @@ async function main() {
       });
 
       return result;
-    }, SLIDE_W_PX, SLIDE_H_PX);
+    }, TEXT_SELECTOR, SLIDE_W_PX, SLIDE_H_PX);
 
     console.log(`  Found ${texts.length} text elements`);
 
-    // ── Hide text for background-only screenshot ──
-    console.log("  Capturing background...");
+    // ── Hide ALL text for background-only screenshot ──
+    console.log("  Hiding text for background capture...");
     await page.addStyleTag({
       content: `
-        h3, p, li, span, .m, .note, .title, .tag,
-        .leg span, .leg i, .leg {
+        .__txt-hide {
           color: transparent !important;
           -webkit-text-fill-color: transparent !important;
           text-shadow: none !important;
         }
-        /* Keep card borders, arrows, gradient visible */
       `,
     });
+    await page.evaluate((selector) => {
+      // Hide all text-bearing elements
+      const allText = "H1,H2,H3,H4,H5,H6,P,SPAN,LI,A";
+      document.querySelectorAll(allText).forEach((el) => el.classList.add("__txt-hide"));
+      // Also hide our custom classes
+      document.querySelectorAll(
+        ".title,.tag,.note,.m,.leg,.nova-tag,.card-title,.card-sub,.card-desc,.card-meta,.card-badge"
+      ).forEach((el) => el.classList.add("__txt-hide"));
+    }, TEXT_SELECTOR);
 
-    const slideEl = await page.$(".slide");
-    const screenshotBuf = await slideEl.screenshot({ type: "png", omitBackground: false });
+    // ── Screenshot (text-free) ──
+    console.log("  Capturing background...");
+    const screenshotBuf = await page.screenshot({
+      type: "png",
+      clip: { x: 0, y: 0, width: SLIDE_W_PX, height: SLIDE_H_PX },
+      omitBackground: false,
+    });
 
     await page.close();
 
@@ -166,7 +206,7 @@ async function main() {
     console.log("  Building slide...");
     const slide = pptx.addSlide();
 
-    // Background image (text-free)
+    // Background image (text-free) — added FIRST
     const b64 = Buffer.from(screenshotBuf).toString("base64");
     slide.addImage({
       data: `image/png;base64,${b64}`,
@@ -176,15 +216,16 @@ async function main() {
       h: SLIDE_H_IN,
     });
 
-    // Editable text overlays
+    // Editable text overlays — added AFTER (on top)
+    let added = 0;
     for (const t of texts) {
       const x = t.x * SLIDE_W_IN;
       const y = t.y * SLIDE_H_IN;
       const w = t.w * SLIDE_W_IN;
       const h = t.h * SLIDE_H_IN;
 
-      if (w < 0.1 || h < 0.06) continue;
-      if (x < -0.5 || y < -0.5 || x > SLIDE_W_IN || y > SLIDE_H_IN) continue;
+      if (w < 0.1 || h < 0.05) continue;
+      if (x < -0.2 || y < -0.2 || x > SLIDE_W_IN || y > SLIDE_H_IN) continue;
 
       const color = cssColorToHex(t.color);
       const fontSize = Math.round(t.fontSize * 0.75 * 10) / 10;
@@ -199,15 +240,16 @@ async function main() {
         t.fontWeight === "600" ||
         parseInt(t.fontWeight) >= 600;
 
-      const align = t.textAlign === "center" ? "center"
-        : t.textAlign === "right" ? "right"
-        : "left";
+      const align =
+        t.textAlign === "center" ? "center" :
+        t.textAlign === "right" ? "right" :
+        "left";
 
       slide.addText(text, {
         x,
         y,
-        w: w + 0.05,
-        h: h + 0.05,
+        w: w + 0.08,
+        h: h + 0.08,
         fontSize,
         fontFace,
         color,
@@ -220,29 +262,25 @@ async function main() {
         transparency: 0,
         fill: { type: "none" },
         line: { type: "none" },
-        margin: 0,
+        margin: [0, 0, 0, 0],
         wrap: true,
         shrinkText: false,
       });
+      added++;
     }
 
-    console.log(`  ✓ ${name} — ${texts.length} editable text boxes`);
+    console.log(`  ✓ ${name} — ${added} editable text boxes on top of background`);
   }
 
   await browser.close();
 
-  // Save
   const outputPath = path.join(__dirname, "Nova_Workflow_Maps.pptx");
   await pptx.writeFile({ fileName: outputPath });
 
   const sizeMb = (fs.statSync(outputPath).size / 1024 / 1024).toFixed(2);
   console.log(`\n✅ Exported: ${outputPath}`);
   console.log(`   Size: ${sizeMb} MB`);
-  console.log(`   6 slides with editable text overlays`);
-  console.log(`\nCanva import:`);
-  console.log(`  1. canva.com → Upload → select Nova_Workflow_Maps.pptx`);
-  console.log(`  2. Each slide imports with editable text`);
-  console.log(`  3. Click any text to edit directly`);
+  console.log(`   6 slides — background PNG + editable text overlays`);
 }
 
 function cssColorToHex(cssColor) {
