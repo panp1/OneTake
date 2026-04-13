@@ -173,7 +173,7 @@ export async function createTables(): Promise<void> {
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       request_id UUID NOT NULL REFERENCES intake_requests(id) ON DELETE CASCADE,
       actor_id UUID REFERENCES actor_profiles(id),
-      asset_type TEXT NOT NULL CHECK (asset_type IN ('base_image', 'composed_creative', 'carousel_panel', 'landing_page')),
+      asset_type TEXT NOT NULL CHECK (asset_type IN ('base_image', 'composed_creative', 'carousel_panel', 'landing_page', 'organic_carousel')),
       platform TEXT NOT NULL,
       format TEXT NOT NULL,
       language TEXT NOT NULL DEFAULT 'en',

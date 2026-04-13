@@ -14,6 +14,7 @@ from pipeline.stage2_images import run_stage2
 from pipeline.stage3_copy import run_stage3
 from pipeline.stage4_compose_v3 import run_stage4
 from pipeline.stage4_carousel import run_carousel_stage
+from pipeline.stage4_organic_carousel import run_organic_carousels
 from pipeline.stage5_video import run_stage5 as run_video_stage
 from pipeline.stage6_landing_pages import run_stage6
 from teams_notify import notify_generation_complete, notify_generation_failed
@@ -128,6 +129,20 @@ async def run_pipeline(job: dict) -> None:
             result = await stage_fn(context)
             context.update(result)  # each stage can pass data to the next
             logger.info("Stage %d passed.", stage_num)
+
+            # After Stage 4: generate organic carousels (LinkedIn + IG)
+            if stage_num == 4:
+                try:
+                    logger.info("Generating organic carousels...")
+                    organic_result = await run_organic_carousels(context)
+                    context.update(organic_result)
+                    logger.info(
+                        "Organic carousels: %d generated",
+                        organic_result.get("organic_carousel_count", 0),
+                    )
+                except Exception as org_exc:
+                    logger.warning("Organic carousel generation failed (non-fatal): %s", org_exc)
+
         except Exception as exc:
             logger.error("Stage %d failed: %s", stage_num, exc, exc_info=True)
             await update_request_status(request_id, "draft")
