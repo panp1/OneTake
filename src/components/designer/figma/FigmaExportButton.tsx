@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { Theme } from "../gallery/tokens";
 import { FONT, FIGMA_ICON } from "../gallery/tokens";
@@ -15,9 +16,33 @@ export default function FigmaExportButton({
   theme,
   campaignSlug,
 }: FigmaExportButtonProps) {
+  const [figmaFileUrl, setFigmaFileUrl] = useState<string | null>(null);
+
+  // Check if Figma is connected to get the file URL
+  useEffect(() => {
+    fetch(`/api/figma/status/${requestId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.connected && data?.file_url) {
+          setFigmaFileUrl(data.file_url);
+        }
+      })
+      .catch(() => {});
+  }, [requestId]);
+
   function handleExport() {
+    // Download the ZIP package
     window.open(`/api/export/figma-package/${requestId}`, "_blank");
-    toast.success("Downloading Figma package...");
+
+    // If Figma is connected, also open the Figma file
+    if (figmaFileUrl) {
+      setTimeout(() => {
+        window.open(figmaFileUrl, "_blank");
+      }, 500); // slight delay so browser doesn't block the second popup
+      toast.success("Package downloading — Figma file opening. Drag the files into your project.");
+    } else {
+      toast.success("Package downloading — drag the files into your Figma project.");
+    }
   }
 
   return (
