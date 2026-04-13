@@ -22,7 +22,7 @@ const WORK_MODES = [
     key: "onsite" as const,
     name: "Onsite Data Collection",
     Icon: Home,
-    tags: ["In-person", "Supervised", "ADA Required"],
+    tags: ["In-person", "Supervised", "AIDA Required"],
   },
   {
     key: "remote" as const,

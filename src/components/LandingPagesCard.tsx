@@ -53,7 +53,7 @@ const ROW_CONFIG: RowConfig[] = [
   },
   {
     field: "ada_form_url",
-    label: "ADA Form",
+    label: "AIDA Form",
     placeholder: "paste the screener / qualification form URL…",
     Icon: FileCheck,
     accent: "#22c55e",

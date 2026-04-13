@@ -290,7 +290,7 @@ export default function StepReview({
             </div>
             {workMode === "onsite" && (
               <div style={{ gridColumn: "1 / -1" }}>
-                <div style={labelStyle}>ADA Screener URL</div>
+                <div style={labelStyle}>AIDA Screener URL</div>
                 <div style={valueStyle}>{adaDisplay}</div>
               </div>
             )}

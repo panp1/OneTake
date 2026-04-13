@@ -234,7 +234,7 @@ export default function StepRequirements({
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
             <CheckSquare size={16} color="#DC2626" />
             <span style={{ fontSize: 13, fontWeight: 700, color: "#991B1B" }}>
-              ADA Compliance Screening — Required for Onsite
+              AIDA Compliance Screening — Required for Onsite
             </span>
           </div>
           <p style={{ fontSize: 12, color: "#B91C1C", margin: "0 0 20px 0", lineHeight: 1.6 }}>
@@ -242,13 +242,13 @@ export default function StepRequirements({
           </p>
           <div>
             <label style={{ ...labelStyle, color: "#991B1B" }}>
-              ADA Screener URL <span style={{ color: "#e11d48" }}>*</span>
+              AIDA Screener URL <span style={{ color: "#e11d48" }}>*</span>
             </label>
             <input
               type="text"
               value={(formData.ada_form_url as string) ?? ""}
               onChange={(e) => s("ada_form_url", e.target.value)}
-              placeholder="https://forms.oneforma.com/ada-screener/..."
+              placeholder="https://forms.oneforma.com/aida-screener/..."
               required
               style={{
                 ...inputStyle,

@@ -86,7 +86,7 @@ export default function IntakeWizard() {
         return;
       }
       if (workMode === "onsite" && !formData.ada_form_url) {
-        toast.error("ADA form URL is required for onsite tasks");
+        toast.error("AIDA form URL is required for onsite tasks");
         return;
       }
     }

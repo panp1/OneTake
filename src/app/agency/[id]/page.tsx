@@ -102,7 +102,7 @@ function AgencyContent({ id }: { id: string }) {
       .then((lp) => {
         if (lp?.landing_page_url) setTrackingBaseUrl(lp.landing_page_url);
         else if (lp?.job_posting_url) setTrackingBaseUrl(lp.job_posting_url);
-        // NEVER use ada_form_url
+        // NEVER use ada_form_url (AIDA form)
       })
       .catch(() => {});
   }, [data, id]);

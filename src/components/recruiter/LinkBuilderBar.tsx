@@ -20,7 +20,7 @@ export type LandingPageKey = "job_posting_url" | "landing_page_url" | "ada_form_
 const LANDING_PAGE_LABEL: Record<LandingPageKey, string> = {
   job_posting_url: "Job Posting",
   landing_page_url: "Landing Page",
-  ada_form_url: "ADA Form",
+  ada_form_url: "AIDA Form",
 };
 
 interface LandingPagesData {
