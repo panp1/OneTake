@@ -162,8 +162,8 @@ export default function IntakeWizard() {
       {/* Gradient bar */}
       <div style={{ height: 3, background: "linear-gradient(135deg, #7C3AED, #6D28D9)" }} />
 
-      {/* Top bar — height matches sidebar logo section (py-4 = 57px total with border) */}
-      <div style={{ position: "sticky", top: 0, zIndex: 20, background: "white", borderBottom: "1px solid #E8E8EA", height: 54, display: "flex", alignItems: "center", padding: "0 40px", gap: 12 }}>
+      {/* Top bar — height matches sidebar logo section border */}
+      <div style={{ position: "sticky", top: 0, zIndex: 20, background: "white", borderBottom: "1px solid #E8E8EA", height: 62, display: "flex", alignItems: "center", padding: "0 40px", gap: 12 }}>
         <Link href="/" style={{ color: "#8A8A8E", display: "flex" }}>
           <ArrowLeft size={18} />
         </Link>
@@ -171,7 +171,7 @@ export default function IntakeWizard() {
       </div>
 
       {/* Progress — sticky below header */}
-      <div style={{ position: "sticky", top: 55, zIndex: 19 }}>
+      <div style={{ position: "sticky", top: 63, zIndex: 19 }}>
         <WizardProgress currentStep={currentStep} />
       </div>
 
