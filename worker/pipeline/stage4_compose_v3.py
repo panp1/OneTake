@@ -670,14 +670,27 @@ def _parse_compositor_response(raw: str) -> dict[str, Any]:
     if not raw:
         return {}
 
-    # ── 1. Try direct JSON parse ───────────────────────────────────────
     stripped = raw.strip()
+
+    # ── 0. Strip markdown fences (GLM-5.1 wraps in ```html or ```json) ──
+    if "```html" in stripped:
+        stripped = stripped.split("```html", 1)[1]
+        if "```" in stripped:
+            stripped = stripped.split("```", 1)[0]
+        stripped = stripped.strip()
+
+    # ── 0b. If response is raw HTML (not JSON), wrap it ─────────────────
+    if stripped.startswith("<!DOCTYPE") or stripped.startswith("<html") or stripped.startswith("<div"):
+        logger.info("Compositor returned raw HTML (%d chars) — wrapping as design dict", len(stripped))
+        return {"html": stripped, "archetype": "auto", "artifacts_used": [], "layer_manifest": []}
+
+    # ── 1. Try direct JSON parse ───────────────────────────────────────
     try:
         return json.loads(stripped)
     except json.JSONDecodeError:
         pass
 
-    # ── 2. Try markdown fence extraction ──────────────────────────────
+    # ── 2. Try markdown fence extraction (JSON in ```json blocks) ─────
     fence_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", stripped, re.DOTALL)
     if fence_match:
         try:
