@@ -110,12 +110,18 @@ async def edit_image_gemini(
         raise ValueError(f"Gemini returned no candidates. Feedback: {feedback}")
 
     parts = candidates[0].get("content", {}).get("parts", [])
+    text_parts = []
     for part in parts:
         if "inlineData" in part:
             img_data = base64.b64decode(part["inlineData"]["data"])
             logger.info("Gemini Edit complete: %d bytes output", len(img_data))
             return img_data
         elif "text" in part:
+            text_parts.append(part["text"])
             logger.info("Gemini text response: %s", part["text"][:200])
 
-    raise ValueError("Gemini returned no image in response")
+    finish = candidates[0].get("finishReason", "unknown")
+    raise ValueError(
+        f"Gemini returned no image (finish={finish}). "
+        f"Text: {' '.join(text_parts)[:200] if text_parts else 'none'}"
+    )

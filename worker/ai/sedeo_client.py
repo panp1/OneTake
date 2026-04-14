@@ -200,6 +200,8 @@ async def generate_video_from_image(
             },
             json=payload,
         )
+        if resp.status_code >= 400:
+            logger.error("Sedeo API error %d: %s", resp.status_code, resp.text[:1000])
         resp.raise_for_status()
         create_data = resp.json()
 
