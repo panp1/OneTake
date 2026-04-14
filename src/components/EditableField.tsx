@@ -40,6 +40,7 @@ export default function EditableField({
       Placeholder.configure({ placeholder }),
     ],
     content: value || "",
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: `outline-none ${textClassName} ${multiline ? "min-h-[60px]" : ""}`,
