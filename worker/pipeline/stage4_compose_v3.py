@@ -468,11 +468,17 @@ async def _call_compositor_model(prompt: str) -> str:
 
                 if resp.status_code == 200:
                     data = resp.json()
-                    content = data["choices"][0]["message"]["content"]
+                    content = data["choices"][0]["message"]["content"] or ""
+                    # Strip markdown fences (GLM-5.1 wraps HTML in ```html blocks)
+                    if "```html" in content:
+                        content = content.split("```html", 1)[1]
+                    if "```" in content:
+                        content = content.split("```", 1)[0]
+                    content = content.strip()
                     if content and len(content) > 50:
                         logger.info("Compositor via %s: %d chars", model_label, len(content))
                         return content
-                    logger.warning("OpenRouter %s returned empty/short response", model_label)
+                    logger.warning("OpenRouter %s returned empty/short response (%d chars)", model_label, len(content))
                 else:
                     logger.warning("OpenRouter %s returned %d", model_label, resp.status_code)
 
