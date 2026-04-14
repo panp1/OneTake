@@ -16,6 +16,7 @@ import logging
 
 from ai.local_llm import generate_copy, generate_text
 from neon_client import save_asset
+from prompts.project_context import build_project_context
 from prompts.recruitment_copy import (
     COPY_EVAL_SYSTEM_PROMPT,
     COPY_SYSTEM_PROMPT,
@@ -273,6 +274,15 @@ async def run_stage3(context: dict) -> dict:
             else:
                 cultural_context = None
 
+            # Build diamond persona mini brief — same context Stage 4 + 6 use
+            project_ctx = build_project_context(
+                request={"title": context.get("request_title", ""), "task_type": form_data.get("task_type", ""), "target_regions": regions, "target_languages": languages, "work_mode": form_data.get("work_mode", "")},
+                brief=brief,
+                persona=persona,
+                cultural_research=cultural_research,
+            )
+            logger.info("Diamond brief for %s: %d chars", persona_name, len(project_ctx))
+
             for channel in all_channels:
                 for language in languages:
                     # Build 3 variation prompts — angles derived from persona's own psychology
@@ -285,7 +295,8 @@ async def run_stage3(context: dict) -> dict:
                         form_data=form_data,
                         pillar_weighting=pillar_weighting,
                         cultural_context=cultural_context,
-                        emotional_tone=emotional_tone,  # NEW
+                        emotional_tone=emotional_tone,
+                        project_context=project_ctx,  # Diamond persona brief
                     )
 
                     for var in variations:

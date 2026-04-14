@@ -1310,6 +1310,7 @@ def build_variation_prompts(
     pillar_weighting: dict | None = None,
     cultural_context: str | None = None,
     emotional_tone: str = "",
+    project_context: str = "",
 ) -> list[dict[str, str]]:
     """Build 3 copy prompts — one per brand pillar (Earn / Grow / Shape).
 
@@ -1422,6 +1423,11 @@ def build_variation_prompts(
         if cultural_context:
             cultural_block = f"\n\nCULTURAL CONTEXT FOR THIS REGION:\n{cultural_context}\n\nUse these cultural insights to make the copy feel native to this region — not just translated, but culturally resonant."
 
+        # Diamond persona brief (same context Stage 4 + 6 use)
+        project_block = ""
+        if project_context:
+            project_block = f"\n\nDIAMOND PERSONA CONTEXT (grounded in Stage 1 research):\n{project_context}"
+
         variations.append({
             "angle": f"pillar_{pillar_key}",
             "pillar": pillar_key,
@@ -1434,6 +1440,7 @@ def build_variation_prompts(
 {persona_block}
 {tone_block}
 {cultural_block}
+{project_block}
 ---
 {base_prompt}""",
         })
