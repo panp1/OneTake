@@ -432,57 +432,54 @@ async def _compose_one(
 # ── NIM API call ───────────────────────────────────────────────────────────
 
 async def _call_compositor_model(prompt: str) -> str:
-    """Call GLM-5 via NIM and return the raw response text.
+    """Call design model for HTML/CSS composition via OpenRouter.
 
-    Handles 429 rate limiting with exponential backoff (up to 3 attempts).
+    Uses GLM-5.1 (paid, reliable) directly. Falls back to MiniMax M2.5 (free).
+    Skips NIM entirely for Stage 4 — NIM rate limits make it unreliable
+    for the volume of compositions needed.
     """
-    api_key = get_nim_key()
-    backoff = 5.0
+    import os
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not openrouter_key:
+        logger.error("No OPENROUTER_API_KEY for compositor")
+        return ""
 
-    for attempt in range(3):
+    models = [
+        ("z-ai/glm-5.1", "GLM-5.1"),
+        ("minimax/minimax-m2.5:free", "MiniMax-M2.5-free"),
+    ]
+
+    for model_id, model_label in models:
         try:
             async with httpx.AsyncClient(timeout=120) as client:
                 resp = await client.post(
-                    f"{NVIDIA_NIM_BASE_URL}/chat/completions",
-                    headers={"Authorization": f"Bearer {api_key}"},
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {openrouter_key}",
+                        "Content-Type": "application/json",
+                    },
                     json={
-                        "model": NVIDIA_NIM_DESIGN_MODEL,
+                        "model": model_id,
                         "messages": [{"role": "user", "content": prompt}],
                         "temperature": 0.7,
                         "max_tokens": 4096,
                     },
                 )
 
-                if resp.status_code == 429:
-                    logger.warning(
-                        "NIM rate limit (attempt %d) — waiting %.1fs", attempt + 1, backoff
-                    )
-                    await asyncio.sleep(backoff)
-                    backoff *= 2
-                    # Rotate to next key on 429
-                    api_key = get_nim_key()
-                    continue
+                if resp.status_code == 200:
+                    data = resp.json()
+                    content = data["choices"][0]["message"]["content"]
+                    if content and len(content) > 50:
+                        logger.info("Compositor via %s: %d chars", model_label, len(content))
+                        return content
+                    logger.warning("OpenRouter %s returned empty/short response", model_label)
+                else:
+                    logger.warning("OpenRouter %s returned %d", model_label, resp.status_code)
 
-                resp.raise_for_status()
-                data = resp.json()
-                return data["choices"][0]["message"]["content"]
-
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code == 429:
-                logger.warning(
-                    "NIM 429 (attempt %d) — waiting %.1fs", attempt + 1, backoff
-                )
-                await asyncio.sleep(backoff)
-                backoff *= 2
-                api_key = get_nim_key()
-                continue
-            logger.error("NIM HTTP error: %s", exc)
-            return ""
         except Exception as exc:
-            logger.error("NIM call failed: %s", exc)
-            return ""
+            logger.warning("OpenRouter %s failed: %s", model_label, str(exc)[:80])
 
-    logger.error("NIM call failed after 3 attempts (rate limit)")
+    logger.error("All compositor models failed")
     return ""
 
 

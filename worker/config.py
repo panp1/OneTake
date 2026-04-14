@@ -89,7 +89,7 @@ MLX_SERVER_HEALTH_POLL_S = float(os.environ.get("MLX_SERVER_HEALTH_POLL_S", "2.0
 # ---------------------------------------------------------------------------
 # Stage 4 Composition
 # ---------------------------------------------------------------------------
-COMPOSE_CONCURRENCY = int(os.environ.get("COMPOSE_CONCURRENCY", "5"))
+COMPOSE_CONCURRENCY = int(os.environ.get("COMPOSE_CONCURRENCY", "15"))  # Bumped: OpenRouter paid has no rate limit
 
 # ---------------------------------------------------------------------------
 # Kling 3.0 (Video Generation)
