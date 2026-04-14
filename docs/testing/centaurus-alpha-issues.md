@@ -103,16 +103,28 @@
 
 ---
 
+## Stage 3: Copy Generation (cont.)
+
+### Issue 12: Stage 3 NOT using diamond persona mini brief — DRIFT RISK
+- **Severity:** HIGH
+- **What happened:** Stage 3 uses `build_variation_prompts()` from `recruitment_copy.py` which builds its own inline persona context. It does NOT call `build_project_context()` from `prompts/project_context.py` — the diamond mini brief that Stages 4 and 6 use.
+- **Root cause:** Stage 3 was built before the layered context system (design_base_knowledge + project_context) was introduced. It was never retrofitted.
+- **Fix:** Inject `build_project_context()` output into `build_variation_prompts()` as an additional context block. This ensures Stage 3 copy is grounded in the same diamond brief as Stage 4 compositions and Stage 6 landing pages.
+- **Impact:** Copy may drift from the persona psychology, cultural research, and job requirements that Stages 4 and 6 are using. The ad copy says one thing, the landing page says another. This is a consistency issue across the funnel.
+
+---
+
 ## Priority Order for Fixes
 
-### P0 — Blocks Miguel approval
+### P0 — Blocks Miguel approval / causes drift
 1. **Issue 8:** AI feel in images (Seedream prompt + deglosser tuning)
 2. **Issue 7:** Facial artifact detection (VQA prompt update)
+3. **Issue 12:** Stage 3 missing diamond persona brief — drift between copy and LP/composition
 
 ### P1 — Blocks full pipeline functionality
-3. **Issue 1:** Job posting URL not saved (UUID string cast)
-4. **Issue 2:** Yoast SEO meta not set (add meta fields)
-5. **Issue 9:** VQA JSON parsing (stricter VLM prompt)
+4. **Issue 1:** Job posting URL not saved (UUID string cast)
+5. **Issue 2:** Yoast SEO meta not set (add meta fields)
+6. **Issue 9:** VQA JSON parsing (stricter VLM prompt)
 
 ### P2 — Quality improvements
 6. **Issue 5:** Brand voice gate too strict (evaluator tuning)
