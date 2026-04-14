@@ -89,7 +89,7 @@ MLX_SERVER_HEALTH_POLL_S = float(os.environ.get("MLX_SERVER_HEALTH_POLL_S", "2.0
 # ---------------------------------------------------------------------------
 # Stage 4 Composition
 # ---------------------------------------------------------------------------
-COMPOSE_CONCURRENCY = int(os.environ.get("COMPOSE_CONCURRENCY", "3"))  # Low for free models, bump to 15 with paid credits
+COMPOSE_CONCURRENCY = int(os.environ.get("COMPOSE_CONCURRENCY", "15"))  # Paid OpenRouter — no rate limit
 
 # ---------------------------------------------------------------------------
 # Kling 3.0 (Video Generation)

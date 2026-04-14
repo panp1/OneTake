@@ -445,14 +445,12 @@ async def _call_compositor_model(prompt: str) -> str:
         return ""
 
     models = [
-        ("minimax/minimax-m2.5:free", "MiniMax-M2.5-free"),
-        ("z-ai/glm-4.5-air:free", "GLM-4.5-air-free"),
-        ("z-ai/glm-5.1", "GLM-5.1"),  # Paid fallback
+        ("z-ai/glm-5.1", "GLM-5.1"),  # Paid primary — fast, reliable
+        ("minimax/minimax-m2.5:free", "MiniMax-M2.5-free"),  # Free fallback
     ]
 
     for model_id, model_label in models:
         try:
-            await asyncio.sleep(1)  # Gentle on free tier rate limits
             async with httpx.AsyncClient(timeout=120) as client:
                 resp = await client.post(
                     "https://openrouter.ai/api/v1/chat/completions",
