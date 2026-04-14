@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  .canvas {
+    position: relative;
+    width: {{ width }}px;
+    height: {{ height }}px;
+    overflow: hidden;
+    background: #FFFFFF;
+    font-family: -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* ── Dot pattern accent (top-right corner) ── */
+  .dot-pattern {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 25%;
+    height: 20%;
+    opacity: 0.15;
+    background-image: radial-gradient(circle, #7B2DAA 1px, transparent 1px);
+    background-size: 12px 12px;
+    z-index: 1;
+  }
+
+  /* ── Gradient blobs ── */
+  .blob-1 {
+    position: absolute;
+    bottom: 0;
+    left: -5%;
+    width: 45%;
+    height: 50%;
+    background: linear-gradient(135deg, #7B2DAA, #CD128A);
+    border-radius: 0 60% 0 0;
+    opacity: 0.85;
+    z-index: 2;
+  }
+
+  .blob-2 {
+    position: absolute;
+    bottom: 10%;
+    right: -5%;
+    width: 35%;
+    height: 40%;
+    background: linear-gradient(225deg, #CD128A, #E84BA5);
+    border-radius: 60% 0 0 0;
+    opacity: 0.6;
+    z-index: 2;
+  }
+
+  .blob-3 {
+    position: absolute;
+    top: 15%;
+    right: -2%;
+    width: 20%;
+    height: 25%;
+    background: linear-gradient(180deg, #CD128A, #E84BA5);
+    border-radius: 50%;
+    opacity: 0.4;
+    z-index: 1;
+  }
+
+  /* ── Logo ── */
+  .logo {
+    position: absolute;
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .logo-text {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1A1A2E;
+    letter-spacing: -0.02em;
+  }
+
+  .logo-text .accent { color: #7B2DAA; }
+
+  /* ── Typography zone (top area) ── */
+  .text-zone {
+    position: absolute;
+    top: 14%;
+    left: 8%;
+    right: 8%;
+    z-index: 10;
+    text-align: center;
+  }
+
+  .headline-light {
+    font-size: {{ headline_size }}px;
+    font-weight: 400;
+    color: #4A5273;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  .headline-bold {
+    font-size: {{ headline_size }}px;
+    font-weight: 800;
+    color: #1A1A2E;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  /* ── CTA button ── */
+  .cta {
+    position: absolute;
+    top: {{ cta_top }}%;
+    left: 8%;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background: #7B2DAA;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 999px;
+    text-decoration: none;
+  }
+
+  .cta-arrow {
+    font-size: 18px;
+    font-weight: 300;
+  }
+
+  /* ── Person photo ── */
+  .person {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 65%;
+    height: 60%;
+    z-index: 3;
+    object-fit: cover;
+    object-position: top center;
+  }
+
+  /* ── Device mockup (floating phone/tablet) ── */
+  .device {
+    position: absolute;
+    bottom: 12%;
+    left: 5%;
+    width: 35%;
+    max-height: 50%;
+    z-index: 5;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    transform: rotate(-2deg);
+    object-fit: contain;
+  }
+
+  /* ── Floating badge icons ── */
+  .badge {
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 6;
+    backdrop-filter: blur(8px);
+  }
+
+  .badge img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .badge-1 { top: 20%; right: 8%; }
+  .badge-2 { bottom: 35%; left: 40%; }
+
+  /* ── Subtle border frame around photo area ── */
+  .photo-frame {
+    position: absolute;
+    bottom: 3%;
+    right: 3%;
+    width: 62%;
+    height: 55%;
+    border: 1.5px solid rgba(123,45,170,0.2);
+    border-radius: 12px;
+    z-index: 2;
+  }
+
+  /* ── Social proof strip ── */
+  .social-proof {
+    position: absolute;
+    bottom: 3%;
+    left: 8%;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .avatar-stack {
+    display: flex;
+  }
+
+  .avatar-stack span {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid #FFFFFF;
+    margin-left: -6px;
+    display: inline-block;
+  }
+
+  .avatar-stack span:first-child { margin-left: 0; background: #0452BF; }
+  .avatar-stack span:nth-child(2) { background: #7B2DAA; }
+  .avatar-stack span:nth-child(3) { background: #CD128A; }
+  .avatar-stack span:nth-child(4) { background: #E84BA5; }
+
+  /* ── LLM creative zone (optional custom element) ── */
+  .creative-zone {
+    position: absolute;
+    z-index: 7;
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <!-- Dot pattern accent -->
+  <div class="dot-pattern"></div>
+
+  <!-- Gradient blobs -->
+  <div class="blob-1"></div>
+  <div class="blob-2"></div>
+  <div class="blob-3"></div>
+
+  <!-- Logo -->
+  <div class="logo">
+    {% if logo_url %}
+    <img src="{{ logo_url }}" class="logo-icon" alt="OneForma">
+    {% endif %}
+    <span class="logo-text"><span class="accent">One</span>Forma</span>
+  </div>
+
+  <!-- Typography -->
+  <div class="text-zone">
+    <div class="headline-light">{{ headline_light }}</div>
+    <div class="headline-bold">{{ headline_bold }}</div>
+  </div>
+
+  <!-- CTA button -->
+  <div class="cta">
+    {{ cta_text }} <span class="cta-arrow">→</span>
+  </div>
+
+  <!-- Subtle photo frame -->
+  <div class="photo-frame"></div>
+
+  <!-- Person photo -->
+  {% if photo_url %}
+  <img src="{{ photo_url }}" class="person" alt="{{ actor_name }}">
+  {% endif %}
+
+  <!-- Device mockup (floating) -->
+  {% if device_url %}
+  <img src="{{ device_url }}" class="device" alt="Task preview">
+  {% endif %}
+
+  <!-- Floating badge icons -->
+  {% for badge in badges %}
+  <div class="badge badge-{{ loop.index }}">
+    <img src="{{ badge.url }}" alt="{{ badge.label }}">
+  </div>
+  {% endfor %}
+
+  <!-- Social proof -->
+  <div class="social-proof">
+    <div class="avatar-stack">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    +{{ contributor_count }} contributors
+  </div>
+
+  <!-- LLM creative additions (optional) -->
+  {% if creative_html %}
+  <div class="creative-zone" style="{{ creative_style }}">
+    {{ creative_html | safe }}
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>
