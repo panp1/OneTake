@@ -115,8 +115,31 @@ class WordPressClient:
 
         result = resp.json()
         wp_id = result.get("id")
-        wp_url = result.get("link", "")
-        logger.info("WP post created: id=%s url=%s status=%s", wp_id, wp_url, result.get("status"))
+        wp_status = result.get("status", "draft")
+        wp_slug = result.get("slug", "")
+        raw_link = result.get("link", "")
+
+        # Build the correct URL based on status
+        if wp_status == "publish" and raw_link:
+            # Published: use the clean permalink from WP
+            wp_url = raw_link
+        elif wp_slug:
+            # Draft: construct the published URL (what it WILL be when live)
+            wp_url = f"{self.site_url}/job/{wp_slug}/"
+        else:
+            wp_url = raw_link
+
+        # Preview URL for drafts (always available)
+        preview_url = (
+            f"{self.site_url}/?post_type=job&p={wp_id}&preview=true"
+            if wp_id
+            else ""
+        )
+
+        logger.info(
+            "WP post created: id=%s status=%s url=%s preview=%s",
+            wp_id, wp_status, wp_url, preview_url,
+        )
 
         # Set taxonomies if provided
         if job_types and wp_id:
@@ -128,8 +151,9 @@ class WordPressClient:
             "id": wp_id,
             "link": wp_url,
             "url": wp_url,
-            "status": result.get("status"),
-            "slug": result.get("slug"),
+            "preview_url": preview_url,
+            "status": wp_status,
+            "slug": wp_slug,
         }
 
     async def _set_taxonomy(

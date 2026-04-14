@@ -171,20 +171,32 @@ async def publish_job_to_wordpress(
             )
 
         wp_url = result.get("link") or result.get("url", "")
-        wp_post_id = result.get("id") or result.get("page_id")
-        logger.info("WP job published: %s → %s", title, wp_url)
+        wp_preview_url = result.get("preview_url", "")
+        wp_post_id = result.get("id")
+        wp_status = result.get("status", publish_status)
+
+        # For drafts, store the preview URL so recruiters can see it immediately
+        # For published, store the clean permalink
+        effective_url = wp_url if wp_status == "publish" else (wp_preview_url or wp_url)
+        logger.info(
+            "WP job %s: %s → %s (preview: %s)",
+            wp_status, title, wp_url, wp_preview_url,
+        )
 
     except Exception as exc:
         logger.error("WordPress publish failed (non-fatal): %s", exc, exc_info=True)
         return {"wp_url": "", "wp_post_id": None, "tracked_links": []}
 
     # ── 5. Upsert campaign_landing_pages.job_posting_url ──────────────
-    if wp_url:
-        await upsert_campaign_landing_page(request_id, "job_posting_url", wp_url)
+    if effective_url:
+        await upsert_campaign_landing_page(request_id, "job_posting_url", effective_url)
+        logger.info("Stored job_posting_url: %s", effective_url)
 
     # ── 6. Auto-create UTM tracked links ──────────────────────────────
     tracked: list[str] = []
-    if wp_url:
+    # Use the published URL for UTM links (not preview URL)
+    utm_base_url = wp_url or effective_url
+    if utm_base_url:
         campaign_slug = slug
         utm_configs = [
             ("organic", "job_board", campaign_slug),
@@ -196,7 +208,7 @@ async def publish_job_to_wordpress(
             async with pool.acquire() as conn:
                 for source, medium, campaign in utm_configs:
                     utm_url = (
-                        f"{wp_url}?utm_source={source}"
+                        f"{utm_base_url}?utm_source={source}"
                         f"&utm_medium={medium}"
                         f"&utm_campaign={campaign}"
                     )
@@ -208,17 +220,20 @@ async def publish_job_to_wordpress(
                             (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW())
                         ON CONFLICT DO NOTHING
                         """,
-                        request_id, wp_url, source, medium, campaign,
+                        request_id, utm_base_url, source, medium, campaign,
                         f"{campaign[:20]}-{source[:3]}",
                     )
                     tracked.append(utm_url)
-            logger.info("Created %d UTM tracked links for %s", len(tracked), wp_url)
+            logger.info("Created %d UTM tracked links for %s", len(tracked), utm_base_url)
         except Exception as exc:
             logger.warning("UTM link creation failed (non-fatal): %s", exc)
 
     return {
         "wp_url": wp_url,
+        "wp_preview_url": wp_preview_url,
+        "wp_effective_url": effective_url,
         "wp_post_id": wp_post_id,
+        "wp_status": wp_status,
         "tracked_links": tracked,
     }
 
