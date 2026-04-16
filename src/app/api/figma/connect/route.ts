@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthContext, canEditRequest } from "@/lib/permissions";
 import { getDb } from "@/lib/db";
+import { getIntakeRequest } from "@/lib/db/intake";
 import { createFigmaClient, extractFileKey } from "@/lib/figma-client";
 
 /**
@@ -12,8 +13,8 @@ import { createFigmaClient, extractFileKey } from "@/lib/figma-client";
  * Body: { request_id: string, figma_token: string, figma_url: string }
  */
 export async function POST(request: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
+  const ctx = await getAuthContext();
+  if (!ctx) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -35,6 +36,15 @@ export async function POST(request: NextRequest) {
   }
   if (!figma_url || typeof figma_url !== "string") {
     return Response.json({ error: "figma_url is required" }, { status: 400 });
+  }
+
+  // Verify user can edit this request
+  const intakeRequest = await getIntakeRequest(request_id);
+  if (!intakeRequest) {
+    return Response.json({ error: "Intake request not found" }, { status: 404 });
+  }
+  if (!canEditRequest(ctx, intakeRequest.created_by, intakeRequest.status)) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Extract file key from the URL
