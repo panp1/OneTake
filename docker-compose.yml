@@ -1,0 +1,25 @@
+# Nova — Docker Compose for local development
+#
+# Start the worker:
+#   docker compose up worker
+#
+# Start with live code reload (mount local files):
+#   docker compose up worker-dev
+#
+# Build fresh:
+#   docker compose build
+
+services:
+  # Production-like worker (uses built image)
+  worker:
+    build: ./worker
+    env_file: ./worker/.env
+    restart: unless-stopped
+
+  # Development worker (mounts local code for live reload)
+  worker-dev:
+    build: ./worker
+    env_file: ./worker/.env
+    volumes:
+      - ./worker:/app
+    restart: unless-stopped
