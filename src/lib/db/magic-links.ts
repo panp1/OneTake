@@ -23,9 +23,16 @@ export async function validateMagicLink(token: string): Promise<MagicLink | null
   const sql = getDb();
   const rows = await sql`
     SELECT * FROM magic_links
-    WHERE token = ${token} AND expires_at > NOW()
+    WHERE token = ${token} AND expires_at > NOW() AND used_at IS NULL
   `;
   return (rows[0] as MagicLink) ?? null;
+}
+
+export async function consumeMagicLink(token: string): Promise<void> {
+  const sql = getDb();
+  await sql`
+    UPDATE magic_links SET used_at = NOW() WHERE token = ${token}
+  `;
 }
 
 export async function deleteMagicLink(token: string): Promise<void> {

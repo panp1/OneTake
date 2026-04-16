@@ -1,5 +1,5 @@
 import { getDb } from '@/lib/db';
-import { validateMagicLink } from '@/lib/db/magic-links';
+import { validateMagicLink, consumeMagicLink } from '@/lib/db/magic-links';
 
 export async function POST(
   request: Request,
@@ -18,6 +18,9 @@ export async function POST(
     if (!magicLink || magicLink.request_id !== id) {
       return Response.json({ error: 'Invalid or expired magic link' }, { status: 401 });
     }
+
+    // Mark token as consumed — single use
+    await consumeMagicLink(token);
 
     const sql = getDb();
 
