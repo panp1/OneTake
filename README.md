@@ -19,6 +19,8 @@ AI-powered recruitment marketing platform. Intake form → AI generation pipelin
 - [Roles & Permissions / 角色与权限](#roles--permissions--角色与权限)
 - [Deployment / 部署指南](#deployment--部署指南)
 - [Development Guide / 开发指南](#development-guide--开发指南)
+- [CI Pipeline / 持续集成](#ci-pipeline--持续集成)
+- [Docker / 容器化](#docker--容器化)
 - [Troubleshooting / 故障排查](#troubleshooting--故障排查)
 
 ---
@@ -776,6 +778,75 @@ pnpm build
 # Lint
 pnpm lint
 ```
+
+---
+
+## CI Pipeline / 持续集成
+
+Every push to `main` and every pull request runs 5 parallel checks via GitHub Actions:
+
+| Check | Command | What it catches |
+|-------|---------|----------------|
+| **Build** | `pnpm build` | TypeScript errors, Next.js compilation |
+| **Lint** | `pnpm lint` | ESLint code style violations |
+| **Test** | `pnpm test` | Unit test failures (Vitest) |
+| **Python Lint** | `ruff check worker/` | Python code quality issues |
+| **Docker Build** | `docker build ./worker` | Dockerfile or dependency errors |
+
+All 5 must pass before merging. The workflow file is at `.github/workflows/ci.yml`.
+
+**Concurrency:** Pushes to the same branch cancel in-progress runs to save CI minutes.
+
+---
+
+## Docker / 容器化
+
+The Python worker can be containerized for Azure VM or any Linux deployment.
+
+### Quick Start / 快速启动
+
+```bash
+# Build the worker image
+docker build -t nova-worker ./worker
+
+# Run with env file
+docker run --env-file worker/.env nova-worker
+```
+
+### Using docker-compose / 使用 docker-compose
+
+```bash
+# Production-like (built image)
+docker compose up worker
+
+# Development (live code mount)
+docker compose up worker-dev
+
+# Rebuild after dependency changes
+docker compose build
+```
+
+### Multi-arch Build / 多架构构建
+
+```bash
+# Build for both Azure VM (amd64) and Apple Silicon (arm64)
+docker buildx build --platform linux/amd64,linux/arm64 -t nova-worker ./worker
+```
+
+### MLX Note / MLX 说明
+
+The Docker image does **not** include MLX, TTS, torch, or other Apple Silicon dependencies. When running in Docker, the worker uses cloud AI providers (OpenRouter, NVIDIA NIM) for all inference. For local MLX inference on Apple Silicon, run the worker directly:
+
+```bash
+cd worker && source .venv/bin/activate && python main.py
+```
+
+### Requirements Files / 依赖文件
+
+| File | Purpose |
+|------|---------|
+| `worker/requirements.txt` | Full dependencies (local Mac development with MLX) |
+| `worker/requirements-docker.txt` | Cloud-only dependencies (Docker builds — no MLX/TTS/torch) |
 
 ---
 
