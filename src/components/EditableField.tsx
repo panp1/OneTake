@@ -5,6 +5,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Pencil, Check, X } from "lucide-react";
+import { sanitizeHtml } from '@/lib/sanitize';
 
 interface EditableFieldProps {
   value: string;
@@ -117,7 +118,7 @@ export default function EditableField({
               : ""
           }`}
           dangerouslySetInnerHTML={{
-            __html: value || `<span class="text-[var(--muted-foreground)] italic">${placeholder}</span>`,
+            __html: value ? sanitizeHtml(value) : `<span class="text-[var(--muted-foreground)] italic">${placeholder}</span>`,
           }}
         />
         {editable && (
