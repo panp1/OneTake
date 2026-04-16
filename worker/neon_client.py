@@ -544,30 +544,29 @@ async def upsert_campaign_landing_page(
     field: str,
     value: str,
 ) -> None:
-    """Upsert a single field in campaign_landing_pages.
-
-    Parameters
-    ----------
-    request_id : str
-        The intake request UUID.
-    field : str
-        One of: 'job_posting_url', 'landing_page_url', 'ada_form_url'.
-    value : str
-        The URL to store.
-    """
-    allowed = {"job_posting_url", "landing_page_url", "ada_form_url"}
-    if field not in allowed:
-        raise ValueError(f"Invalid field: {field}. Must be one of {allowed}")
+    """Upsert a single field in campaign_landing_pages."""
+    QUERIES = {
+        "job_posting_url": """
+            INSERT INTO campaign_landing_pages (id, request_id, job_posting_url, created_at, updated_at)
+            VALUES (gen_random_uuid(), $1, $2, NOW(), NOW())
+            ON CONFLICT (request_id) DO UPDATE SET job_posting_url = $2, updated_at = NOW()
+        """,
+        "landing_page_url": """
+            INSERT INTO campaign_landing_pages (id, request_id, landing_page_url, created_at, updated_at)
+            VALUES (gen_random_uuid(), $1, $2, NOW(), NOW())
+            ON CONFLICT (request_id) DO UPDATE SET landing_page_url = $2, updated_at = NOW()
+        """,
+        "ada_form_url": """
+            INSERT INTO campaign_landing_pages (id, request_id, ada_form_url, created_at, updated_at)
+            VALUES (gen_random_uuid(), $1, $2, NOW(), NOW())
+            ON CONFLICT (request_id) DO UPDATE SET ada_form_url = $2, updated_at = NOW()
+        """,
+    }
+    query = QUERIES.get(field)
+    if not query:
+        raise ValueError(f"Invalid field: {field}. Must be one of {set(QUERIES)}")
 
     pool = await _get_pool()
     async with pool.acquire() as conn:
-        await conn.execute(
-            f"""
-            INSERT INTO campaign_landing_pages (id, request_id, {field}, created_at, updated_at)
-            VALUES (gen_random_uuid(), $1, $2, NOW(), NOW())
-            ON CONFLICT (request_id) DO UPDATE SET {field} = $2, updated_at = NOW()
-            """,
-            request_id,
-            value,
-        )
+        await conn.execute(query, request_id, value)
     logger.info("Upserted campaign_landing_pages.%s for %s", field, request_id[:8])
