@@ -1,6 +1,13 @@
 import { auth } from '@clerk/nextjs/server';
 import { getDb } from '@/lib/db';
 
+function safeJsonParse(val: unknown): unknown {
+  if (typeof val === 'string') {
+    try { return JSON.parse(val); } catch { return null; }
+  }
+  return val ?? null;
+}
+
 /**
  * GET /api/intake/[id]/progress
  *
@@ -53,15 +60,12 @@ export async function GET(
     const job = jobRows[0] || null;
 
     // Extract progressive sections from brief_data
-    const briefData = brief?.brief_data
-      ? (typeof brief.brief_data === 'string' ? JSON.parse(brief.brief_data) : brief.brief_data)
-      : null;
-
-    const personas = briefData?.personas || [];
-    const culturalResearch = briefData?.cultural_research || brief?.cultural_research || null;
-    const designDirection = brief?.design_direction
-      ? (typeof brief.design_direction === 'string' ? JSON.parse(brief.design_direction) : brief.design_direction)
-      : null;
+    const briefData = safeJsonParse(brief?.brief_data);
+    const personas = (Array.isArray((briefData as Record<string, unknown>)?.personas)
+      ? (briefData as Record<string, unknown>).personas
+      : []) as unknown[];
+    const culturalResearch = (briefData as Record<string, unknown>)?.cultural_research || brief?.cultural_research || null;
+    const designDirection = safeJsonParse(brief?.design_direction);
 
     // Categorize assets for the 4-tab display
     const characters = assets.filter((a: Record<string, unknown>) => a.asset_type === 'base_image');
