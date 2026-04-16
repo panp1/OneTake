@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { getAuthContext, canAccessRequest } from '@/lib/permissions';
 import { getIntakeRequest, updateIntakeRequest } from '@/lib/db/intake';
 import { createApproval } from '@/lib/db/approvals';
 import { createMagicLink } from '@/lib/db/magic-links';
@@ -26,8 +26,8 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
+  const ctx = await getAuthContext();
+  if (!ctx) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -39,9 +39,29 @@ export async function POST(
       return Response.json({ error: 'Intake request not found' }, { status: 404 });
     }
 
+    // Verify the user can access this request
+    if (!canAccessRequest(ctx, intakeRequest.created_by)) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     // Determine which role is approving based on request body
     const body = await request.json().catch(() => ({}));
     const approvalType: string = body.approval_type || 'marketing'; // 'marketing' | 'designer' | 'final'
+
+    // Role gates per approval stage
+    const ALLOWED_ROLES: Record<string, string[]> = {
+      marketing: ['admin'],
+      designer: ['admin', 'designer'],
+      final: ['admin'],
+    };
+
+    const allowed = ALLOWED_ROLES[approvalType];
+    if (!allowed) {
+      return Response.json({ error: 'Invalid approval_type' }, { status: 400 });
+    }
+    if (!allowed.includes(ctx.role)) {
+      return Response.json({ error: 'Forbidden: insufficient role for this approval stage' }, { status: 403 });
+    }
 
     const sql = getDb();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -52,7 +72,7 @@ export async function POST(
     if (approvalType === 'marketing') {
       await createApproval({
         request_id: id,
-        approved_by: userId,
+        approved_by: ctx.userId,
         status: 'approved',
       });
 
@@ -92,7 +112,7 @@ export async function POST(
     if (approvalType === 'designer') {
       await createApproval({
         request_id: id,
-        approved_by: userId,
+        approved_by: ctx.userId,
         status: 'approved',
       });
 
@@ -143,7 +163,7 @@ export async function POST(
     if (approvalType === 'final') {
       await createApproval({
         request_id: id,
-        approved_by: userId,
+        approved_by: ctx.userId,
         status: 'approved',
       });
 
