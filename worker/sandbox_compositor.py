@@ -13,6 +13,7 @@ import asyncio
 import json
 import logging
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -27,6 +28,7 @@ from prompts.compositor_prompt import (
     build_compositor_prompt,
     build_artifact_catalog_section,
     filter_catalog,
+    _section_reference_code,
     ARCHETYPE_CONSTRAINTS,
 )
 from ai.compositor import PLATFORM_SPECS
@@ -182,7 +184,13 @@ async def run_sandbox():
         design_intent="Warm, inviting, earn-focused. Lead with compensation.",
     )
 
+    # Check reference code injection
+    ref_code = _section_reference_code()
+    ref_len = len(ref_code) if ref_code else 0
+
     logger.info(f"\nPrompt: {len(prompt)} chars (~{len(prompt)//4} tokens)")
+    logger.info(f"  Reference code section: {ref_len} chars (~{ref_len//4} tokens)")
+    logger.info(f"  Prompt WITHOUT references: {len(prompt) - ref_len} chars")
     logger.info(f"Platform: {platform_label} ({spec['width']}x{spec['height']})")
     logger.info(f"Archetype: floating_props")
     logger.info(f"Artifacts in filtered catalog: {len(filtered)}")
@@ -191,6 +199,9 @@ async def run_sandbox():
     # Save prompt for inspection
     Path("/tmp/sandbox_prompt.txt").write_text(prompt)
     logger.info("Prompt saved to /tmp/sandbox_prompt.txt")
+    if ref_code:
+        Path("/tmp/sandbox_references_only.txt").write_text(ref_code)
+        logger.info("References saved to /tmp/sandbox_references_only.txt")
     logger.info("")
 
     # ── Test models ───────────────────────────────────────────────
@@ -262,7 +273,7 @@ async def run_sandbox():
     # Open all HTML files
     for r in results:
         if r["status"] == "OK" and r.get("file"):
-            os.system(f"open {r['file']}")
+            subprocess.run(["open", r["file"]], check=False)
 
 
 if __name__ == "__main__":
