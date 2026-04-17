@@ -165,6 +165,28 @@ async def publish_job_to_wordpress(
         "apply_job": apply_rows,
     }
 
+    # ── 3b. Build SEO excerpt (Yoast uses as og:description) ───────────
+    seo_parts = []
+    desc_text = jd_data.get("description_text", "") or form_data.get("task_description", "")
+    if desc_text:
+        first_sentence = desc_text.split(".")[0].strip()
+        if len(first_sentence) > 120:
+            first_sentence = first_sentence[:117] + "..."
+        seo_parts.append(first_sentence + ".")
+
+    if locale_links:
+        lang_names = [ll.get("language", "").split(" - ")[0] for ll in locale_links if ll.get("language")]
+        if len(lang_names) <= 4:
+            seo_parts.append(f"Available in {', '.join(lang_names)}.")
+        else:
+            seo_parts.append(f"Available in {len(lang_names)} languages.")
+    elif target_regions:
+        region_names = [REGION_DISPLAY.get(r, r) for r in target_regions[:4]]
+        seo_parts.append(f"Open in {', '.join(region_names)}.")
+
+    seo_parts.append("Apply now on OneForma.")
+    seo_excerpt = " ".join(seo_parts)[:300]
+
     # ── 4. Publish to WordPress ───────────────────────────────────────
     slug = _slugify(title)
 
@@ -185,6 +207,7 @@ async def publish_job_to_wordpress(
                 content=content,
                 status=publish_status,
                 slug=slug,
+                excerpt=seo_excerpt,
                 acf=acf_fields,
                 job_types=[job_type],
                 job_tags=job_tags,

@@ -75,6 +75,7 @@ class WordPressClient:
         content: str,
         status: str = "draft",
         slug: str | None = None,
+        excerpt: str | None = None,
         meta: dict | None = None,
         acf: dict | None = None,
         job_types: list[str] | None = None,
@@ -87,6 +88,7 @@ class WordPressClient:
 
         Use `acf` for ACF custom fields (repeaters, text, etc.).
         Use `meta` for standard WordPress meta fields.
+        Use `excerpt` for the post excerpt (Yoast uses this as meta description).
         """
         if not self._client:
             raise RuntimeError("Client not initialized — use 'async with'")
@@ -98,6 +100,8 @@ class WordPressClient:
         }
         if slug:
             payload["slug"] = slug
+        if excerpt:
+            payload["excerpt"] = excerpt
         if meta:
             payload["meta"] = meta
         if acf:
