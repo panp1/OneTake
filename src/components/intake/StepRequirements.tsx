@@ -1,6 +1,8 @@
 "use client";
 
 import { Shield, CheckSquare } from "lucide-react";
+import LocaleLinksUpload from "./LocaleLinksUpload";
+import type { LocaleLink } from "./LocaleLinksUpload";
 
 interface StepRequirementsProps {
   formData: Record<string, unknown>;
@@ -218,6 +220,36 @@ export default function StepRequirements({
             style={textareaStyle}
           />
         </div>
+      </div>
+
+      {/* Locale Links Upload */}
+      <div
+        style={{
+          marginTop: 32,
+          padding: "24px 28px",
+          background: "#FFFFFF",
+          border: "1px solid #E8E8EA",
+          borderRadius: 10,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, rgba(6,147,227,0.1), rgba(155,81,224,0.1))", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Shield size={14} color="#6B21A8" />
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1A1A" }}>
+              Locale Links
+              <span style={{ fontSize: 11, fontWeight: 400, color: "#8A8A8E", marginLeft: 8 }}>(optional)</span>
+            </div>
+            <div style={{ fontSize: 11, color: "#8A8A8E" }}>
+              Upload the OneForma Locales &amp; Links spreadsheet for multilanguage job pages
+            </div>
+          </div>
+        </div>
+        <LocaleLinksUpload
+          value={(formData.locale_links as LocaleLink[]) ?? []}
+          onChange={(links) => s("locale_links", links)}
+        />
       </div>
 
       {/* ADA Compliance Section — conditional on onsite workMode */}

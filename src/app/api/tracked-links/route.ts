@@ -88,7 +88,22 @@ export async function POST(request: Request) {
   const lp = lpRows[0];
 
   const candidateUrls = [lp?.job_posting_url, lp?.landing_page_url, lp?.ada_form_url].filter(Boolean) as string[];
-  if (candidateUrls.length === 0) {
+
+  // Also include locale links from form_data as valid destinations
+  const localeLinks: string[] = [];
+  if (intake.form_data && typeof intake.form_data === 'object') {
+    const ll = (intake.form_data as Record<string, unknown>).locale_links;
+    if (Array.isArray(ll)) {
+      for (const link of ll) {
+        if (link && typeof link === 'object' && 'url' in link && typeof link.url === 'string') {
+          localeLinks.push(link.url);
+        }
+      }
+    }
+  }
+  const allValidUrls = [...candidateUrls, ...localeLinks];
+
+  if (allValidUrls.length === 0) {
     return Response.json(
       {
         error: 'LANDING_PAGES_NOT_SET',
@@ -97,7 +112,7 @@ export async function POST(request: Request) {
       { status: 409 }
     );
   }
-  if (!candidateUrls.includes(body.base_url)) {
+  if (!allValidUrls.includes(body.base_url)) {
     return Response.json({ error: 'INVALID_BASE_URL' }, { status: 400 });
   }
 

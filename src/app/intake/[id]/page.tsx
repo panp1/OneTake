@@ -36,6 +36,7 @@ import BriefExecutive from "@/components/BriefExecutive";
 import AssetReviewPanel from "@/components/AssetReviewPanel";
 import CampaignWorkspace from "@/components/CampaignWorkspace";
 import LandingPagesCard from "@/components/LandingPagesCard";
+import LocaleLinksTable from "@/components/LocaleLinksTable";
 import ResearchPanel from "@/components/ResearchPanel";
 import { extractField, formatLabel } from "@/lib/format";
 import PipelineNav from "@/components/PipelineNav";
@@ -655,6 +656,13 @@ export default function IntakeDetailPage({
                 visible
               >
                 <LandingPagesCard requestId={id} canEdit={role === "admin"} />
+                {/* Locale links from intake spreadsheet */}
+                {Array.isArray((request.form_data as Record<string, unknown>)?.locale_links) &&
+                  ((request.form_data as Record<string, unknown>).locale_links as unknown[]).length > 0 ? (
+                  <div style={{ marginTop: 16 }}>
+                    <LocaleLinksTable links={(request.form_data as Record<string, unknown>).locale_links as any[]} />
+                  </div>
+                ) : null}
               </LiveSection>
             )}
 

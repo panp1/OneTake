@@ -15,9 +15,9 @@ import {
 } from "@/lib/tracked-links/source-options";
 import type { GeneratedAsset } from "@/lib/types";
 
-export type LandingPageKey = "job_posting_url" | "landing_page_url" | "ada_form_url";
+export type LandingPageKey = "job_posting_url" | "landing_page_url" | "ada_form_url" | `locale_${string}`;
 
-const LANDING_PAGE_LABEL: Record<LandingPageKey, string> = {
+const LANDING_PAGE_LABEL: Record<string, string> = {
   job_posting_url: "Job Posting",
   landing_page_url: "Landing Page",
   ada_form_url: "AIDA Form",
@@ -133,15 +133,35 @@ export default function LinkBuilderBar({
     loadRecentLinks();
   }, [loadRecentLinks]);
 
-  // Compute available URLs
+  // Fetch locale links from intake request form_data
+  const [localeLinks, setLocaleLinks] = useState<Array<{ locale: string; language: string; url: string }>>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/intake/${requestId}`);
+        if (res.ok) {
+          const data = await res.json();
+          const links = data?.form_data?.locale_links;
+          if (Array.isArray(links)) setLocaleLinks(links);
+        }
+      } catch { /* silent */ }
+    })();
+  }, [requestId]);
+
+  // Compute available URLs — campaign landing pages + locale links
   const availableUrls = useMemo(() => {
-    if (!landingPages) return [];
     const entries: Array<{ key: LandingPageKey; url: string }> = [];
-    if (landingPages.job_posting_url) entries.push({ key: "job_posting_url", url: landingPages.job_posting_url });
-    if (landingPages.landing_page_url) entries.push({ key: "landing_page_url", url: landingPages.landing_page_url });
-    if (landingPages.ada_form_url) entries.push({ key: "ada_form_url", url: landingPages.ada_form_url });
+    if (landingPages?.job_posting_url) entries.push({ key: "job_posting_url", url: landingPages.job_posting_url });
+    if (landingPages?.landing_page_url) entries.push({ key: "landing_page_url", url: landingPages.landing_page_url });
+    if (landingPages?.ada_form_url) entries.push({ key: "ada_form_url", url: landingPages.ada_form_url });
+    // Add locale links as selectable destinations
+    for (const ll of localeLinks) {
+      const key = `locale_${ll.locale}` as LandingPageKey;
+      LANDING_PAGE_LABEL[key] = `${ll.language} (${ll.locale})`;
+      entries.push({ key, url: ll.url });
+    }
     return entries;
-  }, [landingPages]);
+  }, [landingPages, localeLinks]);
 
   // Readiness gate state
   const readinessState: "disabled" | "ready" =
