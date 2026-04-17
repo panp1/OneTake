@@ -76,6 +76,7 @@ class WordPressClient:
         status: str = "draft",
         slug: str | None = None,
         meta: dict | None = None,
+        acf: dict | None = None,
         job_types: list[str] | None = None,
         job_tags: list[str] | None = None,
     ) -> dict:
@@ -83,6 +84,9 @@ class WordPressClient:
 
         Tries 'job' CPT first, falls back to regular 'posts' if 'job' type
         is not registered on the WP site.
+
+        Use `acf` for ACF custom fields (repeaters, text, etc.).
+        Use `meta` for standard WordPress meta fields.
         """
         if not self._client:
             raise RuntimeError("Client not initialized — use 'async with'")
@@ -96,6 +100,8 @@ class WordPressClient:
             payload["slug"] = slug
         if meta:
             payload["meta"] = meta
+        if acf:
+            payload["acf"] = acf
 
         # Try custom post type 'job' first
         endpoint = f"{self._api_base}/job"
@@ -140,11 +146,11 @@ class WordPressClient:
             wp_id, wp_status, wp_url, preview_url,
         )
 
-        # Set taxonomies if provided
+        # Set taxonomies if provided (WP uses singular slugs: job_type, job_tag)
         if job_types and wp_id:
-            await self._set_taxonomy(wp_id, "job_types", job_types, endpoint)
+            await self._set_taxonomy(wp_id, "job_type", job_types, endpoint)
         if job_tags and wp_id:
-            await self._set_taxonomy(wp_id, "job_tags", job_tags, endpoint)
+            await self._set_taxonomy(wp_id, "job_tag", job_tags, endpoint)
 
         return {
             "id": wp_id,

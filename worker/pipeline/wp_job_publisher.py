@@ -159,7 +159,7 @@ async def publish_job_to_wordpress(
         else f"This role is available in {len(apply_rows)} languages"
     )
 
-    meta = {
+    acf_fields = {
         "apply_job_title": apply_title,
         "apply_job_description": "Select the one most relevant to you.",
         "apply_job": apply_rows,
@@ -185,7 +185,7 @@ async def publish_job_to_wordpress(
                 content=content,
                 status=publish_status,
                 slug=slug,
-                meta=meta,
+                acf=acf_fields,
                 job_types=[job_type],
                 job_tags=job_tags,
             )
