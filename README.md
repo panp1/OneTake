@@ -36,6 +36,47 @@ The system has two main subsystems:
 
 Both subsystems share the same Neon Postgres database. The database acts as both the data store and the message bus (via the `compute_jobs` table).
 
+### End-to-End Workflow / 端到端流程
+
+```mermaid
+flowchart TD
+    A["Recruiter/Admin creates intake request"] --> B["Schema validation + job requirements extraction"]
+    B --> C["Request saved in intake_requests"]
+    C --> D["Status set to generating"]
+    D --> E["compute_jobs row created"]
+    E --> F["Local Python worker claims job from Neon"]
+
+    F --> G["Generation Pipeline"]
+    G --> H["Status set to review"]
+    H --> I["Marketing Manager review in admin dashboard"]
+
+    I --> J{"Approve?"}
+    J -- "No, request changes" --> K["Approval record: changes_requested"]
+    K --> L["Status reset to draft"]
+    L --> M["Regenerate full pipeline or specific stage"]
+    M --> D
+
+    J -- "Yes" --> N["Approval record: approved"]
+    N --> O["Magic link created"]
+    O --> P["Status set to approved"]
+    P --> Q["Designer notified / designer portal opens"]
+
+    Q --> R["Designer reviews context, downloads kit, leaves notes, uploads replacements"]
+    R --> S{"Submit finals?"}
+    S -- "Not yet" --> R
+    S -- "Yes" --> T["Status set to sent"]
+
+    P --> U["Recruiter post-approval workspace unlocked"]
+    T --> U
+    U --> V["Recruiter uses approved creatives"]
+    V --> W["Recruiter builds tracked links"]
+    W --> X["Short-link redirects tracked"]
+
+    P --> Y["Agency link can be generated"]
+    T --> Y
+    Y --> Z["Agency package view + ZIP export"]
+```
+
 ---
 
 ## Architecture / 系统架构
@@ -535,6 +576,52 @@ Approval types: `marketing` (admin only), `designer` (admin/designer), `final` (
 
 The worker runs stages sequentially. Each stage writes results to the database and uploads files to Vercel Blob. The frontend polls `/api/intake/[id]/progress` to render results as they arrive.
 
+```mermaid
+flowchart TD
+    S0["Job claimed by worker"] --> S1["Stage 1: Strategic Intelligence"]
+
+    S1 --> S1B["Outputs:
+    cultural research
+    personas
+    campaign strategies
+    brief_data
+    design_direction"]
+
+    S1B --> S2["Stage 2: Character-Driven Image Generation"]
+
+    S2 --> S2B["Outputs:
+    actor profiles
+    validated seed images
+    image variations
+    base_image assets"]
+
+    S2B --> S3["Stage 3: Copy Generation"]
+
+    S3 --> S3B["Outputs:
+    persona x channel x language
+    copy variants"]
+
+    S3B --> S4["Stage 4: Layout Composition"]
+
+    S4 --> S4B["Outputs:
+    composed_creative assets
+    carousel assets
+    final renders"]
+
+    S4B --> S5["Stage 5: Video Generation (optional)"]
+
+    S5 --> S5B["Outputs:
+    short UGC-style video assets"]
+
+    S5B --> S6["Stage 6: Landing Pages (optional)"]
+
+    S6 --> S6B["Outputs:
+    HTML landing pages per persona
+    served via /lp/slug"]
+
+    S6B --> DONE["Request status → review"]
+```
+
 ### Stage 1: Strategic Intelligence / 战略情报
 
 **File:** `worker/pipeline/stage1_intelligence.py`
@@ -612,6 +699,26 @@ The worker runs stages sequentially. Each stage writes results to the database a
 ## Roles & Permissions / 角色与权限
 
 Roles are stored in `user_roles` table and resolved via `src/lib/permissions.ts`.
+
+### 3-Stage Approval Flow / 三阶段审批流程
+
+```mermaid
+sequenceDiagram
+    participant R as Recruiter
+    participant A as Admin (Marketing)
+    participant D as Designer
+    participant AG as Agency
+
+    R->>A: Submit intake request
+    A->>A: AI pipeline generates creatives
+    A->>A: Stage 1: Marketing approval
+    A->>D: Magic link sent via Teams
+    D->>D: Stage 2: Designer reviews + uploads finals
+    D->>A: Designer approves
+    A->>A: Stage 3: Final approval
+    A->>R: Creatives visible in recruiter workspace
+    A->>AG: Agency package + ZIP export available
+```
 
 | Capability | Admin | Recruiter | Designer | Viewer |
 |-----------|:-----:|:---------:|:--------:|:------:|
