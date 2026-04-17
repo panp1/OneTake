@@ -239,7 +239,6 @@ export default function LinkBuilderBar({
     !submitting &&
     !!campaignSlug &&
     !!selectedUrl &&
-    !!selectedAsset &&
     term.trim().length > 0 &&
     utmContent.trim().length > 0;
 
