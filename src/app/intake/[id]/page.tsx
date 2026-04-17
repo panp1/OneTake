@@ -35,6 +35,7 @@ import RecruiterWorkspace from "@/components/recruiter/RecruiterWorkspace";
 import BriefExecutive from "@/components/BriefExecutive";
 import AssetReviewPanel from "@/components/AssetReviewPanel";
 import CampaignWorkspace from "@/components/CampaignWorkspace";
+import LandingPagesCard from "@/components/LandingPagesCard";
 import ResearchPanel from "@/components/ResearchPanel";
 import { extractField, formatLabel } from "@/lib/format";
 import PipelineNav from "@/components/PipelineNav";
@@ -641,6 +642,19 @@ export default function IntakeDetailPage({
                   onDelete={handleDeleteAsset}
                   section="personas"
                 />
+              </LiveSection>
+            )}
+
+            {/* ═══ Landing Pages — URL entry for tracked links ═══ */}
+            {(role === "admin" || role === "designer" || role === null) && (
+              <LiveSection
+                id="section-landing-pages"
+                title="Landing Pages"
+                subtitle="Job posting, landing page, and form URLs for tracked links"
+                accentColor="#0693E3"
+                visible
+              >
+                <LandingPagesCard requestId={id} canEdit={role === "admin"} />
               </LiveSection>
             )}
 
