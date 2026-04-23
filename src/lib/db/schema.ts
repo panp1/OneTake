@@ -163,6 +163,7 @@ export async function createTables(): Promise<void> {
       outfit_variations JSONB,
       signature_accessory TEXT,
       backdrops TEXT[] NOT NULL DEFAULT '{}',
+      country TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
@@ -177,6 +178,7 @@ export async function createTables(): Promise<void> {
       platform TEXT NOT NULL,
       format TEXT NOT NULL,
       language TEXT NOT NULL DEFAULT 'en',
+      country TEXT,
       content JSONB,
       copy_data JSONB,
       blob_url TEXT,
@@ -205,10 +207,11 @@ export async function createTables(): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS campaign_landing_pages (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      request_id UUID NOT NULL UNIQUE REFERENCES intake_requests(id) ON DELETE CASCADE,
+      request_id UUID NOT NULL REFERENCES intake_requests(id) ON DELETE CASCADE,
       job_posting_url TEXT,
       landing_page_url TEXT,
       ada_form_url TEXT,
+      country TEXT,
       updated_by TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -227,6 +230,7 @@ export async function createTables(): Promise<void> {
       request_id          UUID NOT NULL REFERENCES intake_requests(id) ON DELETE CASCADE,
       asset_id            UUID REFERENCES generated_assets(id) ON DELETE SET NULL,
       recruiter_clerk_id  TEXT NOT NULL,
+      country TEXT,
       destination_url     TEXT NOT NULL,
       base_url            TEXT NOT NULL,
       utm_campaign        TEXT NOT NULL,
@@ -246,6 +250,9 @@ export async function createTables(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_tracked_links_recruiter
       ON tracked_links(recruiter_clerk_id, request_id)
   `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_generated_assets_country ON generated_assets(request_id, country)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_actor_profiles_country ON actor_profiles(request_id, country)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_compute_jobs_country ON compute_jobs(request_id, country)`;
 
   // 10. designer_uploads — FK to intake_requests + generated_assets
   await sql`
@@ -278,6 +285,7 @@ export async function createTables(): Promise<void> {
       request_id UUID NOT NULL REFERENCES intake_requests(id) ON DELETE CASCADE,
       channel TEXT NOT NULL CHECK (channel IN ('slack', 'outlook')),
       recipient TEXT NOT NULL,
+      country TEXT,
       status TEXT NOT NULL CHECK (status IN ('sent', 'delivered', 'failed')),
       payload JSONB,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -290,6 +298,7 @@ export async function createTables(): Promise<void> {
       id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id     TEXT NOT NULL,
       request_id  UUID REFERENCES intake_requests(id) ON DELETE CASCADE,
+      country TEXT,
       type        TEXT NOT NULL CHECK (type IN ('stage_complete', 'designer_update', 'eval_complete', 'status_change', 'asset_approved')),
       title       TEXT NOT NULL,
       body        TEXT,
@@ -323,7 +332,8 @@ export async function createTables(): Promise<void> {
     CREATE TABLE IF NOT EXISTS compute_jobs (
       id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       request_id      UUID REFERENCES intake_requests(id) ON DELETE CASCADE,
-      job_type        TEXT NOT NULL CHECK (job_type IN ('generate', 'regenerate', 'regenerate_stage', 'regenerate_asset', 'resume_from')),
+      country TEXT,
+      job_type        TEXT NOT NULL CHECK (job_type IN ('generate', 'generate_country', 'regenerate', 'regenerate_stage', 'regenerate_asset', 'resume_from')),
       worker_id       TEXT,
       status          TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'complete', 'failed')),
       stage_target    INT,
