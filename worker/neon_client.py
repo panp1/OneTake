@@ -569,3 +569,26 @@ async def upsert_campaign_landing_page(
     async with pool.acquire() as conn:
         await conn.execute(query, request_id, value)
     logger.info("Upserted campaign_landing_pages.%s for %s", field, request_id[:8])
+
+
+async def check_all_country_jobs_complete(request_id: str) -> bool:
+    """Check if all generate_country jobs for a request are complete.
+
+    Returns True if every generate_country job has status='complete'.
+    Returns False if any are still pending/processing, or if there are no country jobs.
+    """
+    pool = await _get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE status = 'complete') AS done
+            FROM compute_jobs
+            WHERE request_id = $1::uuid AND job_type = 'generate_country'
+            """,
+            request_id,
+        )
+    if row is None or row["total"] == 0:
+        return False
+    return row["done"] == row["total"]
