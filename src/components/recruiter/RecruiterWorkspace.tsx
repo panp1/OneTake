@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Image, LayoutDashboard, Megaphone } from "lucide-react";
+import { ArrowLeft, BarChart3, Download, Image, LayoutDashboard, Megaphone } from "lucide-react";
 import { getRecruiterStatus } from "@/lib/format";
 import CreativeLibrary from "./CreativeLibrary";
 import LinkBuilderBar from "./LinkBuilderBar";
@@ -10,6 +10,7 @@ import DashboardTab from "./DashboardTab";
 import OrganicTab from "./OrganicTab";
 import MessagingAccordion from "./MessagingAccordion";
 import { StatsRow } from "./StatsRow";
+import { MyAnalyticsTab } from "./MyAnalyticsTab";
 import type {
   IntakeRequest,
   CreativeBrief,
@@ -18,7 +19,7 @@ import type {
   TrackedLinksSummary,
 } from "@/lib/types";
 
-type TabKey = "creatives" | "organic" | "dashboard";
+type TabKey = "creatives" | "organic" | "dashboard" | "analytics";
 
 interface RecruiterWorkspaceProps {
   request: IntakeRequest;
@@ -145,6 +146,7 @@ export default function RecruiterWorkspace({
           <TabButton active={activeTab === "creatives"} onClick={() => setActiveTab("creatives")} icon={<Image size={14} />} label="Assets & Creatives" />
           <TabButton active={activeTab === "organic"} onClick={() => setActiveTab("organic")} icon={<Megaphone size={14} />} label="Organic" />
           <TabButton active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} icon={<LayoutDashboard size={14} />} label="Dashboard" />
+          <TabButton active={activeTab === "analytics"} onClick={() => setActiveTab("analytics")} icon={<BarChart3 size={14} />} label="My Analytics" />
         </div>
       </div>
 
@@ -189,6 +191,7 @@ export default function RecruiterWorkspace({
           <OrganicTab assets={assets} />
         )}
         {activeTab === "dashboard" && <DashboardTab requestId={request.id} />}
+        {activeTab === "analytics" && <MyAnalyticsTab requestId={request.id} recruiterId={request.created_by} />}
       </div>
     </div>
   );
