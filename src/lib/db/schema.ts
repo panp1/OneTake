@@ -405,6 +405,50 @@ export async function createTables(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_dashboards_created_by ON dashboards(created_by)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_dashboards_share_token ON dashboards(share_token) WHERE share_token IS NOT NULL`;
 
+  // 18. crm_sync_cache — cached CRM contributor data for AudienceIQ
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_sync_cache (
+      id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      crm_user_id       TEXT NOT NULL,
+      email             TEXT,
+      country           TEXT,
+      languages         TEXT[] NOT NULL DEFAULT '{}',
+      skills            JSONB NOT NULL DEFAULT '{}',
+      quality_score     FLOAT,
+      activity_status   TEXT NOT NULL DEFAULT 'unknown',
+      signup_date       TIMESTAMPTZ,
+      utm_source        TEXT,
+      utm_medium        TEXT,
+      utm_campaign      TEXT,
+      last_synced_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(crm_user_id)
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_sync_email ON crm_sync_cache(email) WHERE email IS NOT NULL`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_sync_utm ON crm_sync_cache(utm_campaign) WHERE utm_campaign IS NOT NULL`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_sync_status ON crm_sync_cache(activity_status)`;
+
+  // 19. visitor_identities — cross-device identity stitching for AudienceIQ
+  await sql`
+    CREATE TABLE IF NOT EXISTS visitor_identities (
+      id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      visitor_id        TEXT,
+      ga4_client_id     TEXT,
+      crm_user_id       TEXT,
+      email             TEXT,
+      email_hash        TEXT,
+      utm_slug          TEXT,
+      first_seen_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      identified_at     TIMESTAMPTZ,
+      UNIQUE(email_hash)
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_visitor_identity_visitor ON visitor_identities(visitor_id) WHERE visitor_id IS NOT NULL`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_visitor_identity_crm ON visitor_identities(crm_user_id) WHERE crm_user_id IS NOT NULL`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_visitor_identity_slug ON visitor_identities(utm_slug) WHERE utm_slug IS NOT NULL`;
+
   // ============================================================
   // INDEXES
   // ============================================================
