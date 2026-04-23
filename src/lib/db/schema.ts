@@ -381,6 +381,29 @@ export async function createTables(): Promise<void> {
     )
   `;
 
+  // 17. dashboards — custom analytics dashboard layouts
+  await sql`
+    CREATE TABLE IF NOT EXISTS dashboards (
+      id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      title           TEXT NOT NULL DEFAULT 'Untitled Dashboard',
+      description     TEXT,
+      layout_data     JSONB NOT NULL DEFAULT '{"widgets":[],"gridLayouts":{"lg":[],"md":[],"sm":[]}}',
+      created_by      TEXT NOT NULL,
+      is_template     BOOLEAN NOT NULL DEFAULT FALSE,
+      is_shared       BOOLEAN NOT NULL DEFAULT FALSE,
+      share_token     TEXT UNIQUE,
+      password_hash   TEXT,
+      expires_at      TIMESTAMPTZ,
+      view_count      INT NOT NULL DEFAULT 0,
+      last_viewed_at  TIMESTAMPTZ,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_dashboards_created_by ON dashboards(created_by)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_dashboards_share_token ON dashboards(share_token) WHERE share_token IS NOT NULL`;
+
   // ============================================================
   // INDEXES
   // ============================================================
