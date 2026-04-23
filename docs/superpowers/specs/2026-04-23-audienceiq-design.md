@@ -125,38 +125,64 @@ visitor_identities         -- Cross-device identity stitching
   first_seen_at TIMESTAMPTZ
   identified_at TIMESTAMPTZ -- When anonymous became known
 
-hie_sessions               -- Ported from VYRA (simplified)
-  id, visitor_id, session_id
-  landing_page_url, referrer, user_agent
-  viewport_width, viewport_height
-  device_type TEXT          -- mobile|tablet|desktop
+hie_sessions               -- Ported from VYRA (full schema, 1M+ monthly visitors)
+  id, visitor_id TEXT, session_id TEXT UNIQUE
+  landing_page_url TEXT, referrer TEXT, user_agent TEXT
+  viewport_width INT, viewport_height INT
+  device_pixel_ratio FLOAT
+  device_type TEXT          -- mobile|tablet|desktop (derived from viewport)
+  screen_width INT, screen_height INT
   started_at TIMESTAMPTZ
+  INDEX: (visitor_id), (started_at)
 
-hie_events                 -- Ported from VYRA (unified event table)
-  id, session_id, visitor_id
-  event_type TEXT           -- click|cta_click|scroll|form|mousemove|visibility
+hie_interaction_events     -- Clicks, CTAs, forms, mousemove, visibility (separated for query perf at 1M+ visitors)
+  id, session_id TEXT, visitor_id TEXT
+  event_type TEXT           -- click_interaction|cta_click|form_interaction|viewport_resize|mousemove_sample|element_visibility
   page_url TEXT, page_hash TEXT
   x INT, y INT
   viewport_width INT, viewport_height INT
-  element_selector TEXT, element_tag TEXT
-  event_data JSONB          -- Type-specific overflow
+  element_selector TEXT, element_tag TEXT, element_text TEXT
+  event_data JSONB          -- Type-specific overflow (href, field_type, time_on_field, etc.)
   client_timestamp_ms BIGINT
   created_at TIMESTAMPTZ
+  INDEX: (session_id), (page_url, event_type), (page_hash)
 
-hie_heat_facts             -- Pre-aggregated click density (from VYRA)
-  page_url, page_hash, event_type
-  grid_x INT, grid_y INT
-  click_count INT, unique_sessions INT
-  segment_key TEXT, segment_value TEXT
+hie_scroll_events          -- Separate table for scroll data (high volume, different query patterns)
+  id, session_id TEXT, visitor_id TEXT
+  page_url TEXT, page_hash TEXT
+  scroll_y INT, scroll_percent INT  -- 0-100
+  document_height INT, viewport_height INT
+  direction TEXT            -- up|down
+  milestone INT             -- 0|25|50|75|90|100 (null if not a milestone)
+  client_timestamp_ms BIGINT
+  created_at TIMESTAMPTZ
+  INDEX: (session_id), (page_url), (page_url, milestone)
+
+hie_page_snapshots         -- Compressed DOM for heatmap overlay rendering
+  id, page_url TEXT, canonical_url TEXT
+  page_hash TEXT UNIQUE
+  stripped_html BYTEA       -- zlib-compressed, scripts/styles/values stripped
+  viewport_width INT, document_height INT
+  element_map JSONB         -- Element positions/dimensions for coordinate mapping
+  captured_at TIMESTAMPTZ
+
+hie_heat_facts             -- Pre-aggregated click density (REQUIRED for perf at scale)
+  page_url TEXT, page_hash TEXT, event_type TEXT
+  grid_x INT, grid_y INT   -- Normalized to grid_size (default 50x50)
+  click_count INT, unique_sessions INT, unique_visitors INT
+  element_selector TEXT     -- Most-clicked element at this grid cell
+  segment_key TEXT, segment_value TEXT  -- device_type|utm_source|utm_campaign|etc
   fact_date DATE
+  INDEX: (page_url, fact_date), (page_url, segment_key, fact_date)
 
-hie_scroll_facts           -- Pre-aggregated scroll depth (from VYRA)
-  page_url, page_hash
+hie_scroll_facts           -- Pre-aggregated scroll depth bands
+  page_url TEXT, page_hash TEXT
   depth_band TEXT           -- 0-10, 10-20, ..., 90-100
-  sessions_reached INT
+  sessions_reached INT, unique_visitors INT
   avg_time_at_depth_ms INT
   segment_key TEXT, segment_value TEXT
   fact_date DATE
+  INDEX: (page_url, fact_date)
 
 crm_sync_cache             -- Cached CRM data (avoid hammering datalake)
   id, crm_user_id TEXT
@@ -182,12 +208,25 @@ ga4_session_cache           -- Cached GA4 session data
   last_synced_at TIMESTAMPTZ
 ```
 
-### CRM Datalake Connection
+### CRM Datalake Connection (Env-Var Gated)
 
-- **Read-only** connection to the OneForma CRM Postgres instance
-- **Sync job** runs every 15 minutes, pulling new/updated contributor profiles into `crm_sync_cache`
+The CRM integration is built **fully wired but behind an env var gate**. Everything — sync service, cache tables, identity stitching, widgets, drift computation — works with empty/mock data until the connection is configured. Once `CRM_DATABASE_URL` is set, it lights up automatically.
+
+**Env vars required (not yet available — built ready to plug in):**
+```
+CRM_DATABASE_URL=postgresql://readonly:***@crm-host:5432/oneforma_crm
+CRM_SYNC_ENABLED=true
+CRM_SYNC_INTERVAL_MINUTES=15
+```
+
+**Connection behavior:**
+- `CRM_DATABASE_URL` unset → all CRM-dependent widgets show "CRM not connected" state with setup instructions, drift calculations skip Ring 4, health scoring skips CRM detectors
+- `CRM_DATABASE_URL` set → **read-only** connection to the OneForma CRM Postgres instance
+- **Sync job** runs every `CRM_SYNC_INTERVAL_MINUTES` (default 15), pulling new/updated contributor profiles into `crm_sync_cache`
 - Matching: `crm_sync_cache.utm_campaign` → `tracked_links.utm_campaign` AND/OR `crm_sync_cache.email` → `visitor_identities.email`
-- Never writes to the CRM — only reads
+- **Never writes to the CRM** — only reads
+- Connection uses a **separate Postgres client** (not the Neon `getDb()` pool) to isolate CRM queries from app DB queries
+- If CRM connection fails, graceful degradation: widgets show "CRM sync error" but app continues functioning
 
 ### GA4 Integration
 
@@ -214,7 +253,7 @@ ga4_session_cache           -- Cached GA4 session data
 
 ### What Gets Simplified
 
-- **Single `hie_events` table** instead of VYRA's separate `hie_interaction_events` + `hie_scroll_events` (recruitment pages have lower traffic volume)
+- **Keep VYRA's separated table architecture** — `hie_interaction_events`, `hie_scroll_events`, `hie_page_snapshots` as distinct tables. OneForma has 1M+ monthly visitors and growing — a single unified event table would choke at that volume. Fact materialization tables (`hie_heat_facts`, `hie_scroll_facts`) are required for performant heatmap queries.
 - **No separate snapshot service initially** — DOM snapshots deferred to Phase 3
 - **Fact materialization via cron** instead of dedicated scheduler service
 - **5 diagnostics detectors** instead of VYRA's full set (scroll_cliff, cta_weakness, form_friction, platform_mismatch, ignored_section)
