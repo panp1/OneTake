@@ -1,5 +1,5 @@
 /**
- * Widget Registry — 17 widgets across 5 categories.
+ * Widget Registry — 22 widgets across 6 categories.
  * Ported from VYRA, adapted for recruitment pipeline + UTM tracking.
  */
 
@@ -7,7 +7,8 @@ import { lazy, type ComponentType } from 'react';
 import {
   BarChart3, Activity, Clock, Image, MousePointerClick, Cpu, Timer,
   Globe, AlertTriangle, ListChecks, StickyNote, GitCompare, Trophy,
-  Palette, TrendingUp, Grid3x3, Link2,
+  Palette, TrendingUp, Grid3x3, Link2, Funnel, Award, TrendingDown,
+  Crosshair, Target,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { WidgetType, WidgetCategory } from './types';
@@ -27,6 +28,7 @@ export const WIDGET_CATEGORIES: { id: WidgetCategory; label: string }[] = [
   { id: 'utm', label: 'UTM & Link Analytics' },
   { id: 'assets', label: 'Assets & Creative' },
   { id: 'operations', label: 'Operations' },
+  { id: 'audienceiq', label: 'AudienceIQ' },
   { id: 'utility', label: 'Utility' },
 ];
 
@@ -126,6 +128,37 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetRegistryEntry> = {
     category: 'operations', label: 'Region Distribution', icon: Globe,
     description: 'Campaign target regions breakdown',
     defaultSize: { w: 6, h: 4 }, minSize: { w: 4, h: 3 },
+  },
+  // ── AudienceIQ ────────────────────────────────────────────
+  'contributor-funnel': {
+    component: lazy(() => import('./widgets/ContributorFunnelWidget')),
+    category: 'audienceiq', label: 'Contributor Funnel', icon: Funnel,
+    description: 'Clicks → signups → active → quality threshold conversion funnel',
+    defaultSize: { w: 12, h: 4 }, minSize: { w: 6, h: 3 },
+  },
+  'quality-by-channel': {
+    component: lazy(() => import('./widgets/QualityByChannelWidget')),
+    category: 'audienceiq', label: 'Quality by Channel', icon: Award,
+    description: 'Average contributor quality score per UTM source',
+    defaultSize: { w: 6, h: 4 }, minSize: { w: 4, h: 3 },
+  },
+  'retention-curve': {
+    component: lazy(() => import('./widgets/RetentionCurveWidget')),
+    category: 'audienceiq', label: 'Retention Curve', icon: TrendingDown,
+    description: 'Contributor retention by campaign over 30/60/90 days',
+    defaultSize: { w: 6, h: 4 }, minSize: { w: 4, h: 3 },
+  },
+  'skill-distribution': {
+    component: lazy(() => import('./widgets/SkillDistributionWidget')),
+    category: 'audienceiq', label: 'Skill Distribution', icon: Crosshair,
+    description: 'Declared skills vs actual CRM contributor skills — divergence chart',
+    defaultSize: { w: 6, h: 4 }, minSize: { w: 4, h: 3 },
+  },
+  'targeting-vs-reality': {
+    component: lazy(() => import('./widgets/TargetingVsRealityWidget')),
+    category: 'audienceiq', label: 'Targeting vs Reality', icon: Target,
+    description: 'Side-by-side: declared ICP regions/languages/skills vs CRM actuals',
+    defaultSize: { w: 12, h: 5 }, minSize: { w: 6, h: 4 },
   },
   'text-note': {
     component: lazy(() => import('./widgets/TextNoteWidget')),
