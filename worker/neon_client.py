@@ -364,8 +364,8 @@ async def save_asset(request_id: str, data: dict[str, Any]) -> str:
             INSERT INTO generated_assets
                 (request_id, actor_id, asset_type, platform, format,
                  language, blob_url, content, evaluation_score,
-                 evaluation_data, evaluation_passed, stage)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                 evaluation_data, evaluation_passed, stage, country)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING id
             """,
             request_id,
@@ -380,6 +380,7 @@ async def save_asset(request_id: str, data: dict[str, Any]) -> str:
             json.dumps(metadata.get("vqa_dimensions", {}), default=str),
             metadata.get("vqa_score", 0) >= 0.75 if metadata.get("vqa_score") else None,
             data.get("stage", 2),
+            data.get("country"),
         )
     return str(row["id"])
 

@@ -106,6 +106,7 @@ async def run_stage4(context: dict) -> dict:
     brief: dict = context.get("brief", {})
     design_direction: dict = context.get("design_direction", {})
     feedback: str | None = context.get("feedback")
+    country: str | None = context.get("country")
 
     logger.info("Stage 4 v3 start: request_id=%s", request_id)
 
@@ -208,6 +209,7 @@ async def run_stage4(context: dict) -> dict:
             personas=personas,
             strategies=strategies,
             device_mockup_url=device_mockup_url,
+            country=country,
         )
         for item in matrix
     ]
@@ -242,6 +244,7 @@ async def _compose_one(
     personas: list[dict] | None = None,
     strategies: list[dict] | None = None,
     device_mockup_url: str | None = None,
+    country: str | None = None,
 ) -> int:
     """Compose one creative: prompt → LLM → render → VQA → save.
 
@@ -423,6 +426,7 @@ async def _compose_one(
             copy=copy,
             vqa_result=vqa_result,
             attempts=attempts,
+            country=country,
         )
 
 
@@ -507,6 +511,7 @@ async def _save_composition(
     copy: dict,
     vqa_result: dict | None,
     attempts: int,
+    country: str | None = None,
 ) -> int:
     """Upload PNG + HTML to Blob, save asset record to Neon. Returns 1 on success."""
     actor_id = str(actor.get("actor_id", actor.get("id", "")))
@@ -568,6 +573,7 @@ async def _save_composition(
             "language": copy.get("language", "en"),
             "blob_url": png_url,
             "stage": 4,
+            "country": country,
             "metadata": metadata,
         },
     )
