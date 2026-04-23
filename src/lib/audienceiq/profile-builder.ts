@@ -154,17 +154,41 @@ export async function buildPaidProfile(requestId: string): Promise<ProfileData> 
 }
 
 export async function buildOrganicProfile(requestId: string): Promise<ProfileData> {
-  // Phase 3: will pull from GA4 session data
+  const { isGa4Connected, getGa4Demographics } = await import('./ga4-client');
+  const connected = await isGa4Connected();
+
+  if (!connected) {
+    return {
+      request_id: requestId,
+      ring: 'organic',
+      demographics: {},
+      skills: {},
+      languages: [],
+      regions: [],
+      sample_size: 0,
+      confidence: 'low',
+      source: 'ga4_unavailable',
+    };
+  }
+
+  const demo = await getGa4Demographics(30);
+  const regions = demo.countries.map(c => c.name);
+  const sampleSize = demo.countries.reduce((sum, c) => sum + c.count, 0);
+  const confidence = sampleSize >= 1000 ? 'high' : sampleSize >= 100 ? 'medium' : 'low';
+
   return {
     request_id: requestId,
     ring: 'organic',
-    demographics: {},
+    demographics: {
+      geo_distribution: Object.fromEntries(demo.countries.map(c => [c.name, c.count])),
+      device_distribution: Object.fromEntries(demo.devices.map(d => [d.name, d.count])),
+    },
     skills: {},
     languages: [],
-    regions: [],
-    sample_size: 0,
-    confidence: 'low',
-    source: 'unavailable',
+    regions,
+    sample_size: sampleSize,
+    confidence,
+    source: 'ga4',
   };
 }
 
