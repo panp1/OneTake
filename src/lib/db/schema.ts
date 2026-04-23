@@ -527,6 +527,127 @@ export async function createTables(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_ga4_cache_source ON ga4_session_cache(source) WHERE source IS NOT NULL`;
   await sql`CREATE INDEX IF NOT EXISTS idx_ga4_cache_country ON ga4_session_cache(country) WHERE country IS NOT NULL`;
 
+  // 24. hie_sessions — behavioral session tracking
+  await sql`
+    CREATE TABLE IF NOT EXISTS hie_sessions (
+      id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      session_id        TEXT NOT NULL UNIQUE,
+      visitor_id        TEXT NOT NULL,
+      landing_page_url  TEXT,
+      referrer          TEXT,
+      user_agent        TEXT,
+      viewport_width    INT,
+      viewport_height   INT,
+      device_pixel_ratio FLOAT,
+      device_type       TEXT,
+      screen_width      INT,
+      screen_height     INT,
+      started_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_hie_sessions_visitor ON hie_sessions(visitor_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_hie_sessions_started ON hie_sessions(started_at DESC)`;
+
+  // 25. hie_interaction_events — clicks, CTAs, forms, mousemove, visibility
+  await sql`
+    CREATE TABLE IF NOT EXISTS hie_interaction_events (
+      id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      session_id          TEXT NOT NULL,
+      visitor_id          TEXT NOT NULL,
+      event_type          TEXT NOT NULL,
+      page_url            TEXT,
+      page_hash           TEXT,
+      x                   INT,
+      y                   INT,
+      viewport_width      INT,
+      viewport_height     INT,
+      element_selector    TEXT,
+      element_tag         TEXT,
+      element_text        TEXT,
+      event_data          JSONB DEFAULT '{}',
+      client_timestamp_ms BIGINT,
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_hie_interactions_session ON hie_interaction_events(session_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_hie_interactions_page ON hie_interaction_events(page_url, event_type)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_hie_interactions_hash ON hie_interaction_events(page_hash)`;
+
+  // 26. hie_scroll_events — scroll depth tracking
+  await sql`
+    CREATE TABLE IF NOT EXISTS hie_scroll_events (
+      id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      session_id          TEXT NOT NULL,
+      visitor_id          TEXT NOT NULL,
+      page_url            TEXT,
+      page_hash           TEXT,
+      scroll_y            INT,
+      scroll_percent      INT,
+      document_height     INT,
+      viewport_height     INT,
+      direction           TEXT,
+      milestone           INT,
+      client_timestamp_ms BIGINT,
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_hie_scroll_session ON hie_scroll_events(session_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_hie_scroll_page ON hie_scroll_events(page_url)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_hie_scroll_milestone ON hie_scroll_events(page_url, milestone)`;
+
+  // 27. hie_page_snapshots — compressed DOM for heatmap overlay
+  await sql`
+    CREATE TABLE IF NOT EXISTS hie_page_snapshots (
+      id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      page_url          TEXT NOT NULL,
+      canonical_url     TEXT,
+      page_hash         TEXT NOT NULL UNIQUE,
+      stripped_html     BYTEA,
+      viewport_width    INT,
+      document_height   INT,
+      element_map       JSONB DEFAULT '{}',
+      captured_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // 28. hie_heat_facts — pre-aggregated click density
+  await sql`
+    CREATE TABLE IF NOT EXISTS hie_heat_facts (
+      id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      page_url          TEXT NOT NULL,
+      page_hash         TEXT,
+      event_type        TEXT NOT NULL,
+      grid_x            INT NOT NULL,
+      grid_y            INT NOT NULL,
+      click_count       INT NOT NULL DEFAULT 0,
+      unique_sessions   INT NOT NULL DEFAULT 0,
+      unique_visitors   INT NOT NULL DEFAULT 0,
+      element_selector  TEXT,
+      segment_key       TEXT,
+      segment_value     TEXT,
+      fact_date         DATE NOT NULL DEFAULT CURRENT_DATE
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_hie_heat_facts_page ON hie_heat_facts(page_url, fact_date)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_hie_heat_facts_segment ON hie_heat_facts(page_url, segment_key, fact_date)`;
+
+  // 29. hie_scroll_facts — pre-aggregated scroll depth
+  await sql`
+    CREATE TABLE IF NOT EXISTS hie_scroll_facts (
+      id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      page_url          TEXT NOT NULL,
+      page_hash         TEXT,
+      depth_band        TEXT NOT NULL,
+      sessions_reached  INT NOT NULL DEFAULT 0,
+      unique_visitors   INT NOT NULL DEFAULT 0,
+      avg_time_at_depth_ms INT NOT NULL DEFAULT 0,
+      segment_key       TEXT,
+      segment_value     TEXT,
+      fact_date         DATE NOT NULL DEFAULT CURRENT_DATE
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_hie_scroll_facts_page ON hie_scroll_facts(page_url, fact_date)`;
+
   // ============================================================
   // INDEXES
   // ============================================================
