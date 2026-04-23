@@ -3,9 +3,10 @@ import { requireAuth } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
-  await requireAuth();
+  const user = await requireAuth();
   const sql = getDb();
-  const recruiterId = req.nextUrl.searchParams.get('recruiterId');
+  const rawRecruiterId = req.nextUrl.searchParams.get('recruiterId');
+  const recruiterId = rawRecruiterId === 'self' ? user.userId : rawRecruiterId;
 
   const [bySource, byMedium, byCampaign, bySourceMedium, totalRow] = recruiterId
     ? await Promise.all([
