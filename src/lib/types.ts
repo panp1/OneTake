@@ -527,3 +527,70 @@ export interface InterestsByTier {
   hot: string[];
   broad: string[];
 }
+
+// ============================================================
+// COMMAND CENTER TYPES (SRC Port — Analytics + ROAS)
+// ============================================================
+
+export interface NormalizedDailyMetric {
+  id: string;
+  request_id: string;
+  country: string | null;
+  date: string;
+  platform: string;
+  channel: string | null;
+  impressions: number;
+  clicks: number;
+  spend: number;
+  conversions: number;
+  conversion_value: number;
+  signups: number;
+  profile_completes: number;
+  quality_score: number | null;
+  cpa: number | null;
+  ctr: number | null;
+  roas: number | null;
+  created_at: string;
+}
+
+export interface RoasConfig {
+  id: string;
+  request_id: string;
+  country: string | null;
+  contract_value: number | null;
+  required_participants: number | null;
+  variable_cost_per_participant: number;
+  fulfillment_rate: number;
+  rpp: number | null;
+  net_rpp: number | null;
+  breakeven_cpa: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CampaignExport {
+  id: string;
+  request_id: string;
+  export_type: 'pdf' | 'xlsx' | 'csv' | 'pptx';
+  title: string;
+  status: 'pending' | 'generating' | 'complete' | 'failed';
+  blob_url: string | null;
+  filters: Record<string, unknown>;
+  created_by: string;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface CampaignShareLink {
+  id: string;
+  request_id: string;
+  token: string;
+  title: string;
+  resource_type: 'dashboard' | 'export';
+  resource_id: string;
+  password_hash: string | null;
+  expires_at: string | null;
+  view_count: number;
+  created_by: string;
+  created_at: string;
+}
