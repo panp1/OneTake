@@ -52,6 +52,7 @@ import type {
   GeneratedAsset,
   ComputeJob,
   UserRole,
+  CountryQuota,
 } from "@/lib/types";
 
 interface CampaignStrategy {
@@ -327,6 +328,8 @@ export default function IntakeDetailPage({
   }
 
   const { request, brief, actors, assets, pipelineRuns } = data;
+
+  const countryQuotas = (request?.form_data?.country_quotas as CountryQuota[] | undefined) ?? [];
 
   // Recruiter sees a simplified read-only view
   if (role === "recruiter") {
@@ -615,6 +618,8 @@ export default function IntakeDetailPage({
                     onRetry={(asset) => handleRetry(asset)}
                     onDelete={handleDeleteAsset}
                     section="brief"
+                    computeJobs={computeJob ? [computeJob] : []}
+                    countryQuotas={countryQuotas}
                   />
                 </section>
               </LiveSection>
@@ -642,6 +647,8 @@ export default function IntakeDetailPage({
                   onRetry={(asset) => handleRetry(asset)}
                   onDelete={handleDeleteAsset}
                   section="personas"
+                  computeJobs={computeJob ? [computeJob] : []}
+                  countryQuotas={countryQuotas}
                 />
               </LiveSection>
             )}
