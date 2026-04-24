@@ -12,6 +12,27 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
+# Common country name normalizations
+COUNTRY_ALIASES: dict[str, str] = {
+    "usa": "United States",
+    "us": "United States",
+    "uk": "United Kingdom",
+    "uae": "United Arab Emirates",
+    "czech republic": "Czech Republic",
+    "czechia": "Czech Republic",
+    "south korea": "South Korea",
+    "korea": "South Korea",
+    "the netherlands": "Netherlands",
+    "holland": "Netherlands",
+}
+
+
+def normalize_country(name: str) -> str:
+    """Normalize country name for consistent matching."""
+    stripped = name.strip()
+    return COUNTRY_ALIASES.get(stripped.lower(), stripped)
+
+
 # Persona/actor scaling by country count.
 PERSONA_SCALING = {
     1: {"personas": 2, "actors_per_persona": 2},
@@ -70,7 +91,7 @@ async def create_country_jobs(request: dict, request_id: str) -> list[dict]:
             continue
 
         job_id = str(uuid.uuid4())
-        country = quota["country"]
+        country = normalize_country(quota["country"])
 
         feedback_data = {
             "persona_count": scaling["personas"],
