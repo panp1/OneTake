@@ -262,6 +262,7 @@ async def run_stage2(context: dict) -> dict:
         )
 
     import asyncio
+
     from config import IMAGE_CONCURRENCY  # Default: 15 (configurable via env)
 
     # ══════════════════════════════════════════════════════════════
