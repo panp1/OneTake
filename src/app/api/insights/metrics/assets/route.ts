@@ -22,10 +22,31 @@ export async function GET(req: NextRequest) {
         sql`SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE evaluation_passed = TRUE)::int as passed FROM generated_assets WHERE evaluation_score IS NOT NULL`,
       ]);
 
+  // Gallery mode: return actual assets with blob_urls for visual rendering
+  const gallery = req.nextUrl.searchParams.get('gallery') === 'true';
+  let recentAssets: unknown[] = [];
+
+  if (gallery) {
+    recentAssets = recruiterId
+      ? await sql`
+          SELECT id, asset_type, platform, format, blob_url, evaluation_score, evaluation_passed, created_at
+          FROM generated_assets
+          WHERE blob_url IS NOT NULL AND request_id IN (SELECT id FROM intake_requests WHERE created_by = ${recruiterId})
+          ORDER BY created_at DESC LIMIT 24
+        `
+      : await sql`
+          SELECT id, asset_type, platform, format, blob_url, evaluation_score, evaluation_passed, created_at
+          FROM generated_assets
+          WHERE blob_url IS NOT NULL
+          ORDER BY created_at DESC LIMIT 24
+        `;
+  }
+
   return NextResponse.json({
     total: totalRow[0]?.total ?? 0,
     by_type: byType,
     by_platform: byPlatform,
     pass_rate: passRate[0] ?? { total: 0, passed: 0 },
+    gallery: recentAssets,
   });
 }
