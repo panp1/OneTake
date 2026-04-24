@@ -2,11 +2,15 @@
 
 import { useState } from "react";
 import { DollarSign, X } from "lucide-react";
+import CountryQuotaTable from "./CountryQuotaTable";
+import type { CountryQuota } from "@/lib/types";
+import type { LocaleLink } from "./LocaleLinksUpload";
 
 interface StepDetailsProps {
   formData: Record<string, unknown>;
   onChange: (data: Record<string, unknown>) => void;
   confidenceFlags: Record<string, string>;
+  localeLinks?: LocaleLink[];
 }
 
 function set(
@@ -220,7 +224,7 @@ const inputStyle: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-export default function StepDetails({ formData, onChange, confidenceFlags }: StepDetailsProps) {
+export default function StepDetails({ formData, onChange, confidenceFlags, localeLinks }: StepDetailsProps) {
   const s = (key: string, value: unknown) => set(key, value, formData, onChange);
 
   const targetRegions = (formData.target_regions as string[] | undefined) ?? [];
@@ -426,6 +430,25 @@ export default function StepDetails({ formData, onChange, confidenceFlags }: Ste
             />
           </div>
         </div>
+      </div>
+
+      {/* Country Quotas & Demographics */}
+      <div style={{ borderTop: "1px solid #E5E5E5", marginTop: 36, paddingTop: 32 }}>
+        <CountryQuotaTable
+          value={(formData.country_quotas as CountryQuota[] | undefined) ?? []}
+          onChange={(quotas) => {
+            const totalVolume = quotas.reduce((sum, q) => sum + q.total_volume, 0);
+            onChange({
+              ...formData,
+              country_quotas: quotas,
+              volume_needed: totalVolume > 0 ? totalVolume : formData.volume_needed,
+            });
+          }}
+          targetRegions={(formData.target_regions as string[] | undefined) ?? []}
+          localeLinks={localeLinks}
+          defaultRate={(formData.compensation_rate as number | undefined) ?? 0}
+          confidenceFlags={confidenceFlags}
+        />
       </div>
     </div>
   );
