@@ -22,6 +22,7 @@ import subprocess
 import time
 
 import httpx
+
 from config import (
     LLM_MODEL,
     MLX_SERVER_HEALTH_POLL_S,

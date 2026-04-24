@@ -9,8 +9,6 @@ from __future__ import annotations
 import logging
 
 from neon_client import get_actors, update_request_status
-from teams_notify import notify_generation_complete, notify_generation_failed
-
 from pipeline.stage1_intelligence import run_stage1
 from pipeline.stage2_images import run_stage2
 from pipeline.stage3_copy import run_stage3
@@ -18,6 +16,7 @@ from pipeline.stage4_compose_v3 import run_stage4
 from pipeline.stage4_organic_carousel import run_organic_carousels
 from pipeline.stage5_video import run_stage5 as run_video_stage
 from pipeline.stage6_landing_pages import run_stage6
+from teams_notify import notify_generation_complete, notify_generation_failed
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +41,7 @@ async def run_pipeline(job: dict) -> None:
     # Each country job runs the full pipeline independently.
     if job_type == "generate":
         from neon_client import get_intake_request as _get_request
-
-        from pipeline.country_job_creator import has_country_quotas, create_country_jobs
+        from pipeline.country_job_creator import create_country_jobs, has_country_quotas
         request = await _get_request(request_id)
         if has_country_quotas(request):
             logger.info("Multi-country campaign detected — creating per-country jobs")

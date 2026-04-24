@@ -20,6 +20,7 @@ class TestTierDistribution:
     def test_empty_concepts_returns_empty(self):
         """route_interests with no concepts should return empty tiers."""
         import asyncio
+
         from platform_interests.router import route_interests
         try:
             result = asyncio.get_event_loop().run_until_complete(
@@ -139,6 +140,7 @@ class TestPlatformCoverage:
     def test_unknown_platform_returns_empty(self):
         """An unsupported platform should return empty interests, not crash."""
         import asyncio
+
         from platform_interests.router import route_interests
         try:
             result = asyncio.get_event_loop().run_until_complete(

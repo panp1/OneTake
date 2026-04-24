@@ -7,6 +7,7 @@ Run this script to apply the migration to Neon:
 import asyncio
 
 import asyncpg
+
 from config import DATABASE_URL
 
 

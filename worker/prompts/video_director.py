@@ -524,10 +524,11 @@ async def generate_character_grid(
     import io
     import uuid
 
+    from PIL import Image
+
     from ai.deglosser import degloss
     from ai.seedream import generate_image
     from blob_uploader import upload_to_blob
-    from PIL import Image
 
     angle_prompts = build_character_grid_prompts(actor_data)
 

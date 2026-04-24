@@ -33,6 +33,7 @@ async def generate_text(
     to local MLX server if NIM is unavailable.
     """
     import httpx
+
     from config import NVIDIA_NIM_API_KEY, NVIDIA_NIM_BASE_URL, NVIDIA_NIM_REASONING_MODEL
 
     messages = [
@@ -136,6 +137,7 @@ async def generate_copy(
     Marketing skills can be injected via the skill_stage kwarg.
     """
     import httpx
+
     from config import NVIDIA_NIM_API_KEY, NVIDIA_NIM_BASE_URL, NVIDIA_NIM_CREATIVE_MODEL, OPENROUTER_API_KEY
 
     # Inject marketing skills if stage specified

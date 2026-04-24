@@ -32,7 +32,6 @@ from brand import (
     build_brand_voice_block,
     get_cta,
 )
-
 from prompts.ethical_positioning import (
     apply_ethical_framing,
     build_ethical_copy_prompt,

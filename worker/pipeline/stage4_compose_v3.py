@@ -34,6 +34,7 @@ import uuid
 from typing import Any
 
 import httpx
+
 from ai.compositor import PLATFORM_SPECS, render_to_png
 from ai.creative_vqa import evaluate_creative
 from blob_uploader import upload_to_blob
@@ -41,13 +42,12 @@ from config import (
     COMPOSE_CONCURRENCY,
 )
 from neon_client import get_active_artifacts, get_actors, get_assets, save_asset
-from prompts.compositor_prompt import build_compositor_prompt, filter_catalog, inject_vqa_feedback
-from prompts.design_base_knowledge import get_base_knowledge
-from prompts.project_context import build_project_context
-
 from pipeline.archetype_selector import select_archetype
 from pipeline.stage4_contextualizer import generate_task_contextualizer
 from pipeline.stage4_graphic_copy import generate_graphic_copy
+from prompts.compositor_prompt import build_compositor_prompt, filter_catalog, inject_vqa_feedback
+from prompts.design_base_knowledge import get_base_knowledge
+from prompts.project_context import build_project_context
 
 logger = logging.getLogger(__name__)
 

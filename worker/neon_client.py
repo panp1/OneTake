@@ -10,6 +10,7 @@ import logging
 from typing import Any
 
 import asyncpg
+
 from config import DATABASE_URL
 
 logger = logging.getLogger(__name__)

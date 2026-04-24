@@ -2,8 +2,9 @@
 
 import asyncio
 
-import neon_client
 import pytest
+
+import neon_client
 from neon_client import delete_artifact, get_active_artifacts, upsert_artifact
 
 

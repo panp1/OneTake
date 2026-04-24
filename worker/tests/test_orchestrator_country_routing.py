@@ -6,10 +6,9 @@ These tests verify that:
 3. Status rollup only marks campaign as 'review' when ALL country jobs complete
 4. Legacy campaigns (no quotas) still work through the old pipeline
 """
-import pytest
 import json
 
-from pipeline.country_job_creator import has_country_quotas, get_persona_scaling
+from pipeline.country_job_creator import get_persona_scaling, has_country_quotas
 
 
 class TestOrchestratorCountryRouting:
@@ -299,8 +298,8 @@ class TestCountryQuotaDataIntegrity:
 
     def test_all_countries_have_required_fields(self):
         for q in self.CENTAURUS_QUOTAS:
-            assert "country" in q and q["country"]
-            assert "locale" in q and q["locale"]
+            assert q.get("country")
+            assert q.get("locale")
             assert "total_volume" in q and q["total_volume"] > 0
             assert "rate" in q and q["rate"] > 0
             assert "currency" in q

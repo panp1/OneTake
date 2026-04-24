@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 
 import httpx
+
 from config import APP_URL, TEAMS_WEBHOOK_URL
 
 logger = logging.getLogger(__name__)

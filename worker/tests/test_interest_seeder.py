@@ -1,8 +1,7 @@
 """Tests for platform interest seeder — seed data integrity."""
 import json
-import pytest
-from pathlib import Path
-from platform_interests.seeder import load_seed_files, SEED_DIR
+
+from platform_interests.seeder import SEED_DIR, load_seed_files
 
 
 class TestSeedDataIntegrity:

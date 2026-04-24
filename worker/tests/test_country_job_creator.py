@@ -4,8 +4,12 @@ Covers:
 - get_persona_scaling: scaling persona/actor counts by country count
 - has_country_quotas: detecting structured country quotas in form_data
 """
-import pytest
-from pipeline.country_job_creator import get_persona_scaling, has_country_quotas, PERSONA_SCALING, PERSONA_SCALING_DEFAULT
+from pipeline.country_job_creator import (
+    PERSONA_SCALING,
+    PERSONA_SCALING_DEFAULT,
+    get_persona_scaling,
+    has_country_quotas,
+)
 
 
 class TestGetPersonaScaling:
