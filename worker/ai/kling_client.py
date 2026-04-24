@@ -20,7 +20,6 @@ from typing import Any
 
 import httpx
 import jwt
-
 from config import KLING_ACCESS_KEY, KLING_MODEL, KLING_SECRET_KEY
 
 logger = logging.getLogger(__name__)

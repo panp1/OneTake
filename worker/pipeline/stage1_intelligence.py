@@ -20,11 +20,6 @@ import os
 
 from ai.local_llm import generate_text
 from neon_client import get_intake_request, save_actor, save_brief, save_campaign_strategy, update_actor_targeting
-from pipeline.persona_validation import (
-    Stage1PersonaValidationError,
-    validate_personas,
-)
-from pipeline.wp_job_publisher import publish_job_to_wordpress
 from prompts.cultural_research import (
     apply_research_to_personas,
     build_research_summary,
@@ -40,6 +35,12 @@ from prompts.recruitment_brief import (
     build_brief_prompt,
     build_design_direction_prompt,
 )
+
+from pipeline.persona_validation import (
+    Stage1PersonaValidationError,
+    validate_personas,
+)
+from pipeline.wp_job_publisher import publish_job_to_wordpress
 
 logger = logging.getLogger(__name__)
 

@@ -13,7 +13,6 @@ import logging
 from typing import Any
 
 import httpx
-
 from config import WP_APP_PASSWORD, WP_SITE_URL, WP_USERNAME
 
 logger = logging.getLogger(__name__)

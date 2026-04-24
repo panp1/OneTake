@@ -30,7 +30,6 @@ import uuid
 from typing import Any
 
 import httpx
-
 from ai.bg_remover import create_cutout_with_shadow, remove_background
 from ai.compositor import PLATFORM_SPECS, render_overlay_only, render_to_png
 from ai.creative_designer import design_creatives

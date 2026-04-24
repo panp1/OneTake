@@ -12,7 +12,6 @@ import logging
 import os
 
 import httpx
-
 from config import IMAGE_MODEL, OPENROUTER_API_KEY
 
 logger = logging.getLogger(__name__)

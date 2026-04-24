@@ -17,7 +17,6 @@ import tempfile
 from typing import Any
 
 import httpx
-
 from config import ELEVENLABS_API_KEY, ELEVENLABS_DEFAULT_VOICE
 
 logger = logging.getLogger(__name__)

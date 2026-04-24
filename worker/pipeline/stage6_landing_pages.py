@@ -26,11 +26,12 @@ from typing import Any
 from ai.local_llm import generate_copy
 from blob_uploader import upload_to_blob
 from neon_client import _get_pool, get_assets, save_asset
-from pipeline.lp_drift_validator import LANG_CODES, validate_landing_page
-from pipeline.stage3_copy import derive_languages_from_regions
 from prompts.landing_page_copy import LP_COPY_SYSTEM_PROMPT, build_lp_copy_prompt
 from prompts.project_context import build_project_context
 from templates.lp_renderer import render_landing_page, select_template
+
+from pipeline.lp_drift_validator import LANG_CODES, validate_landing_page
+from pipeline.stage3_copy import derive_languages_from_regions
 
 logger = logging.getLogger(__name__)
 

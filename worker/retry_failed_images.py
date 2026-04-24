@@ -31,12 +31,11 @@ async def _retry_one(row, pool):
     import io
 
     import httpx
-    from PIL import Image
-
     from ai.deglosser import degloss
     from ai.flux_edit import edit_image_flux
     from ai.local_vlm import analyze_image
     from blob_uploader import upload_to_blob
+    from PIL import Image
     from pipeline.stage2_images import _parse_json
 
     asset_id = str(row["id"])

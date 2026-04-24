@@ -160,7 +160,6 @@ def test_neon_seed_data():
 def test_openrouter_reachable():
     """OpenRouter API responds (lightweight ping, don't burn tokens)."""
     import httpx
-
     from config import OPENROUTER_API_KEY
     if not OPENROUTER_API_KEY:
         raise AssertionError("OPENROUTER_API_KEY not set -- cannot test connectivity")
@@ -869,9 +868,8 @@ def test_deglosser_3_intensities():
     """Deglosser has light/medium/heavy intensities."""
     import io
 
-    from PIL import Image
-
     from ai.deglosser import degloss
+    from PIL import Image
     # Create a small test image
     img = Image.new("RGB", (100, 100), (180, 150, 140))
     buf = io.BytesIO()
