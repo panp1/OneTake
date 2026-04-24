@@ -423,6 +423,39 @@ async def get_assets(request_id: str, asset_type: str | None = None) -> list[dic
 # Campaign strategies
 # ---------------------------------------------------------------------------
 
+def _sanitize_strategy_budgets(strategy_data: dict) -> dict:
+    """Coerce budget fields from strings to numbers in strategy ad sets.
+
+    LLMs sometimes return '$50' or '50.00' instead of 50.
+    """
+    def to_number(val: Any) -> float | None:
+        if val is None:
+            return None
+        if isinstance(val, (int, float)):
+            return float(val)
+        if isinstance(val, str):
+            cleaned = val.replace("$", "").replace(",", "").strip()
+            try:
+                return float(cleaned)
+            except ValueError:
+                return None
+        return None
+
+    campaigns = strategy_data.get("campaigns", [])
+    for campaign in campaigns:
+        campaign["daily_budget"] = to_number(campaign.get("daily_budget"))
+        campaign["monthly_budget"] = to_number(campaign.get("monthly_budget"))
+        for ad_set in campaign.get("ad_sets", []):
+            ad_set["daily_budget"] = to_number(ad_set.get("daily_budget"))
+            ad_set["kill_threshold"] = to_number(ad_set.get("kill_threshold"))
+
+    # Top-level budgets
+    strategy_data["monthly_budget"] = to_number(strategy_data.get("monthly_budget"))
+    strategy_data["daily_budget_total"] = to_number(strategy_data.get("daily_budget_total"))
+
+    return strategy_data
+
+
 async def save_campaign_strategy(request_id: str, strategy: dict) -> str:
     """Save a campaign strategy to Neon. Returns the strategy ID."""
     import uuid
@@ -441,7 +474,7 @@ async def save_campaign_strategy(request_id: str, strategy: dict) -> str:
             str(strategy.get("tier", 1)),
             strategy.get("monthly_budget"),
             strategy.get("budget_mode", "ratio"),
-            json.dumps(strategy.get("strategy_data", {}), default=str),
+            json.dumps(_sanitize_strategy_budgets(strategy.get("strategy_data", {})), default=str),
             strategy.get("evaluation_score"),
             json.dumps(strategy.get("evaluation_data", {}), default=str) if strategy.get("evaluation_data") else None,
             strategy.get("evaluation_passed"),
