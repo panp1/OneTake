@@ -234,6 +234,31 @@ async def get_brief(request_id: str) -> dict[str, Any] | None:
     return _row_to_dict(row) if row else None
 
 
+def _ensure_list(val: Any) -> list:
+    """Ensure a value is a Python list, not a JSON string of a list.
+
+    Handles: ['a', 'b'], '["a", "b"]', 'a,b', None, and single strings.
+    """
+    if val is None:
+        return []
+    if isinstance(val, list):
+        return val
+    if isinstance(val, str):
+        val = val.strip()
+        if val.startswith("["):
+            try:
+                parsed = json.loads(val)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+        if "," in val:
+            return [v.strip() for v in val.split(",") if v.strip()]
+        if val:
+            return [val]
+    return []
+
+
 async def save_brief(
     request_id: str,
     data: dict[str, Any],
@@ -258,7 +283,7 @@ async def save_brief(
             json.dumps(data.get("design_direction", {}), default=str),
             data.get("evaluation_score", 0.0),
             json.dumps(data.get("evaluation_data", {}), default=str),
-            data.get("content_languages", []),  # TEXT[] — pass list directly, not JSON string
+            _ensure_list(data.get("content_languages", [])),  # TEXT[] — always a proper list
             pillar_primary,
             pillar_secondary,
             json.dumps(derived_requirements, default=str) if derived_requirements is not None else None,
@@ -306,7 +331,7 @@ async def save_actor(request_id: str, data: dict[str, Any]) -> str:
             data.get("prompt_seed", ""),
             json.dumps(data.get("outfit_variations", {}), default=str),
             data.get("signature_accessory", ""),
-            data.get("backdrops", []),
+            _ensure_list(data.get("backdrops", [])),  # TEXT[] — always a proper list
         )
     return row["id"]
 
