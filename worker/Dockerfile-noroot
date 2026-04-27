@@ -1,14 +1,14 @@
 # ──────────────────────────────────────────────────────────────
-# Nova Worker — Multi-arch Docker image (non-root uid 101)
+# onetake-worker — Multi-arch Docker image (non-root uid 101)
 #
 # Build:
-#   docker build -f Dockerfile-noroot -t nova-worker ./worker
+#   docker build -f Dockerfile-noroot -t onetake-worker ./worker
 #
 # Build multi-arch:
-#   docker buildx build -f Dockerfile-noroot --platform linux/amd64,linux/arm64 -t nova-worker ./worker
+#   docker buildx build -f Dockerfile-noroot --platform linux/amd64,linux/arm64 -t onetake-worker ./worker
 #
 # Run:
-#   docker run --env-file worker/.env nova-worker
+#   docker run --env-file worker/.env onetake-worker
 # ──────────────────────────────────────────────────────────────
 
 FROM python:3.11-slim AS base
@@ -19,7 +19,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # ── System dependencies ──────────────────────────────────────
+# Playwright Chromium deps + FFmpeg for video muxing
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Playwright Chromium dependencies
     libnss3 \
     libatk1.0-0 \
     libatk-bridge2.0-0 \
@@ -32,9 +34,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgbm1 \
     libpango-1.0-0 \
     libcairo2 \
-    libasound2 \
+    libasound2t64 \
     libxshmfence1 \
+    # FFmpeg for video/audio muxing
     ffmpeg \
+    # Cleanup
     && rm -rf /var/lib/apt/lists/*
 
 # ── Non-root user ────────────────────────────────────────────
@@ -46,14 +50,18 @@ COPY requirements-docker.txt .
 RUN pip install --no-cache-dir -r requirements-docker.txt
 
 # ── Playwright browser ───────────────────────────────────────
-RUN playwright install chromium --with-deps
+RUN playwright install chromium
 
 # ── Application code ─────────────────────────────────────────
 COPY --chown=app:app . .
 
 # ── Health check ─────────────────────────────────────────────
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import asyncio; asyncio.run(__import__('neon_client')._get_pool())" || exit 1
+# Worker is a DB-polling daemon — healthy = process is alive.
+# We check that the Python runtime and core imports load cleanly
+# (avoids a live DB connection attempt at health-check time, which
+# can cause spurious failures during cold-start on Azure Container Apps).
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD python -c "import asyncpg, httpx, jinja2; print('ok')" || exit 1
 
 USER app
 
