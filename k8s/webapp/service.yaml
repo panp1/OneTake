@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: onetake-web
+  namespace: onetake
+  labels:
+    app: onetake-web
+spec:
+  type: ClusterIP
+  selector:
+    app: onetake-web
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 3000

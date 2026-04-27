@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: onetake-worker
+  namespace: onetake
+  labels:
+    app: onetake-worker
+spec:
+  replicas: 1              # single worker — Neon job queue handles concurrency
+  selector:
+    matchLabels:
+      app: onetake-worker
+  strategy:
+    type: Recreate          # avoid two workers competing on the same jobs
+  template:
+    metadata:
+      labels:
+        app: onetake-worker
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+      containers:
+        - name: worker
+          image: your-registry/onetake-worker:latest   # ← change to your image
+          imagePullPolicy: Always
+          env:
+            # Non-sensitive config
+            - name: POLL_INTERVAL_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: onetake-config
+                  key: POLL_INTERVAL_SECONDS
+            - name: IMAGE_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: onetake-config
+                  key: IMAGE_MODEL
+            - name: APP_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: onetake-config
+                  key: APP_URL
+            # Secrets
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: onetake-secrets
+                  key: DATABASE_URL
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: onetake-secrets
+                  key: OPENROUTER_API_KEY
+            - name: BLOB_READ_WRITE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: onetake-secrets
+                  key: BLOB_READ_WRITE_TOKEN
+            - name: TEAMS_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: onetake-secrets
+                  key: TEAMS_WEBHOOK_URL
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import os; import sys; sys.exit(0)"
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            failureThreshold: 3
+      restartPolicy: Always

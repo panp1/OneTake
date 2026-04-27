@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: onetake-web
+  namespace: onetake
+  labels:
+    app: onetake-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: onetake-web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0          # zero-downtime rollout
+  template:
+    metadata:
+      labels:
+        app: onetake-web
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+      containers:
+        - name: web
+          image: your-registry/onetake-web:latest   # ← change to your image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            # Non-sensitive config
+            - name: NEXT_PUBLIC_CLERK_SIGN_IN_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: onetake-config
+                  key: NEXT_PUBLIC_CLERK_SIGN_IN_URL
+            - name: NEXT_PUBLIC_CLERK_SIGN_UP_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: onetake-config
+                  key: NEXT_PUBLIC_CLERK_SIGN_UP_URL
+            - name: NEXT_PUBLIC_APP_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: onetake-config
+                  key: NEXT_PUBLIC_APP_URL
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: onetake-config
+                  key: NODE_ENV
+            # Secrets
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: onetake-secrets
+                  key: DATABASE_URL
+            - name: CLERK_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: onetake-secrets
+                  key: CLERK_SECRET_KEY
+            - name: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: onetake-secrets
+                  key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: onetake-secrets
+                  key: OPENROUTER_API_KEY
+            - name: BLOB_READ_WRITE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: onetake-secrets
+                  key: BLOB_READ_WRITE_TOKEN
+            - name: TEAMS_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: onetake-secrets
+                  key: TEAMS_WEBHOOK_URL
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+      restartPolicy: Always

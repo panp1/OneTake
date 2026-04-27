@@ -1,0 +1,30 @@
+# Requires nginx-ingress-controller + cert-manager installed in cluster
+# Install cert-manager: https://cert-manager.io/docs/installation/
+# Install nginx ingress: https://kubernetes.github.io/ingress-nginx/deploy/
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: onetake-web
+  namespace: onetake
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"          # allow ZIP uploads
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"       # AI gen can be slow
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"          # TLS via Let's Encrypt
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - onetake.yourdomain.com    # ← change to your domain
+      secretName: onetake-tls
+  rules:
+    - host: onetake.yourdomain.com  # ← change to your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: onetake-web
+                port:
+                  number: 80

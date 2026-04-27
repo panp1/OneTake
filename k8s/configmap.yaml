@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: onetake-config
+  namespace: onetake
+data:
+  # Web App
+  NEXT_PUBLIC_CLERK_SIGN_IN_URL: "/sign-in"
+  NEXT_PUBLIC_CLERK_SIGN_UP_URL: "/sign-up"
+  NEXT_PUBLIC_APP_URL: "https://onetake.yourdomain.com"   # ← change to your domain
+  NODE_ENV: "production"
+
+  # Worker
+  POLL_INTERVAL_SECONDS: "30"
+  IMAGE_MODEL: "doubao/seedream-4-5"
+  APP_URL: "https://onetake.yourdomain.com"               # ← same as above
