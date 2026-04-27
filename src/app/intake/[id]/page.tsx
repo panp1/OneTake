@@ -52,6 +52,7 @@ import type {
   GeneratedAsset,
   ComputeJob,
   UserRole,
+  CountryQuota,
 } from "@/lib/types";
 
 interface CampaignStrategy {
@@ -97,6 +98,7 @@ export default function IntakeDetailPage({
   const [changesNote, setChangesNote] = useState("");
   const [showChangesModal, setShowChangesModal] = useState(false);
   const [computeJob, setComputeJob] = useState<ComputeJob | null>(null);
+  const [allComputeJobs, setAllComputeJobs] = useState<ComputeJob[]>([]);
   const [activeAssetTab, setActiveAssetTab] = useState<'characters' | 'elements' | 'composed' | 'mockups'>('characters');
   const [selectedAssets, setSelectedAssets] = useState<Set<string>>(new Set());
   const [refineAsset, setRefineAsset] = useState<GeneratedAsset | null>(null);
@@ -212,8 +214,9 @@ export default function IntakeDetailPage({
       try {
         const res = await fetch(`/api/compute/status/${id}`);
         if (res.ok) {
-          const { latest } = await res.json();
+          const { latest, jobs: allJobs } = await res.json();
           setComputeJob(latest ?? null);
+          if (allJobs) setAllComputeJobs(allJobs);
           if (latest?.status === "complete") {
             clearInterval(interval);
             loadData();
@@ -327,6 +330,8 @@ export default function IntakeDetailPage({
   }
 
   const { request, brief, actors, assets, pipelineRuns } = data;
+
+  const countryQuotas = (request?.form_data?.country_quotas as CountryQuota[] | undefined) ?? [];
 
   // Recruiter sees a simplified read-only view
   if (role === "recruiter") {
@@ -615,6 +620,8 @@ export default function IntakeDetailPage({
                     onRetry={(asset) => handleRetry(asset)}
                     onDelete={handleDeleteAsset}
                     section="brief"
+                    computeJobs={allComputeJobs.length > 0 ? allComputeJobs : computeJob ? [computeJob] : []}
+                    countryQuotas={countryQuotas}
                   />
                 </section>
               </LiveSection>
@@ -642,6 +649,8 @@ export default function IntakeDetailPage({
                   onRetry={(asset) => handleRetry(asset)}
                   onDelete={handleDeleteAsset}
                   section="personas"
+                  computeJobs={allComputeJobs.length > 0 ? allComputeJobs : computeJob ? [computeJob] : []}
+                  countryQuotas={countryQuotas}
                 />
               </LiveSection>
             )}

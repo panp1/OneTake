@@ -157,11 +157,15 @@ async def run_stage1(context: dict) -> dict:
     # full validation retry loop, we read persona_constraints from a
     # pre-brief extraction pass or fall back to empty constraints.
     # ==================================================================
+    persona_count = context.get("persona_count", 2)
+    country = context.get("country")
+
     logger.info("Step 2: Generating personas (LLM-powered, dynamic)...")
     personas = await _generate_personas_dynamic(
         request=request,
         cultural_research=cultural_research,
         persona_constraints={},  # Task 21 will populate from a pre-brief derivation
+        persona_count=persona_count,
     )
 
     if cultural_research and personas:
@@ -194,6 +198,7 @@ async def run_stage1(context: dict) -> dict:
                 "outfit_variations": {},
                 "signature_accessory": "",
                 "backdrops": [],
+                "country": country,
             })
             persona["actor_id"] = actor_id
             if targeting:
@@ -314,6 +319,35 @@ async def run_stage1(context: dict) -> dict:
 
         # Save to Neon
         if best_strategy:
+            # Post-process: replace LLM-hallucinated interests with real platform interests
+            try:
+                from platform_interests.router import route_interests
+                strategy_data = best_strategy.get("strategy_data", best_strategy)
+                campaigns = strategy_data.get("campaigns", [])
+                for campaign in campaigns:
+                    for ad_set in campaign.get("ad_sets", []):
+                        platform = ad_set.get("placements", ["meta"])[0] if ad_set.get("placements") else "meta"
+                        # Normalize platform name
+                        platform_family = "meta"
+                        p_lower = platform.lower()
+                        if "tiktok" in p_lower: platform_family = "tiktok"
+                        elif "linkedin" in p_lower: platform_family = "linkedin"
+                        elif "snap" in p_lower: platform_family = "snapchat"
+                        elif "reddit" in p_lower: platform_family = "reddit"
+                        elif "wechat" in p_lower: platform_family = "wechat"
+
+                        concepts = ad_set.get("interests", [])
+                        if concepts:
+                            real_interests = await route_interests(platform_family, concepts)
+                            ad_set["interests_by_tier"] = real_interests
+                            ad_set["interests_original"] = concepts
+                        else:
+                            ad_set["interests_by_tier"] = {"hyper": [], "hot": [], "broad": []}
+
+                logger.info("Interest routing complete for %s strategy", region)
+            except Exception as exc:
+                logger.warning("Interest routing failed (non-fatal): %s — keeping LLM interests", exc)
+
             await save_campaign_strategy(request_id, {
                 "country": region,
                 "tier": best_strategy.get("tier", 1),
@@ -506,6 +540,7 @@ async def run_stage1(context: dict) -> dict:
                     persona_constraints=persona_constraints,
                     brief_messaging=brief_data.get("messaging_strategy") or {},
                     previous_violations=previous_violations,
+                    persona_count=persona_count,
                 )
 
                 # Re-apply cultural research enrichment on the fresh personas
@@ -605,6 +640,7 @@ async def _generate_personas_dynamic(
     persona_constraints: dict,
     brief_messaging: dict | None = None,
     previous_violations: list[str] | None = None,
+    persona_count: int = 2,
 ) -> list[dict]:
     """Run the dynamic persona generation LLM call.
 
@@ -647,7 +683,7 @@ async def _generate_personas_dynamic(
             p["persona_name"] = p.get("name") or p.get("archetype", "Contributor")
 
     logger.info("Dynamic persona LLM returned %d personas", len(personas))
-    return personas[:3]
+    return personas[:persona_count]
 
 
 def _build_persona_brief_context(personas: list[dict]) -> str:

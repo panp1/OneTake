@@ -87,7 +87,7 @@ async def claim_next_job(worker_id: str) -> dict[str, Any] | None:
                 LIMIT 1
                 FOR UPDATE SKIP LOCKED
             )
-            RETURNING id, request_id, job_type, stage_target, feedback, created_at
+            RETURNING id, request_id, job_type, country, stage_target, feedback, feedback_data, created_at
             """,
             worker_id,
         )
@@ -234,6 +234,31 @@ async def get_brief(request_id: str) -> dict[str, Any] | None:
     return _row_to_dict(row) if row else None
 
 
+def _ensure_list(val: Any) -> list:
+    """Ensure a value is a Python list, not a JSON string of a list.
+
+    Handles: ['a', 'b'], '["a", "b"]', 'a,b', None, and single strings.
+    """
+    if val is None:
+        return []
+    if isinstance(val, list):
+        return val
+    if isinstance(val, str):
+        val = val.strip()
+        if val.startswith("["):
+            try:
+                parsed = json.loads(val)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+        if "," in val:
+            return [v.strip() for v in val.split(",") if v.strip()]
+        if val:
+            return [val]
+    return []
+
+
 async def save_brief(
     request_id: str,
     data: dict[str, Any],
@@ -258,7 +283,7 @@ async def save_brief(
             json.dumps(data.get("design_direction", {}), default=str),
             data.get("evaluation_score", 0.0),
             json.dumps(data.get("evaluation_data", {}), default=str),
-            data.get("content_languages", []),  # TEXT[] — pass list directly, not JSON string
+            _ensure_list(data.get("content_languages", [])),  # TEXT[] — always a proper list
             pillar_primary,
             pillar_secondary,
             json.dumps(derived_requirements, default=str) if derived_requirements is not None else None,
@@ -306,7 +331,7 @@ async def save_actor(request_id: str, data: dict[str, Any]) -> str:
             data.get("prompt_seed", ""),
             json.dumps(data.get("outfit_variations", {}), default=str),
             data.get("signature_accessory", ""),
-            data.get("backdrops", []),
+            _ensure_list(data.get("backdrops", [])),  # TEXT[] — always a proper list
         )
     return row["id"]
 
@@ -364,8 +389,8 @@ async def save_asset(request_id: str, data: dict[str, Any]) -> str:
             INSERT INTO generated_assets
                 (request_id, actor_id, asset_type, platform, format,
                  language, blob_url, content, evaluation_score,
-                 evaluation_data, evaluation_passed, stage)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                 evaluation_data, evaluation_passed, stage, country)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING id
             """,
             request_id,
@@ -380,6 +405,7 @@ async def save_asset(request_id: str, data: dict[str, Any]) -> str:
             json.dumps(metadata.get("vqa_dimensions", {}), default=str),
             metadata.get("vqa_score", 0) >= 0.75 if metadata.get("vqa_score") else None,
             data.get("stage", 2),
+            data.get("country"),
         )
     return str(row["id"])
 
@@ -422,6 +448,39 @@ async def get_assets(request_id: str, asset_type: str | None = None) -> list[dic
 # Campaign strategies
 # ---------------------------------------------------------------------------
 
+def _sanitize_strategy_budgets(strategy_data: dict) -> dict:
+    """Coerce budget fields from strings to numbers in strategy ad sets.
+
+    LLMs sometimes return '$50' or '50.00' instead of 50.
+    """
+    def to_number(val: Any) -> float | None:
+        if val is None:
+            return None
+        if isinstance(val, (int, float)):
+            return float(val)
+        if isinstance(val, str):
+            cleaned = val.replace("$", "").replace(",", "").strip()
+            try:
+                return float(cleaned)
+            except ValueError:
+                return None
+        return None
+
+    campaigns = strategy_data.get("campaigns", [])
+    for campaign in campaigns:
+        campaign["daily_budget"] = to_number(campaign.get("daily_budget"))
+        campaign["monthly_budget"] = to_number(campaign.get("monthly_budget"))
+        for ad_set in campaign.get("ad_sets", []):
+            ad_set["daily_budget"] = to_number(ad_set.get("daily_budget"))
+            ad_set["kill_threshold"] = to_number(ad_set.get("kill_threshold"))
+
+    # Top-level budgets
+    strategy_data["monthly_budget"] = to_number(strategy_data.get("monthly_budget"))
+    strategy_data["daily_budget_total"] = to_number(strategy_data.get("daily_budget_total"))
+
+    return strategy_data
+
+
 async def save_campaign_strategy(request_id: str, strategy: dict) -> str:
     """Save a campaign strategy to Neon. Returns the strategy ID."""
     import uuid
@@ -440,7 +499,7 @@ async def save_campaign_strategy(request_id: str, strategy: dict) -> str:
             str(strategy.get("tier", 1)),
             strategy.get("monthly_budget"),
             strategy.get("budget_mode", "ratio"),
-            json.dumps(strategy.get("strategy_data", {}), default=str),
+            json.dumps(_sanitize_strategy_budgets(strategy.get("strategy_data", {})), default=str),
             strategy.get("evaluation_score"),
             json.dumps(strategy.get("evaluation_data", {}), default=str) if strategy.get("evaluation_data") else None,
             strategy.get("evaluation_passed"),
@@ -569,3 +628,26 @@ async def upsert_campaign_landing_page(
     async with pool.acquire() as conn:
         await conn.execute(query, request_id, value)
     logger.info("Upserted campaign_landing_pages.%s for %s", field, request_id[:8])
+
+
+async def check_all_country_jobs_complete(request_id: str) -> bool:
+    """Check if all generate_country jobs for a request are complete.
+
+    Returns True if every generate_country job has status='complete'.
+    Returns False if any are still pending/processing, or if there are no country jobs.
+    """
+    pool = await _get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE status = 'complete') AS done
+            FROM compute_jobs
+            WHERE request_id = $1::uuid AND job_type = 'generate_country'
+            """,
+            request_id,
+        )
+    if row is None or row["total"] == 0:
+        return False
+    return row["done"] == row["total"]

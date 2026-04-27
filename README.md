@@ -1,8 +1,8 @@
-# Nova
+# OneTake
 
 AI-powered recruitment marketing platform. Intake form → AI generation pipeline → creative review → designer handoff → recruiter distribution → agency export.
 
-**~80K LOC** | Next.js 16 + Python worker | Neon Postgres | Clerk Auth | Vercel
+**~80K LOC** | **614 tests** | **1,054 interest graph nodes** | **30 widgets** | **41 API endpoints** | **~130 source files** | **40+ DB tables** | Next.js 16 + Python worker | Neon Postgres | Clerk Auth | Vercel
 
 ---
 
@@ -16,6 +16,7 @@ AI-powered recruitment marketing platform. Intake form → AI generation pipelin
 - [API Reference / API 参考](#api-reference--api-参考)
 - [Database Schema / 数据库结构](#database-schema--数据库结构)
 - [Pipeline Stages / 生成管线](#pipeline-stages--生成管线)
+- [AudienceIQ — Audience Intelligence](#audienceiq--audience-intelligence)
 - [Roles & Permissions / 角色与权限](#roles--permissions--角色与权限)
 - [Deployment / 部署指南](#deployment--部署指南)
 - [Development Guide / 开发指南](#development-guide--开发指南)
@@ -27,7 +28,7 @@ AI-powered recruitment marketing platform. Intake form → AI generation pipelin
 
 ## Overview / 概述
 
-Nova automates the creation of recruitment marketing campaigns. A recruiter submits a campaign request through a structured intake form. An AI pipeline generates cultural research, personas, actor images, ad copy, composed creatives, and optional video assets. A marketing manager reviews and approves the package, a designer refines finals, and the approved creatives are distributed to recruiters and ad agencies.
+OneTake automates the creation of recruitment marketing campaigns. A recruiter submits a campaign request through a structured intake form. An AI pipeline generates cultural research, personas, actor images, ad copy, composed creatives, and optional video assets. A marketing manager reviews and approves the package, a designer refines finals, and the approved creatives are distributed to recruiters and ad agencies.
 
 The system has two main subsystems:
 
@@ -94,6 +95,21 @@ stateDiagram-v2
     generating --> draft: Pipeline failed
 ```
 
+### Recent Additions (April 23, 2026)
+
+**Unified Campaign Workspace** — Multi-country campaigns managed from a single view. Country bar navigation with per-country status badges. "All Countries" overview grid. Per-country filtering across all sections (brief, personas, creatives, media strategy, channel mix, videos, cultural research). Replaces the old campaign splitter with per-country compute_jobs on a single intake_request. Persona scaling: 2/2 for 1-2 countries, 1/1 for 3+.
+
+**GraphRAG Platform Interest Routing** — Knowledge graph of 1,054 real advertising interests across 6 platforms (Meta, LinkedIn, TikTok, Reddit, Snapchat, WeChat). Cross-platform intelligence via `equivalent_on` edges (278 mappings). Interest router maps LLM-generated concepts to validated platform interests structured as `{hyper, hot, broad}`. Replaces hallucinated interests.
+
+**AudienceIQ Intelligence Layer** — Four-ring audience drift detection measuring the gap between declared targeting, paid audiences, organic reach, and converted contributors.
+- Phase 1: CRM integration + identity stitching + 5 widgets
+- Phase 2: Four-ring drift engine + 100-point health scorer + 2 widgets
+- Phase 3: GA4 + GSC integration + 2 widgets
+
+**Command Center Schema** — 8 new tables for campaign analytics: normalized_daily_metrics, attribution_journeys, attribution_touchpoints, revbrain_snapshots, campaign_dashboards, campaign_exports, campaign_share_links, roas_config.
+
+**Azure Migration Ready** — Dockerfile for Azure Container Apps, Azure Blob storage adapter (drop-in for Vercel Blob), environment variable manifest for Michael's team.
+
 ---
 
 ## Architecture / 系统架构
@@ -122,7 +138,7 @@ stateDiagram-v2
                     │  intake_requests  │  compute_jobs (queue) │
                     │  creative_briefs  │  generated_assets     │
                     │  actor_profiles   │  tracked_links        │
-                    │  + 12 more tables │  design_artifacts     │
+                    │  + 34 more tables │  design_artifacts     │
                     └─────────────────────┬─────────────────────┘
                                           │
                ┌──────────────────────────▼──────────────────────────┐
@@ -172,7 +188,6 @@ stateDiagram-v2
 | **Icons** | Lucide React | Consistent icon system |
 | **Auth** | Clerk | SSO, role management, middleware protection |
 | **Database** | Neon Postgres (serverless) | Primary data store + job queue |
-| **Storage** | Vercel Blob | Image, HTML, and file storage |
 | **Hosting** | Vercel | Production deployment |
 | **Notifications** | Microsoft Teams webhooks | Adaptive card notifications |
 | **Worker** | Python 3.11+ | AI pipeline orchestration |
@@ -183,6 +198,9 @@ stateDiagram-v2
 | **Rendering** | Playwright (headless Chromium) | HTML → PNG creative composition |
 | **Rich Text** | TipTap | Inline content editing |
 | **Figma** | figma-api | Push creatives to Figma |
+| **Interest Graph** | PostgreSQL-native GraphRAG (interest_nodes + interest_edges) | Platform interest validation |
+| **Audience Intelligence** | AudienceIQ (CRM + GA4 + drift detection) | Four-ring audience drift analysis |
+| **Blob Storage** | Vercel Blob (default) / Azure Blob Storage (via BLOB_PROVIDER env) | Image, HTML, and file storage |
 | **Testing** | Vitest | Unit and integration tests |
 | **Package** | pnpm | Node dependency management |
 
@@ -259,7 +277,7 @@ Edit both files with your credentials. Both **must** share the same `DATABASE_UR
 node scripts/init-db.mjs
 ```
 
-This creates all 18 tables and indexes. Safe to re-run (uses `IF NOT EXISTS`).
+This creates all 40+ tables and indexes. Safe to re-run (uses `IF NOT EXISTS`).
 
 ### 4. Run the application / 启动应用
 
@@ -543,41 +561,71 @@ Approval types: `marketing` (admin only), `designer` (admin/designer), `final` (
 
 ## Database Schema / 数据库结构
 
-18 tables. All use UUID primary keys with `gen_random_uuid()`. Foreign keys cascade on delete. Schema initialized via `scripts/init-db.mjs`.
+40+ tables. All use UUID primary keys with `gen_random_uuid()`. Foreign keys cascade on delete. Schema initialized via `scripts/init-db.mjs`.
 
 ### Core Tables / 核心表
 
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
-| `intake_requests` | Campaign requests | `title`, `task_type`, `urgency`, `status` (draft→generating→review→approved→sent), `form_data` (JSONB), `created_by`, `campaign_slug` |
-| `creative_briefs` | Stage 1 output | `brief_data` (JSONB — personas, strategy, research), `channel_research` (JSONB), `design_direction` (JSONB), `evaluation_score`, `pillar_primary` |
-| `actor_profiles` | Stage 2 personas | `name`, `face_lock` (JSONB — facial parameters), `prompt_seed`, `outfit_variations` (JSONB), `backdrops[]` |
-| `generated_assets` | All creatives | `asset_type` (base_image/composed_creative/carousel_panel), `platform`, `format`, `blob_url`, `evaluation_score`, `evaluation_passed`, `stage`, `content` (JSONB), `copy_data` (JSONB) |
-| `campaign_strategies` | Media strategies | `country`, `tier`, `monthly_budget`, `strategy_data` (JSONB — campaigns, ad_sets, channel_allocation) |
-
-### Workflow Tables / 流程表
-
-| Table | Purpose | Key Columns |
-|-------|---------|-------------|
-| `compute_jobs` | Job queue (worker polls this) | `job_type` (generate/regenerate/regenerate_stage/regenerate_asset), `status` (pending→processing→complete/failed), `stage_target`, `feedback` |
+| `intake_requests` | Campaign intake data | `title`, `task_type`, `urgency`, `status` (draft→generating→review→approved→sent), `form_data` (JSONB), `created_by`, `campaign_slug` |
+| `task_type_schemas` | Dynamic form field definitions | `task_type`, `schema` (JSONB — field definitions), `version`, `is_active` |
+| `option_registry` | Dropdown option values | `registry_name`, `option_value`, `option_label`, `metadata` (JSONB) |
+| `creative_briefs` | AI-generated briefs per campaign | `brief_data` (JSONB — personas, strategy, research), `channel_research` (JSONB), `design_direction` (JSONB), `evaluation_score`, `pillar_primary` |
+| `actor_profiles` | Persona actors with face locks + country | `name`, `face_lock` (JSONB — facial parameters), `prompt_seed`, `outfit_variations` (JSONB), `backdrops[]`, `country` |
+| `generated_assets` | All generated content (images, copy, video) + country | `asset_type` (base_image/composed_creative/carousel_panel), `platform`, `format`, `blob_url`, `evaluation_score`, `evaluation_passed`, `stage`, `content` (JSONB), `copy_data` (JSONB), `country` |
+| `approvals` | Approval decisions | `approved_by`, `status` (approved/changes_requested/rejected), `notes` |
+| `campaign_landing_pages` | Per-country landing page URLs | `request_id` (unique), `job_posting_url`, `landing_page_url`, `ada_form_url`, `country` |
+| `tracked_links` | UTM-tracked short links with click counts + country | `slug` (6-char), `destination_url`, `utm_*` fields, `click_count`, `country` |
+| `designer_uploads` | Designer-uploaded replacement assets | `request_id` (FK), `original_asset_id`, `blob_url` |
+| `magic_links` | Token-based auth for designer/agency portals | `token` (UUID), `expires_at`, `used_at` (single-use tracking) |
+| `compute_jobs` | Job queue with country + generate_country type | `job_type` (generate/regenerate/regenerate_stage/regenerate_asset/generate_country), `status` (pending→processing→complete/failed), `stage_target`, `feedback`, `country` |
+| `campaign_strategies` | Per-country media plans | `country`, `tier`, `monthly_budget`, `strategy_data` (JSONB — campaigns, ad_sets, channel_allocation) |
 | `pipeline_runs` | Stage execution log | `stage`, `stage_name`, `status` (running/passed/failed), `duration_ms`, `error_message` |
-| `approvals` | Approval records | `approved_by`, `status` (approved/changes_requested/rejected), `notes` |
-| `magic_links` | Time-limited designer access | `token` (UUID), `expires_at`, `used_at` (single-use tracking) |
-| `notifications` | Delivery tracking | `channel` (teams/slack/outlook), `recipient`, `status`, `payload` (JSONB) |
+| `notification_deliveries` | Outbound notification log | `channel` (teams/slack/outlook), `recipient`, `status`, `payload` (JSONB) |
+| `notifications` | User-facing event feed | `channel`, `recipient`, `status`, `payload` (JSONB) |
+| `user_roles` | RBAC role assignments | `clerk_id`, `email`, `role` (admin/recruiter/designer/viewer), `is_active` |
 
-### Supporting Tables / 辅助表
+### AudienceIQ Tables
 
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
-| `task_type_schemas` | Dynamic form definitions | `task_type`, `schema` (JSONB — field definitions), `version`, `is_active` |
-| `schema_versions` | Schema version history | `schema_id` (FK), `version`, `schema` (JSONB), `change_summary` |
-| `option_registries` | Dropdown/select options | `registry_name`, `option_value`, `option_label`, `metadata` (JSONB) |
-| `user_roles` | RBAC | `clerk_id`, `email`, `role` (admin/recruiter/designer/viewer), `is_active` |
-| `attachments` | Uploaded files | `request_id` (FK), `blob_url`, `extracted_text`, `is_rfp` |
-| `designer_uploads` | Designer final files | `request_id` (FK), `original_asset_id`, `blob_url` |
-| `tracked_links` | UTM short links | `slug` (6-char), `destination_url`, `utm_*` fields, `click_count` |
-| `design_artifacts` | Reusable design elements | `artifact_id`, `category`, `blob_url`, `usage_snippet`, `pillar_affinity[]` |
-| `campaign_landing_pages` | Landing page URLs | `request_id` (unique), `job_posting_url`, `landing_page_url`, `ada_form_url` |
+| `crm_sync_cache` | Cached CRM contributor data | `request_id` (FK), `contributor_id`, `synced_at`, `profile_data` (JSONB) |
+| `visitor_identities` | Cross-device identity stitching (UTM → CRM) | `visitor_id`, `utm_source`, `utm_medium`, `utm_campaign`, `crm_id`, `matched_at` |
+| `audience_profiles` | One per campaign per ring (declared/paid/organic/converted) | `request_id` (FK), `ring`, `source` (crm/ga4/gsc), `identity_hash`, `profile_data` (JSONB) |
+| `audience_drift_snapshots` | Point-in-time drift calculations | `request_id` (FK), `ring_declared`, `ring_paid`, `ring_organic`, `ring_converted`, `drift_score` |
+| `audience_health_scores` | Per-campaign health score + issue list | `request_id` (FK), `score`, `breakdown` (JSONB), `recommendations` (JSONB) |
+| `ga4_session_cache` | Cached GA4 session data | `request_id` (FK), `session_id`, `source`, `medium`, `device`, `cached_at` |
+
+### HIE Tables (Phase 4)
+
+| Table | Purpose | Key Columns |
+|-------|---------|-------------|
+| `hie_sessions` | Behavioral tracking sessions | `visitor_id`, `utm_source`, `utm_medium`, `utm_campaign`, `page_url`, `started_at` |
+| `hie_interaction_events` | Click, form, CTA events | `session_id` (FK), `event_type`, `element_selector`, `timestamp`, `metadata` (JSONB) |
+| `hie_scroll_events` | Scroll depth tracking | `session_id` (FK), `depth_percent`, `page_url`, `timestamp` |
+| `hie_page_snapshots` | Page state snapshots | `session_id` (FK), `snapshot_html`, `trigger_event`, `timestamp` |
+
+### Interest Graph Tables (GraphRAG)
+
+| Table | Purpose | Key Columns |
+|-------|---------|-------------|
+| `interest_nodes` | 1,054 real platform interests across 6 platforms (Meta, LinkedIn, TikTok, Reddit, Snapchat, WeChat) | `platform`, `interest_name`, `category`, `audience_size_tier`, `metadata` (JSONB) |
+| `interest_edges` | Cross-platform equivalences (278), hierarchy (740), semantic relationships | `source_node_id`, `target_node_id`, `edge_type` (equivalent_on/parent_of/related_to), `confidence` |
+
+### Command Center Tables (SRC Port)
+
+| Table | Purpose | Key Columns |
+|-------|---------|-------------|
+| `normalized_daily_metrics` | Daily metrics by platform/channel/country | `request_id` (FK), `platform`, `date`, `impressions`, `clicks`, `spend`, `conversions`, `country` |
+| `attribution_journeys` | User conversion paths | `request_id` (FK), `journey_id`, `conversion_value`, `model_type` |
+| `attribution_touchpoints` | Individual journey touchpoints | `journey_id` (FK), `channel`, `timestamp`, `weight` |
+| `revbrain_snapshots` | Materialized budget recommendations | `request_id` (FK), `snapshot_data` (JSONB), `period_start`, `period_end` |
+| `campaign_dashboards` | User-created reporting surfaces | `request_id` (FK), `layout` (JSONB), `widgets` (JSONB) |
+| `campaign_exports` | Async report generation (PDF, XLSX, CSV, PPTX) | `request_id` (FK), `format`, `schedule`, `last_exported_at` |
+| `campaign_share_links` | Public sharing with optional passwords | `request_id` (FK), `token`, `expires_at`, `permissions` (JSONB) |
+| `roas_config` | Per-campaign ROAS parameters (RPP, Net RPP, breakeven CPA, fulfillment rate) | `request_id` (FK), `target_roas`, `alert_threshold`, `lookback_days` |
+
+**Total: 40+ tables**
 
 ### Key Indexes / 关键索引
 
@@ -785,6 +833,96 @@ flowchart LR
 
 ---
 
+## AudienceIQ — Audience Intelligence
+
+AudienceIQ is a recruitment-adapted audience intelligence system that closes the attribution loop. It measures **cost-per-quality-contributor** (not just cost-per-click) by connecting UTM tracking, CRM data, GA4 analytics, and behavioral signals into a four-ring drift detection engine.
+
+### Four-Ring Drift Detection
+
+| Ring | Name | Source | Status |
+|------|------|--------|--------|
+| 1 | Declared ICP | Intake persona data + targeting config | Active |
+| 2 | Paid Audience | Ad platform targeting (Google Ads, Meta, LinkedIn APIs) | Phase 5 (planned) |
+| 3 | Observed Audience | GA4 sessions + HIE behavioral tracking | Active (GA4) / Phase 4 (HIE) |
+| 4 | Converted Audience | CRM contributor profiles + quality scores | Active |
+
+### Drift Calculation
+
+Measures the gap between who you target and who actually converts:
+
+```
+Overall Drift = (
+  declared_vs_paid     × 0.25
+  declared_vs_organic  × 0.20
+  paid_vs_converted    × 0.30  (highest weight — spend waste indicator)
+  organic_vs_converted × 0.25
+)
+
+Severity: low (≤15%), moderate (15-25%), high (>25%)
+```
+
+### Recruitment Health Scoring (100-point system)
+
+Starts at 100, deducts for issues:
+
+| Issue | Max Deduction |
+|-------|---------------|
+| Quality drift | -30 |
+| Retention drift | -25 |
+| Skill mismatch | -25 |
+| Geo mismatch | -20 |
+| CPA burnout | -20 |
+| Form friction | -20 |
+| Landing page mismatch | -20 |
+| Demographic mismatch | -15 |
+| CTR decay | -15 |
+| Scroll cliff | -15 |
+| CTA weakness | -15 |
+
+### AudienceIQ Widgets (9 deployed)
+
+| Widget | Description |
+|--------|-------------|
+| ContributorFunnelWidget | Clicks → signups → active → quality contributor funnel |
+| QualityByChannelWidget | Average quality score per utm_source |
+| RetentionCurveWidget | Contributor retention over 30/60/90 days |
+| SkillDistributionWidget | Declared vs actual skills comparison |
+| TargetingVsRealityWidget | Targeting config vs CRM reality side-by-side |
+| DriftRadarWidget | Four-ring visualization with severity colors |
+| AudienceHealthWidget | Circular gauge (0-100) + issue list |
+| Ga4TrafficWidget | Sessions, traffic sources, device breakdown |
+| GscQueriesWidget | Top search queries + CTR/position from Search Console |
+
+### Implementation Phases
+
+| Phase | Name | Status | What It Does |
+|-------|------|--------|--------------|
+| 1 | CRM Integration | Shipped | Identity stitching (UTM → CRM matching), contributor funnel, quality-by-channel |
+| 2 | Drift Engine | Shipped | Four-ring pairwise drift calculation, 100-point health scoring, issue detection |
+| 3 | GA4 + GSC | Shipped | Session caching, traffic source analysis, search query tracking, organic profile building |
+| 4 | HIE Behavioral | Planned | Scroll depth, CTA clicks, form friction, heatmaps via GTM-deployed JavaScript tag |
+| 5 | Ad Platform APIs | Planned | Google Ads, Meta Marketing API, LinkedIn Campaign Manager — paid audience ring |
+
+### HIE (Human Interaction Events) — Phase 4
+
+Port of VYRA's behavioral tracking layer. A lightweight JavaScript tag deployed via Google Tag Manager captures fine-grained user behavior on landing pages and job posting pages:
+
+- **Scroll events** — depth tracking (25%, 50%, 75%, 100%)
+- **Interaction events** — CTA clicks, form field focus/blur, video plays
+- **Page snapshots** — DOM state at key interaction points
+- **Session stitching** — connects anonymous behavioral data to UTM attribution
+
+**HIE Tables:**
+
+| Table | Purpose |
+|-------|---------|
+| `hie_sessions` | Behavioral tracking sessions with visitor_id + utm params |
+| `hie_interaction_events` | Click, form, CTA, video events with timestamps |
+| `hie_scroll_events` | Scroll depth tracking per page per session |
+| `hie_page_snapshots` | Page state captures at key interaction points |
+
+---
+
 ## Roles & Permissions / 角色与权限
 
 Roles are stored in `user_roles` table and resolved via `src/lib/permissions.ts`.
@@ -794,7 +932,7 @@ Roles are stored in `user_roles` table and resolved via `src/lib/permissions.ts`
 ```mermaid
 sequenceDiagram
     participant R as Recruiter
-    participant App as Nova (Next.js)
+    participant App as OneTake (Next.js)
     participant W as Worker (Python)
     participant A as Admin (Marketing)
     participant T as Teams Webhook
@@ -974,9 +1112,32 @@ test: test additions
 
 ### Testing / 测试
 
+**614 total tests** across TypeScript and Python:
+
+| Suite | Framework | Files | Tests | Coverage |
+|-------|-----------|-------|-------|----------|
+| AudienceIQ + HIE | Vitest | 8 | 81 | Drift calculator, health scorer, HIE ingest/diagnostics, identity stitching, profile builder, normalizer, widget registry |
+| Campaign Workspace | Vitest | 3 | 47 | Country filtering, CountryBar, AllCountriesOverview |
+| GraphRAG Interests | pytest | 2 | 29 | Seeder data integrity (13), router logic (16) |
+| Pipeline (Country) | pytest | 2 | 46 | Country job creator (17), orchestrator routing (29) |
+| Tracked Links | Vitest | 4 | ~50 | URL builder, slug generator, source options, route handler |
+| Figma Integration | Vitest | 5 | ~80 | Client, helpers, roundtrip, flow, routes |
+| Pipeline (Stage 4) | pytest | 2 | ~40 | Composition matrix, compositor prompt, archetype selector |
+| Other | Vitest | 4 | ~40 | Slugify, organic carousel, designer tokens, Neon artifacts |
+| Smoke Tests | pytest | 1 | ~201 | Config, connectivity, pipeline stages |
+
 ```bash
-# Run all tests
+# Run all TypeScript tests (413 tests)
 pnpm test
+
+# Run all Python tests (201 tests)
+cd worker && python3 -m pytest tests/ -v
+
+# Run AudienceIQ tests only
+pnpm test -- --run tests/unit/
+
+# Run GraphRAG tests only
+cd worker && python3 -m pytest tests/test_interest_seeder.py tests/test_interest_router.py -v
 
 # Watch mode
 pnpm test:watch

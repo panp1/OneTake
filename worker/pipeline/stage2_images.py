@@ -192,6 +192,8 @@ async def run_stage2(context: dict) -> dict:
     design: dict = context.get("design_direction", {})
     regions: list[str] = context.get("target_regions", [])
     languages: list[str] = context.get("target_languages", [])
+    actors_per_persona: int = context.get("actors_per_persona", 2)
+    country: str | None = context.get("country")
 
     # Extract visual_direction from derived_requirements (Phase A+B data)
     derived_req = brief.get("derived_requirements", {})
@@ -230,18 +232,19 @@ async def run_stage2(context: dict) -> dict:
     actor_jobs: list[dict] = []
     if personas:
         for persona in personas:
-            for actor_idx in range(ACTORS_PER_PERSONA):
+            for actor_idx in range(actors_per_persona):
                 actor_jobs.append({
                     "region": persona.get("region", regions[0] if regions else "Global"),
                     "language": persona.get("language", languages[0] if languages else "English"),
                     "persona": persona,
                     "actor_index": actor_idx,
                     "visual_direction": visual_direction,
+                    "country": country,
                 })
         logger.info(
             "Persona-driven actor generation: %d personas x %d actors = %d jobs",
             len(personas),
-            ACTORS_PER_PERSONA,
+            actors_per_persona,
             len(actor_jobs),
         )
     else:
@@ -251,6 +254,7 @@ async def run_stage2(context: dict) -> dict:
                 "region": region,
                 "language": language,
                 "persona": None,
+                "country": country,
             })
         logger.info(
             "Region-driven actor generation (no personas): %d regions",
@@ -258,7 +262,8 @@ async def run_stage2(context: dict) -> dict:
         )
 
     import asyncio
-    IMAGE_CONCURRENCY = 9  # Seedream is paid API — no rate limit, max parallelism
+
+    from config import IMAGE_CONCURRENCY  # Default: 15 (configurable via env)
 
     # ══════════════════════════════════════════════════════════════
     # PHASE 1: Create ALL 9 actor identity cards IN PARALLEL
@@ -385,6 +390,7 @@ async def _generate_actor_images(actor_data, design, request_id):
     job = actor_data.pop("_job", {})
     region = job.get("region", "Global")
     language = job.get("language", "English")
+    country = job.get("country")
     actor_id = actor_data.get("id", "")
 
     # Track compositions used for this actor (ensures variety)
@@ -430,6 +436,7 @@ async def _generate_actor_images(actor_data, design, request_id):
         is_seed=True,
         image_index=0,
         used_compositions=used_compositions,
+        country=country,
     )
     used_compositions.append(seed_comp)
 
@@ -466,6 +473,7 @@ async def _generate_actor_images(actor_data, design, request_id):
             is_seed=False,
             image_index=(var_idx + 1),
             used_compositions=used_compositions,
+            country=country,
         )
 
     var_results = await asyncio.gather(
@@ -503,6 +511,7 @@ async def _generate_validated_image(
     is_seed: bool,
     image_index: int = 0,
     used_compositions: list[str] | None = None,
+    country: str | None = None,
 ) -> tuple[str, float, str]:
     """Generate an image, validate via VQA, retry if needed, upload, and save.
 
@@ -672,6 +681,7 @@ async def _generate_validated_image(
         "format": "1080x1080",
         "language": language,
         "blob_url": blob_url,
+        "country": country,
         "metadata": {
             "actor_id": actor_id,
             "actor_name": actor_data.get("name"),

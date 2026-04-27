@@ -53,7 +53,9 @@ NVIDIA_NIM_DESIGN_MODEL = os.environ.get("NVIDIA_NIM_DESIGN_MODEL", "z-ai/glm5")
 # OpenRouter (Seedream 4.5 image gen + fallback LLM)
 # ---------------------------------------------------------------------------
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-IMAGE_MODEL = os.environ.get("IMAGE_MODEL", "bytedance-seed/seedream-4.5")
+IMAGE_MODEL = os.environ.get("IMAGE_MODEL", "openai/gpt-5.4-image-2")
+IMAGE_QUALITY = os.environ.get("IMAGE_QUALITY", "low")  # low, medium, high
+IMAGE_CONCURRENCY = int(os.environ.get("IMAGE_CONCURRENCY", "15"))
 
 # ---------------------------------------------------------------------------
 # Teams Webhook

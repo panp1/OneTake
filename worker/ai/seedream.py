@@ -1,9 +1,9 @@
-"""Image generation via Seedream 4.5 on OpenRouter.
+"""Image generation via OpenRouter.
 
-Uses the /api/v1/chat/completions endpoint (NOT /images/generations).
-Seedream returns images in message.images[] as base64 or URLs.
-
-Cost: $0.04 per image regardless of size.
+Supports Seedream 4.5, GPT Image 2, and other OpenRouter image models.
+Uses the /api/v1/chat/completions endpoint.
+Provider is selected via IMAGE_MODEL env var.
+Quality (low/medium/high) controlled via IMAGE_QUALITY env var.
 """
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import logging
 import os
 
 import httpx
-from config import IMAGE_MODEL, OPENROUTER_API_KEY
+from config import IMAGE_MODEL, IMAGE_QUALITY, OPENROUTER_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -85,9 +85,10 @@ async def generate_image(
         f"Avoid: {neg}"
     )
 
+    quality_label = IMAGE_QUALITY if ("gpt" in IMAGE_MODEL or "openai" in IMAGE_MODEL) else "default"
     logger.info(
-        "Generating image via %s (%dx%d, prompt=%d chars)...",
-        IMAGE_MODEL, width, height, len(full_prompt),
+        "Generating image via %s (%dx%d, quality=%s, prompt=%d chars)...",
+        IMAGE_MODEL, width, height, quality_label, len(full_prompt),
     )
 
     # Seedream on OpenRouter uses chat/completions, NOT images/generations
@@ -111,6 +112,7 @@ async def generate_image(
                         "messages": [
                             {"role": "user", "content": full_prompt},
                         ],
+                        **({"quality": IMAGE_QUALITY} if "gpt" in IMAGE_MODEL or "openai" in IMAGE_MODEL else {}),
                     },
                 )
                 resp.raise_for_status()

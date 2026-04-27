@@ -9,6 +9,7 @@ import RecruiterIntakeCard from "@/components/RecruiterIntakeCard";
 import FilterTabs from "@/components/FilterTabs";
 import CampaignList from "@/components/CampaignList";
 import CampaignPreviewPanel from "@/components/CampaignPreviewPanel";
+import { KpiStrip } from '@/components/insights/KpiStrip';
 import type { IntakeRequest, Status, UserRole } from "@/lib/types";
 
 const statusTabs: { value: string; label: string }[] = [
@@ -108,6 +109,7 @@ export default function Dashboard() {
   if (role === "admin") {
     return (
       <AppShell>
+        <KpiStrip />
         <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)] overflow-hidden">
           {/* Left: campaign list */}
           <div className="w-full lg:w-[380px] flex-shrink-0 lg:h-full h-auto max-h-[50vh] lg:max-h-none overflow-y-auto border-b lg:border-b-0 border-[var(--border)]">

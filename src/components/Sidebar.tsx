@@ -15,6 +15,7 @@ import {
   Wand2,
   PanelLeftClose,
   PanelLeftOpen,
+  BarChart3,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
@@ -35,6 +36,12 @@ const ROLE_NAV: Record<string, { title: string; links: NavItem[] }[]> = {
       ],
     },
     {
+      title: "Analytics",
+      links: [
+        { href: "/insights", label: "Insights", Icon: BarChart3 },
+      ],
+    },
+    {
       title: "Admin",
       links: [
         { href: "/admin", label: "Dashboard", Icon: Settings },
@@ -51,6 +58,12 @@ const ROLE_NAV: Record<string, { title: string; links: NavItem[] }[]> = {
       links: [
         { href: "/", label: "Dashboard", Icon: LayoutDashboard },
         { href: "/intake/new", label: "New Request", Icon: PlusCircle },
+      ],
+    },
+    {
+      title: "Analytics",
+      links: [
+        { href: "/insights", label: "Insights", Icon: BarChart3 },
       ],
     },
   ],

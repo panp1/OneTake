@@ -57,17 +57,11 @@ export default function AdSetRow({ adSet, channel, onUpdate }: AdSetRowProps) {
   const dailyBudget = adSet.daily_budget ?? 0;
 
   // Build tiered interests
-  const interestsByTier: InterestsByTier = adSet.interests_by_tier
-    ? {
-        hyper: adSet.interests_by_tier.hyper ?? [],
-        hot: adSet.interests_by_tier.hot ?? [],
-        broad: adSet.interests_by_tier.broad ?? [],
-      }
-    : {
-        hyper: tier === "hyper" ? (adSet.interests ?? []) : [],
-        hot: tier === "hot" ? (adSet.interests ?? []) : [],
-        broad: tier === "broad" ? (adSet.interests ?? []) : [],
-      };
+  const interestsByTier: InterestsByTier = {
+    hyper: adSet.interests_by_tier?.hyper ?? (tier === "hyper" ? (adSet.interests ?? []) : []),
+    hot: adSet.interests_by_tier?.hot ?? (tier === "hot" ? (adSet.interests ?? []) : []),
+    broad: adSet.interests_by_tier?.broad ?? (tier === "broad" ? (adSet.interests ?? []) : []),
+  };
 
   const totalInterests =
     interestsByTier.hyper.length +

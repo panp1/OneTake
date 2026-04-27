@@ -24,9 +24,10 @@ const mockGetIntakeRequest = getIntakeRequest as ReturnType<typeof vi.fn>;
 const mockGetDb = getDb as ReturnType<typeof vi.fn>;
 
 // Helper: create a mock SQL tagged-template function
+// Must work both as fn() and as fn`template` (tagged template)
 function createMockSql(returnValues: unknown[][] = [[]]) {
   let callIndex = 0;
-  const fn = vi.fn(async () => {
+  const fn = vi.fn(async (..._args: unknown[]) => {
     const result = returnValues[callIndex] ?? [];
     callIndex++;
     return result;
